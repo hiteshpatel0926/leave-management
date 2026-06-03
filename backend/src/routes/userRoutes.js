@@ -2,17 +2,19 @@ const express = require("express");
 
 const router = express.Router();
 
-const authenticate =
-require("../middleware/authMiddleware");
+const { authenticate, authorize } = require("../middleware/authMiddleware");
 
-const {
-  getProfile
-} = require("../controllers/userController");
+const { getProfile } = require("../controllers/userController");
 
-router.get(
-  "/me",
+const { getUsers, resetPassword } = require("../controllers/userController");
+
+router.get("/me", authenticate, getProfile);
+
+router.put(
+  "/:id/reset-password",
   authenticate,
-  getProfile
+  authorize("ADMIN"),
+  resetPassword
 );
 
 module.exports = router;

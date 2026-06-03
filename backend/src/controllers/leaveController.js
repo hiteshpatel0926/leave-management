@@ -315,5 +315,5 @@ module.exports = {
   getMyLeaves,
   getPendingLeaves,
   approveLeave,
-  rejectLeave,
+  rejectLeave
 };
