@@ -310,10 +310,75 @@ const rejectLeave = async (req, res) => {
   }
 };
 
+const cancelLeave = async (req, res) => {
+  try {
+    const leaveId = req.params.id;
+
+    const employee = await pool.query(
+      `
+        SELECT id
+        FROM employees
+        WHERE user_id = $1
+        `,
+      [req.user.userId],
+    );
+
+    if (employee.rows.length === 0) {
+      return res.status(404).json({
+        message: "Employee not found",
+      });
+    }
+
+    const employeeId = employee.rows[0].id;
+
+    const leave = await pool.query(
+      `
+        SELECT *
+        FROM leave_requests
+        WHERE id = $1
+        AND employee_id = $2
+        `,
+      [leaveId, employeeId],
+    );
+
+    if (leave.rows.length === 0) {
+      return res.status(404).json({
+        message: "Leave not found",
+      });
+    }
+
+    if (leave.rows[0].status !== "PENDING") {
+      return res.status(400).json({
+        message: "Only pending leaves can be cancelled",
+      });
+    }
+
+    await pool.query(
+      `
+      UPDATE leave_requests
+      SET status = 'CANCELLED'
+      WHERE id = $1
+      `,
+      [leaveId],
+    );
+
+    res.json({
+      message: "Leave cancelled successfully",
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server Error",
+    });
+  }
+};
+
 module.exports = {
   applyLeave,
   getMyLeaves,
   getPendingLeaves,
   approveLeave,
-  rejectLeave
+  rejectLeave,
+  cancelLeave
 };

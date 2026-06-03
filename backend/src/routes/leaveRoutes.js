@@ -10,6 +10,7 @@ const {
   getPendingLeaves,
   approveLeave,
   rejectLeave,
+  cancelLeave
 } = require("../controllers/leaveController");
 
 router.post("/apply", authenticate, applyLeave);
@@ -21,5 +22,7 @@ router.get("/pending", authenticate, authorize("ADMIN"), getPendingLeaves);
 router.put("/:id/approve", authenticate, authorize("ADMIN"), approveLeave);
 
 router.put("/:id/reject", authenticate, authorize("ADMIN"), rejectLeave);
+
+router.put("/:id/cancel", authenticate, cancelLeave);
 
 module.exports = router;

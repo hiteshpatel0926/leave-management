@@ -34,6 +34,26 @@ export default function Employees() {
     }
   };
 
+  const resetPassword = async (userId) => {
+    const newPassword = prompt("Enter new password");
+
+    if (!newPassword) {
+      return;
+    }
+
+    try {
+      await api.put(`/users/${userId}/reset-password`, {
+        newPassword,
+      });
+
+      alert("Password reset successfully");
+    } catch (error) {
+      console.error(error);
+
+      alert(error.response?.data?.message);
+    }
+  };
+
   const deleteEmployee = async (id) => {
     const confirmDelete = window.confirm("Deactivate employee?");
 
@@ -182,12 +202,26 @@ export default function Employees() {
 
                 <button
                   className="
-            bg-red-600
-            text-white
-            px-3
-            py-1
-            rounded
-            "
+                  bg-yellow-600
+                  text-white
+                  px-3
+                  py-1
+                  rounded
+                  mr-2
+                  "
+                  onClick={() => resetPassword(emp.user_id)}
+                >
+                  Reset Password
+                </button>
+
+                <button
+                  className="
+                  bg-red-600
+                  text-white
+                  px-3
+                  py-1
+                  rounded
+                  "
                   onClick={() => deleteEmployee(emp.id)}
                 >
                   Deactivate
