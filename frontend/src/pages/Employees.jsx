@@ -43,7 +43,7 @@ export default function Employees() {
   };
 
   const deleteEmployee = async (id) => {
-    const confirmDelete = window.confirm("Delete employee?");
+    const confirmDelete = window.confirm("Deactivate employee?");
 
     if (!confirmDelete) {
       return;
@@ -181,7 +181,7 @@ export default function Employees() {
             "
                   onClick={() => deleteEmployee(emp.id)}
                 >
-                  Delete
+                  Deactivate
                 </button>
               </td>
             </tr>

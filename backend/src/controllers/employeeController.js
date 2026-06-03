@@ -161,15 +161,11 @@ const createEmployee = async (req, res) => {
 };
 
 const searchEmployees = async (req, res) => {
-
   try {
+    const search = req.query.search || "";
 
-    const search =
-      req.query.search || "";
-
-    const result =
-      await pool.query(
-        `
+    const result = await pool.query(
+      `
         SELECT *
         FROM employees
         WHERE
@@ -181,21 +177,17 @@ const searchEmployees = async (req, res) => {
           OR designation ILIKE $1
         ORDER BY id
         `,
-        [`%${search}%`]
-      );
+      [`%${search}%`],
+    );
 
     res.json(result.rows);
-
-  } catch(error){
-
+  } catch (error) {
     console.error(error);
 
     res.status(500).json({
-      message: "Server Error"
+      message: "Server Error",
     });
-
   }
-
 };
 
 const getEmployees = async (req, res) => {
@@ -278,12 +270,25 @@ const updateEmployee = async (req, res) => {
 
 const deleteEmployee = async (req, res) => {
   try {
-    const { id } = req.params;
+    const result = await pool.query(
+      `
+        UPDATE employees
+        SET status='INACTIVE'
+        WHERE id=$1
+        AND status='ACTIVE'
+        RETURNING *
+    `,
+      [req.params.id],
+    );
 
-    await pool.query("DELETE FROM employees WHERE id=$1", [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Employee not found",
+      });
+    }
 
     res.json({
-      message: "Employee deleted",
+      message: "Employee marked inactive",
     });
   } catch (error) {
     console.error(error);
@@ -300,5 +305,5 @@ module.exports = {
   createEmployee,
   updateEmployee,
   deleteEmployee,
-  searchEmployees
+  searchEmployees,
 };
