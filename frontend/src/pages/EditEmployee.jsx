@@ -4,7 +4,6 @@ import api from "../services/api";
 
 export default function EditEmployee() {
   const { id } = useParams();
-
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -22,16 +21,11 @@ export default function EditEmployee() {
   const loadEmployee = async () => {
     try {
       const response = await api.get(`/employees/${id}`);
-
       setFormData({
         first_name: response.data.first_name,
-
         last_name: response.data.last_name,
-
         department: response.data.department,
-
         designation: response.data.designation,
-
         status: response.data.status,
       });
     } catch (error) {
@@ -48,81 +42,109 @@ export default function EditEmployee() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       await api.put(`/employees/${id}`, formData);
-
       alert("Employee updated successfully");
-
       navigate("/employees");
     } catch (error) {
       console.error(error);
-
       alert(error.response?.data?.message);
     }
   };
 
   return (
-    <div className="bg-white p-6 rounded shadow">
-      <h1 className="text-2xl mb-6">Edit Employee</h1>
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+        Edit Employee
+      </h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text"
-          name="first_name"
-          value={formData.first_name}
-          onChange={handleChange}
-          className="border p-2 w-full"
-        />
-
-        <input
-          type="text"
-          name="last_name"
-          value={formData.last_name}
-          onChange={handleChange}
-          className="border p-2 w-full"
-        />
-
-        <input
-          type="text"
-          name="department"
-          value={formData.department}
-          onChange={handleChange}
-          className="border p-2 w-full"
-        />
-
-        <input
-          type="text"
-          name="designation"
-          value={formData.designation}
-          onChange={handleChange}
-          className="border p-2 w-full"
-        />
-
-        <select
-          name="status"
-          value={formData.status}
-          onChange={handleChange}
-          className="border p-2 w-full"
-        >
-          <option value="ACTIVE">ACTIVE</option>
-
-          <option value="INACTIVE">INACTIVE</option>
-        </select>
-
-        <button
-          type="submit"
-          className="
-          bg-blue-600
-          text-white
-          px-4
-          py-2
-          rounded
-          "
-        >
-          Update Employee
-        </button>
-      </form>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                First Name
+              </label>
+              <input
+                type="text"
+                name="first_name"
+                value={formData.first_name}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Last Name
+              </label>
+              <input
+                type="text"
+                name="last_name"
+                value={formData.last_name}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Department
+              </label>
+              <input
+                type="text"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Designation
+              </label>
+              <input
+                type="text"
+                name="designation"
+                value={formData.designation}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Status
+              </label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="INACTIVE">INACTIVE</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex space-x-3 pt-2">
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+            >
+              Update Employee
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/employees")}
+              className="px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

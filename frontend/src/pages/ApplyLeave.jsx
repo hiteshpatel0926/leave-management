@@ -3,20 +3,15 @@ import api from "../services/api";
 
 export default function ApplyLeave() {
   const [leaveTypes, setLeaveTypes] = useState([]);
-
   const [message, setMessage] = useState("");
-
   const [error, setError] = useState("");
-
   const [totalDays, setTotalDays] = useState(0);
-
   const [form, setForm] = useState({
     leave_type_id: "",
     start_date: "",
     end_date: "",
     reason: "",
   });
-
   const [holidays, setHolidays] = useState([]);
 
   useEffect(() => {
@@ -27,13 +22,10 @@ export default function ApplyLeave() {
   const loadHolidays = async () => {
     try {
       const response = await api.get("/holidays");
-
-      const holidayDates = response.data.map(
-        (holiday) => new Date(holiday.holiday_date).toLocaleDateString('en-CA'),
+      const holidayDates = response.data.map((holiday) =>
+        new Date(holiday.holiday_date).toLocaleDateString('en-CA')
       );
-
       setHolidays(holidayDates);
-
       console.log("Holiday Dates:", holidayDates);
     } catch (error) {
       console.error(error);
@@ -43,10 +35,8 @@ export default function ApplyLeave() {
   function calculateWorkingDays(startDate, endDate, holidays) {
     let count = 0;
     const current = new Date(startDate);
-    const end = new Date(endDate); // ✅ convert string to Date
-
+    const end = new Date(endDate);
     while (current <= end) {
-      // ✅ now comparing Date to Date
       const day = current.getDay();
       const currentDate = current.toLocaleDateString('en-CA');
       const isHoliday = holidays.includes(currentDate);
@@ -59,13 +49,9 @@ export default function ApplyLeave() {
     return count;
   }
 
-   useEffect(() => {
+  useEffect(() => {
     if (form.start_date && form.end_date) {
-      const days = calculateWorkingDays(
-        form.start_date,
-        form.end_date,
-        holidays,
-      );
+      const days = calculateWorkingDays(form.start_date, form.end_date, holidays);
       setTotalDays(days > 0 ? days : 0);
     }
   }, [form.start_date, form.end_date, holidays]);
@@ -73,7 +59,6 @@ export default function ApplyLeave() {
   const loadLeaveTypes = async () => {
     try {
       const response = await api.get("/leave-types");
-
       setLeaveTypes(response.data);
     } catch (error) {
       console.error(error);
@@ -89,33 +74,23 @@ export default function ApplyLeave() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setMessage("");
     setError("");
 
-    if (
-      !form.leave_type_id ||
-      !form.start_date ||
-      !form.end_date ||
-      !form.reason
-    ) {
+    if (!form.leave_type_id || !form.start_date || !form.end_date || !form.reason) {
       setError("All fields are required");
-
       return;
     }
 
     try {
       const response = await api.post("/leaves/apply", form);
-
       setMessage(response.data.message);
-
       setForm({
         leave_type_id: "",
         start_date: "",
         end_date: "",
         reason: "",
       });
-
       setTotalDays(0);
     } catch (error) {
       setError(error.response?.data?.message || "Failed to apply leave");
@@ -123,99 +98,127 @@ export default function ApplyLeave() {
   };
 
   return (
-    <div className="max-w-2xl bg-white p-6 rounded shadow">
-      <h1 className="text-2xl font-semibold mb-6">Apply Leave</h1>
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+        Apply Leave
+      </h1>
 
-      {message && (
-        <div className="bg-green-100 text-green-700 p-3 mb-4 rounded">
-          {message}
-        </div>
-      )}
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
+        {message && (
+          <div className="mb-4 p-3 rounded-md bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+            {message}
+          </div>
+        )}
 
-      {error && (
-        <div className="bg-red-100 text-red-700 p-3 mb-4 rounded">{error}</div>
-      )}
+        {error && (
+          <div className="mb-4 p-3 rounded-md bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800">
+            {error}
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label className="block mb-2">Leave Type</label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Leave Type
+            </label>
+            <select
+              name="leave_type_id"
+              value={form.leave_type_id}
+              onChange={handleChange}
+              className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            >
+              <option value="">Select Leave Type</option>
+              {leaveTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.code} - {type.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <select
-            name="leave_type_id"
-            value={form.leave_type_id}
-            onChange={handleChange}
-            className="border p-2 w-full"
-          >
-            <option value="">Select Leave Type</option>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Start Date
+              </label>
+              <input
+                type="date"
+                name="start_date"
+                value={form.start_date}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                End Date
+              </label>
+              <input
+                type="date"
+                name="end_date"
+                value={form.end_date}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+            </div>
+          </div>
 
-            {leaveTypes.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.code} - {type.name}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Total Days (Working Days)
+            </label>
+            <input
+              type="text"
+              value={totalDays}
+              readOnly
+              className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 cursor-not-allowed"
+            />
+          </div>
 
-        <div className="mb-4">
-          <label className="block mb-2">Start Date</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Reason
+            </label>
+            <textarea
+              name="reason"
+              rows="4"
+              value={form.reason}
+              onChange={handleChange}
+              className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
+          </div>
 
-          <input
-            type="date"
-            name="start_date"
-            value={form.start_date}
-            onChange={handleChange}
-            className="border p-2 w-full"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="block mb-2">End Date</label>
-
-          <input
-            type="date"
-            name="end_date"
-            value={form.end_date}
-            onChange={handleChange}
-            className="border p-2 w-full"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="block mb-2">Total Days</label>
-
-          <input
-            type="text"
-            value={totalDays}
-            readOnly
-            className="border p-2 w-full bg-gray-100"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="block mb-2">Reason</label>
-
-          <textarea
-            name="reason"
-            rows="4"
-            value={form.reason}
-            onChange={handleChange}
-            className="border p-2 w-full"
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="
-            bg-blue-600
-            text-white
-            px-5
-            py-2
-            rounded
-          "
-        >
-          Apply Leave
-        </button>
-      </form>
+          <div className="flex space-x-3 pt-2">
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+            >
+              Apply Leave
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setForm({
+                  leave_type_id: "",
+                  start_date: "",
+                  end_date: "",
+                  reason: "",
+                });
+                setTotalDays(0);
+                setMessage("");
+                setError("");
+              }}
+              className="px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
