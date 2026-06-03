@@ -92,7 +92,8 @@ export default function Holidays() {
 
     setHolidayName(holiday.holiday_name);
 
-    setHolidayDate(new Date(holiday.holiday_date).toISOString().split("T")[0]);
+    setHolidayDate(new Date(holiday.holiday_date).toLocaleDateString("en-CA"), // en-CA gives YYYY-MM-DD format
+    );
   };
 
   return (

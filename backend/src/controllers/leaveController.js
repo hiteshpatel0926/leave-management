@@ -1,7 +1,7 @@
 const pool = require("../config/db");
 const currentYear = new Date().getFullYear();
 
-function calculateWorkingDays(startDate, endDate) {
+function calculateWorkingDays(startDate, endDate, holidays) {
   let count = 0;
 
   const current = new Date(startDate);
@@ -9,7 +9,11 @@ function calculateWorkingDays(startDate, endDate) {
   while (current <= endDate) {
     const day = current.getDay();
 
-    if (day !== 0 && day !== 6) {
+    const currentDate = current.toISOString().split("T")[0];
+
+    const isHoliday = holidays.includes(currentDate);
+
+    if (day !== 0 && day !== 6 && !isHoliday) {
       count++;
     }
 
@@ -42,6 +46,21 @@ const applyLeave = async (req, res) => {
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
 
+    const holidayResult = await pool.query(
+      `
+    SELECT holiday_date
+    FROM holidays
+    WHERE EXTRACT(YEAR FROM holiday_date) = $1
+    `,
+    );
+
+    const holidays = holidayResult.rows.map(
+      (h) => h.holiday_date.toISOString().split("T")[0],
+    );
+
+    console.log("Holiday Rows:", holidayResult.rows);
+    console.log("Holidays Array:", holidays);
+
     if (startDate > endDate) {
       return res.status(400).json({
         message: "End date cannot be before start date",
@@ -72,11 +91,11 @@ const applyLeave = async (req, res) => {
       });
     }
 
-    const totalDays = calculateWorkingDays(startDate, endDate);
+    const totalDays = calculateWorkingDays(startDate, endDate, holidays);
 
     console.log("Start:", startDate);
-console.log("End:", endDate);
-console.log("Total Days:", totalDays);
+    console.log("End:", endDate);
+    console.log("Total Days:", totalDays);
 
     if (totalDays <= 0) {
       return res.status(400).json({

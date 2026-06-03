@@ -17,40 +17,58 @@ export default function ApplyLeave() {
     reason: "",
   });
 
-  const calculateWorkingDays = (startDate, endDate) => {
-    if (!startDate || !endDate) {
-      return 0;
-    }
-
-    let count = 0;
-
-    const current = new Date(startDate);
-
-    const end = new Date(endDate);
-
-    while (current <= end) {
-      const day = current.getDay();
-
-      if (day !== 0 && day !== 6) {
-        count++;
-      }
-
-      current.setDate(current.getDate() + 1);
-    }
-
-    return count;
-  };
+  const [holidays, setHolidays] = useState([]);
 
   useEffect(() => {
     loadLeaveTypes();
+    loadHolidays();
   }, []);
 
-  useEffect(() => {
+  const loadHolidays = async () => {
+    try {
+      const response = await api.get("/holidays");
+
+      const holidayDates = response.data.map(
+        (holiday) => new Date(holiday.holiday_date).toLocaleDateString('en-CA'),
+      );
+
+      setHolidays(holidayDates);
+
+      console.log("Holiday Dates:", holidayDates);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  function calculateWorkingDays(startDate, endDate, holidays) {
+    let count = 0;
+    const current = new Date(startDate);
+    const end = new Date(endDate); // ✅ convert string to Date
+
+    while (current <= end) {
+      // ✅ now comparing Date to Date
+      const day = current.getDay();
+      const currentDate = current.toLocaleDateString('en-CA');
+      const isHoliday = holidays.includes(currentDate);
+      console.log(currentDate, holidays.includes(currentDate));
+      if (day !== 0 && day !== 6 && !isHoliday) {
+        count++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return count;
+  }
+
+   useEffect(() => {
     if (form.start_date && form.end_date) {
-      const days = calculateWorkingDays(form.start_date, form.end_date);
+      const days = calculateWorkingDays(
+        form.start_date,
+        form.end_date,
+        holidays,
+      );
       setTotalDays(days > 0 ? days : 0);
     }
-  }, [form.start_date, form.end_date]);
+  }, [form.start_date, form.end_date, holidays]);
 
   const loadLeaveTypes = async () => {
     try {
