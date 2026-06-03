@@ -22,7 +22,7 @@ export default function Sidebar() {
         mb-6
         "
       >
-        MBOS LMS
+        MBOS LMS 
       </h2>
 
       <nav className="space-y-2">
