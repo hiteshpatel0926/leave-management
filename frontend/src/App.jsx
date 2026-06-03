@@ -13,6 +13,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AddEmployee from "./pages/AddEmployee";
 import EditEmployee from "./pages/EditEmployee";
 import ChangePassword from "./pages/ChangePassword";
+import Holidays from "./pages/Holidays";
 
 function App() {
   return (
@@ -108,18 +109,28 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
+
         <Route
-        path="/change-password"
-        element={
-          <ProtectedRoute>
-            <MainLayout>
-              <ChangePassword />
-            </MainLayout>
-          </ProtectedRoute>
-        }
+          path="/change-password"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <ChangePassword />
+              </MainLayout>
+            </ProtectedRoute>
+          }
         />
 
+        <Route
+          path="/holidays"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Holidays />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

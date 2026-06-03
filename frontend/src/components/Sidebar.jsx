@@ -55,6 +55,10 @@ export default function Sidebar() {
             <Link to="/leave-balance" className="block">
               Leave Balance
             </Link>
+
+            <Link to="/holidays" className="block">
+              Holidays
+            </Link>
           </>
         )}
       </nav>
