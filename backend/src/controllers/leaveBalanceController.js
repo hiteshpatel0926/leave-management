@@ -1,39 +1,28 @@
 const pool = require("../config/db");
 
-const getMyLeaveBalances = async (
-  req,
-  res
-) => {
-
+const getMyLeaveBalances = async (req, res) => {
   try {
-
-    const employee =
-      await pool.query(
-        `
+    const employee = await pool.query(
+      `
         SELECT id
         FROM employees
         WHERE user_id = $1
         `,
-        [req.user.userId]
-      );
+      [req.user.userId],
+    );
 
-    if (
-      employee.rows.length === 0
-    ) {
+    if (employee.rows.length === 0) {
       return res.status(404).json({
-        message: "Employee not found"
+        message: "Employee not found",
       });
     }
 
-    const employeeId =
-      employee.rows[0].id;
+    const employeeId = employee.rows[0].id;
 
-    const currentYear =
-      new Date().getFullYear();
+    const currentYear = new Date().getFullYear();
 
-    const result =
-      await pool.query(
-        `
+    const result = await pool.query(
+      `
         SELECT
           lt.code,
           lt.name,
@@ -48,26 +37,19 @@ const getMyLeaveBalances = async (
           AND lb.year = $2
         ORDER BY lt.name
         `,
-        [
-          employeeId,
-          currentYear
-        ]
-      );
+      [employeeId, currentYear],
+    );
 
     res.json(result.rows);
-
-  } catch(error){
-
+  } catch (error) {
     console.error(error);
 
     res.status(500).json({
-      message:"Server Error"
+      message: "Server Error",
     });
-
   }
-
 };
 
 module.exports = {
-  getMyLeaveBalances
+  getMyLeaveBalances,
 };
