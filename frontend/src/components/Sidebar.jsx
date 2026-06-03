@@ -1,18 +1,11 @@
-import {
-  Link
-} from "react-router-dom";
+import { Link } from "react-router-dom";
 
 export default function Sidebar() {
-
-  const user =
-    JSON.parse(
-      localStorage.getItem("user")
-    );
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const isAdmin = user?.role === "ADMIN";
 
   return (
-
     <div
       className="
       w-64
@@ -22,7 +15,6 @@ export default function Sidebar() {
       p-4
       "
     >
-
       <h2
         className="
         text-xl
@@ -34,55 +26,38 @@ export default function Sidebar() {
       </h2>
 
       <nav className="space-y-2">
-
-        <Link
-          to="/dashboard"
-          className="block"
-        >
+        <Link to="/dashboard" className="block">
           Dashboard
         </Link>
 
-        <Link
-          to="/apply-leave"
-          className="block"
-        >
+        <Link to="/change-password" className="block">
+          Change Password
+        </Link>
+
+        <Link to="/apply-leave" className="block">
           Apply Leave
         </Link>
 
-        <Link
-          to="/my-leaves"
-          className="block"
-        >
+        <Link to="/my-leaves" className="block">
           My Leaves
         </Link>
 
         {isAdmin && (
           <>
-            <Link
-              to="/employees"
-              className="block"
-            >
+            <Link to="/employees" className="block">
               Employees
             </Link>
 
-            <Link
-              to="/pending-leaves"
-              className="block"
-            >
+            <Link to="/pending-leaves" className="block">
               Pending Leaves
             </Link>
 
-            <Link
-              to="/leave-balance"
-              className="block"
-            >
+            <Link to="/leave-balance" className="block">
               Leave Balance
             </Link>
           </>
         )}
-
       </nav>
-
     </div>
   );
 }

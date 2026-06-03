@@ -4,10 +4,15 @@ const router = express.Router();
 
 const {
   register,
-  login,
+  login,changePassword,
 } = require("../controllers/authController");
+
+const authenticate =
+  require(
+    "../middleware/authMiddleware"  );
 
 router.post("/register", register);
 router.post("/login", login);
+router.put( "/change-password",authenticate,changePassword);
 
 module.exports = router;

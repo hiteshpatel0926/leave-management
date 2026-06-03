@@ -12,6 +12,7 @@ import LeaveBalance from "./pages/LeaveBalance";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AddEmployee from "./pages/AddEmployee";
 import EditEmployee from "./pages/EditEmployee";
+import ChangePassword from "./pages/ChangePassword";
 
 function App() {
   return (
@@ -107,6 +108,18 @@ function App() {
             </ProtectedRoute>
           }
         />
+        
+        <Route
+        path="/change-password"
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <ChangePassword />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+        />
+
       </Routes>
     </BrowserRouter>
   );
