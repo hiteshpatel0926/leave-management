@@ -1,5 +1,24 @@
 const pool = require("../config/db");
 const currentYear = new Date().getFullYear();
+
+function calculateWorkingDays(startDate, endDate) {
+  let count = 0;
+
+  const current = new Date(startDate);
+
+  while (current <= endDate) {
+    const day = current.getDay();
+
+    if (day !== 0 && day !== 6) {
+      count++;
+    }
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  return count;
+}
+
 const applyLeave = async (req, res) => {
   try {
     const employee = await pool.query(
@@ -53,8 +72,17 @@ const applyLeave = async (req, res) => {
       });
     }
 
-    const totalDays =
-      Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const totalDays = calculateWorkingDays(startDate, endDate);
+
+    console.log("Start:", startDate);
+console.log("End:", endDate);
+console.log("Total Days:", totalDays);
+
+    if (totalDays <= 0) {
+      return res.status(400).json({
+        message: "Selected dates contain no working days",
+      });
+    }
 
     const balanceResult = await pool.query(
       `
@@ -380,5 +408,5 @@ module.exports = {
   getPendingLeaves,
   approveLeave,
   rejectLeave,
-  cancelLeave
+  cancelLeave,
 };
