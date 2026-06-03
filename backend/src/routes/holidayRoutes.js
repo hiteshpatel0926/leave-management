@@ -9,7 +9,9 @@ const {
 
 const {
   getHolidays,
-  createHoliday
+  createHoliday,
+  updateHoliday,
+  deleteHoliday
 } = require("../controllers/holidayController");
 
 router.get(
@@ -23,6 +25,21 @@ router.post(
   authenticate,
   authorize("ADMIN"),
   createHoliday
+);
+
+
+router.put(
+  "/:id",
+  authenticate,
+  authorize("ADMIN"),
+  updateHoliday
+);
+
+router.delete(
+  "/:id",
+  authenticate,
+  authorize("ADMIN"),
+  deleteHoliday
 );
 
 module.exports = router;
