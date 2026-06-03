@@ -8,17 +8,15 @@ export default function Employees() {
 
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
   useEffect(() => {
-    if (search.trim() === "") {
-      loadEmployees();
-    } else {
-      const timeout = setTimeout(() => {
-        searchEmployees();
-      }, 300);
-      return () => clearTimeout(timeout);
-    }
-  }, [search]);
+    const timeout = setTimeout(() => {
+      searchEmployees();
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [search, statusFilter]);
 
   const loadEmployees = async () => {
     try {
@@ -34,7 +32,9 @@ export default function Employees() {
 
   const searchEmployees = async () => {
     try {
-      const response = await api.get(`/employees/search?search=${search}`);
+      const response = await api.get(
+        `/employees/search?search=${search}&status=${statusFilter}`,
+      );
 
       setEmployees(response.data);
     } catch (error) {
@@ -102,6 +102,23 @@ export default function Employees() {
     w-full
     "
         />
+
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="
+          border
+          p-2
+          mt-2
+          w-full
+          "
+        >
+          <option value="ALL">All</option>
+
+          <option value="ACTIVE">Active</option>
+
+          <option value="INACTIVE">Inactive</option>
+        </select>
       </div>
 
       <table className="w-full border">

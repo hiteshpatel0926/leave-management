@@ -164,21 +164,37 @@ const searchEmployees = async (req, res) => {
   try {
     const search = req.query.search || "";
 
-    const result = await pool.query(
-      `
-        SELECT *
-        FROM employees
-        WHERE
-          employee_code ILIKE $1
-          OR first_name ILIKE $1
-          OR last_name ILIKE $1
-          OR email ILIKE $1
-          OR department ILIKE $1
-          OR designation ILIKE $1
-        ORDER BY id
-        `,
-      [`%${search}%`],
-    );
+    const status = req.query.status || "ALL";
+
+    let query = `
+      SELECT *
+      FROM employees
+      WHERE
+      (
+        employee_code ILIKE $1
+        OR first_name ILIKE $1
+        OR last_name ILIKE $1
+        OR email ILIKE $1
+        OR department ILIKE $1
+        OR designation ILIKE $1
+      )
+    `;
+
+    let params = [`%${search}%`];
+
+    if (status !== "ALL") {
+      query += `
+        AND status = $2
+      `;
+
+      params.push(status);
+    }
+
+    query += `
+      ORDER BY id
+    `;
+
+    const result = await pool.query(query, params);
 
     res.json(result.rows);
   } catch (error) {
