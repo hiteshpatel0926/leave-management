@@ -47,10 +47,16 @@ export default function MyLeaves() {
   const getStatusClass = (status) => {
     switch (status) {
       case "APPROVED":
-        return "bg-green-100 text-green-700";
+        return "bg-green-100 text-green-700 px-2 py-1 rounded";
 
       case "REJECTED":
-        return "bg-red-100 text-red-700";
+        return "bg-red-100 text-red-700 px-2 py-1 rounded";
+
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-700 px-2 py-1 rounded";  
+
+      case "CANCELLED":
+        return "bg-gray-200 text-gray-700 px-2 py-1 rounded";
 
       default:
         return "bg-yellow-100 text-yellow-700";
