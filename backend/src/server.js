@@ -10,6 +10,8 @@ const leaveRoutes = require("./routes/leaveRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const leaveTypeRoutes = require("./routes/leaveTypeRoutes");
 const leaveBalanceRoutes = require("./routes/leaveBalanceRoutes");
+const holidayRoutes = require("./routes/holidayRoutes");
+
 const app = express();
 
 app.use(cors());
@@ -21,7 +23,8 @@ app.use("/api/employees", employeeRoutes);
 app.use("/api/leaves", leaveRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/leave-types",leaveTypeRoutes);
-app.use( "/api/balances", leaveBalanceRoutes);
+app.use("/api/balances", leaveBalanceRoutes);
+app.use("/api/holidays", holidayRoutes);
 
 app.get("/", (req, res) => {
   res.json({
