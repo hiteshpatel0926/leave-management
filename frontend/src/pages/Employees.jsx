@@ -6,32 +6,22 @@ export default function Employees() {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      searchEmployees();
+      getEmployees();
     }, 300);
 
     return () => clearTimeout(timeout);
   }, [search, statusFilter]);
 
-  const loadEmployees = async () => {
+  const getEmployees = async () => {
     try {
-      const response = await api.get("/employees");
+      setLoading(true);
 
-      setEmployees(response.data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const searchEmployees = async () => {
-    try {
       const response = await api.get(
         `/employees/search?search=${search}&status=${statusFilter}`,
       );
@@ -39,6 +29,8 @@ export default function Employees() {
       setEmployees(response.data);
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -52,7 +44,7 @@ export default function Employees() {
     try {
       await api.delete(`/employees/${id}`);
 
-      loadEmployees();
+      getEmployees();
     } catch (error) {
       console.error(error);
 
