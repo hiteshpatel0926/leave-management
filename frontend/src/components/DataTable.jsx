@@ -21,15 +21,26 @@ export default function DataTable({ columns, data, title }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
-            {data.map((row, rowIdx) => (
-              <tr key={rowIdx} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                {row.map((cell, cellIdx) => (
-                  <td key={cellIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                    {cell}
-                  </td>
-                ))}
+            {data.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={columns.length}
+                  className="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400"
+                >
+                  No records found.
+                </td>
               </tr>
-            ))}
+            ) : (
+              data.map((row, rowIdx) => (
+                <tr key={rowIdx} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  {row.map((cell, cellIdx) => (
+                    <td key={cellIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

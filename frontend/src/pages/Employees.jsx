@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import DataTable from "../components/DataTable";
 
 export default function Employees() {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
-
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -14,18 +14,15 @@ export default function Employees() {
     const timeout = setTimeout(() => {
       getEmployees();
     }, 300);
-
     return () => clearTimeout(timeout);
   }, [search, statusFilter]);
 
   const getEmployees = async () => {
     try {
       setLoading(true);
-
       const response = await api.get(
-        `/employees/search?search=${search}&status=${statusFilter}`,
+        `/employees/search?search=${search}&status=${statusFilter}`
       );
-
       setEmployees(response.data);
     } catch (error) {
       console.error(error);
@@ -36,201 +33,131 @@ export default function Employees() {
 
   const resetPassword = async (userId) => {
     const newPassword = prompt("Enter new password");
-
-    if (!newPassword) {
-      return;
-    }
-
+    if (!newPassword) return;
     try {
-      await api.put(`/users/${userId}/reset-password`, {
-        newPassword,
-      });
-
+      await api.put(`/users/${userId}/reset-password`, { newPassword });
       alert("Password reset successfully");
     } catch (error) {
       console.error(error);
-
       alert(error.response?.data?.message);
     }
   };
 
   const deleteEmployee = async (id) => {
     const confirmDelete = window.confirm("Deactivate employee?");
-
-    if (!confirmDelete) {
-      return;
-    }
-
+    if (!confirmDelete) return;
     try {
       await api.delete(`/employees/${id}`);
-
       getEmployees();
     } catch (error) {
       console.error(error);
-
       alert(error.response?.data?.message);
     }
   };
 
+  // Define columns for DataTable
+  const columns = [
+    "Code",
+    "Name",
+    "Email",
+    "Department",
+    "Designation",
+    "Status",
+    "Joining Date",
+    "Actions",
+  ];
+
+  // Transform employees into rows (each row is an array)
+  const data = employees.map((emp) => [
+    emp.employee_code,
+    `${emp.first_name} ${emp.last_name}`,
+    emp.email,
+    emp.department,
+    emp.designation,
+    <span
+      className={`px-2 py-1 text-xs font-medium rounded-full ${
+        emp.status === "ACTIVE"
+          ? "bg-green-100 text-green-800"
+          : "bg-red-100 text-red-800"
+      }`}
+    >
+      {emp.status}
+    </span>,
+    new Date(emp.joining_date).toLocaleDateString(),
+    <div className="flex space-x-2">
+      <button
+        onClick={() => navigate(`/employees/edit/${emp.id}`)}
+        className="px-3 py-1 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+      >
+        Edit
+      </button>
+      <button
+        onClick={() => resetPassword(emp.user_id)}
+        className="px-3 py-1 text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 transition-colors"
+      >
+        Reset Pwd
+      </button>
+      <button
+        onClick={() => deleteEmployee(emp.id)}
+        className="px-3 py-1 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors"
+      >
+        Deactivate
+      </button>
+    </div>,
+  ]);
+
   if (loading) {
-    return <p>Loading...</p>;
+    return (
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+          <div className="space-y-2">
+            <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="bg-white p-6 rounded shadow">
-      <div className="flex justify-between mb-6">
-        <h1
-          className="
-    text-2xl
-    font-semibold
-    "
-        >
+    <div className="space-y-4">
+      {/* Header with title and Add button */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           Employees
         </h1>
-
         <button
           onClick={() => navigate("/employees/new")}
-          className="
-    bg-green-600
-    text-white
-    px-4
-    py-2
-    rounded
-    "
+          className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors"
         >
           Add Employee
         </button>
       </div>
 
-      <div className="mb-4">
+      {/* Search and filter inputs */}
+      <div className="flex flex-col sm:flex-row gap-4">
         <input
           type="text"
           placeholder="Search employee..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="
-    border
-    p-2
-    w-full
-    "
+          className="flex-1 px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
-
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="
-          border
-          p-2
-          mt-2
-          w-full
-          "
+          className="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
-          <option value="ALL">All</option>
-
+          <option value="ALL">All Status</option>
           <option value="ACTIVE">Active</option>
-
           <option value="INACTIVE">Inactive</option>
         </select>
       </div>
 
-      <table className="w-full border">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border p-2">Code</th>
-
-            <th className="border p-2">Name</th>
-
-            <th className="border p-2">Email</th>
-
-            <th className="border p-2">Department</th>
-
-            <th className="border p-2">Designation</th>
-
-            <th className="border p-2">Status</th>
-
-            <th className="border p-2">Joining Date</th>
-
-            <th className="border p-2">Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {employees.map((emp) => (
-            <tr key={emp.id}>
-              <td className="border p-2">{emp.employee_code}</td>
-
-              <td className="border p-2">
-                {emp.first_name} {emp.last_name}
-              </td>
-
-              <td className="border p-2">{emp.email}</td>
-
-              <td className="border p-2">{emp.department}</td>
-
-              <td className="border p-2">{emp.designation}</td>
-
-              <td className="border p-2">
-                <span
-                  className={
-                    emp.status === "ACTIVE"
-                      ? "bg-green-100 text-green-700 px-2 py-1 rounded"
-                      : "bg-red-100 text-red-700 px-2 py-1 rounded"
-                  }
-                >
-                  {emp.status}
-                </span>
-              </td>
-
-              <td className="border p-2">
-                {new Date(emp.joining_date).toLocaleDateString()}
-              </td>
-
-              <td className="border p-2">
-                <button
-                  className="
-                      bg-blue-600
-                      text-white
-                      px-3
-                      py-1
-                      rounded
-                      mr-2
-                      "
-                  onClick={() => navigate(`/employees/edit/${emp.id}`)}
-                >
-                  Edit
-                </button>
-
-                <button
-                  className="
-                  bg-yellow-600
-                  text-white
-                  px-3
-                  py-1
-                  rounded
-                  mr-2
-                  "
-                  onClick={() => resetPassword(emp.user_id)}
-                >
-                  Reset Password
-                </button>
-
-                <button
-                  className="
-                  bg-red-600
-                  text-white
-                  px-3
-                  py-1
-                  rounded
-                  "
-                  onClick={() => deleteEmployee(emp.id)}
-                >
-                  Deactivate
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* Reusable DataTable */}
+      <DataTable columns={columns} data={data} />
     </div>
   );
 }
