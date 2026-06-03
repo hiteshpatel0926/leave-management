@@ -48,10 +48,10 @@ const applyLeave = async (req, res) => {
 
     const holidayResult = await pool.query(
       `
-    SELECT holiday_date
-    FROM holidays
-    WHERE EXTRACT(YEAR FROM holiday_date) = $1
-    `,
+  SELECT holiday_date FROM holidays
+  WHERE EXTRACT(YEAR FROM holiday_date) = $1
+`,
+      [currentYear],
     );
 
     const holidays = holidayResult.rows.map(
