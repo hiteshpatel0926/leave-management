@@ -35,11 +35,15 @@ export default function Login() {
       >
         <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-bold text-3xl">L</span>
+            <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <span className="text-white font-bold text-xl">MBOS</span>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Leave Management</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">Sign in to your account</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Leave Management
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-2">
+              Sign in to your account
+            </p>
           </div>
 
           {error && (
