@@ -1,4 +1,5 @@
 /* frontend/src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 /* CSS variables are still a great way to manage themes */
@@ -48,7 +49,7 @@
   body {
     background: linear-gradient(to bottom right, var(--color-gray-50), var(--color-gray-100));
     color: var(--color-foreground);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;  /* ← change here */
   }
 
   .dark body {

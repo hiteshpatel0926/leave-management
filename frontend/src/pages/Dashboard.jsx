@@ -54,7 +54,9 @@ export default function Dashboard() {
       className="space-y-6"
     >
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          Dashboard
+        </h1>
         <p className="text-gray-500 dark:text-gray-400 mt-1">
           {stats.role === "ADMIN"
             ? "Overview of all employees and leave activity"
@@ -116,7 +118,7 @@ export default function Dashboard() {
           <motion.div variants={item}>
             <DashboardCard
               title="Entitled Days"
-              value={stats.entitledDays}
+              value={stats.leaveBalance}        // ← fixed
               color="blue"
               icon={<CalendarIcon className="h-6 w-6" />}
               subtitle="Annual leave"
@@ -125,7 +127,7 @@ export default function Dashboard() {
           <motion.div variants={item}>
             <DashboardCard
               title="Used Days"
-              value={stats.usedDays}
+              value={stats.approvedLeaves}      // ← fixed
               color="amber"
               icon={<ClockIcon className="h-6 w-6" />}
               subtitle="Taken so far"
@@ -134,7 +136,7 @@ export default function Dashboard() {
           <motion.div variants={item}>
             <DashboardCard
               title="Remaining Balance"
-              value={stats.remainingBalance}
+              value={stats.leaveBalance - stats.approvedLeaves}  // ← fixed calculation
               color="green"
               icon={<CheckCircleIcon className="h-6 w-6" />}
               subtitle="Available"
