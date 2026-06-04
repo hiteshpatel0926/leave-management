@@ -46,6 +46,33 @@ const applyLeave = async (req, res) => {
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
 
+    const overlapCheck = await pool.query(
+      `
+SELECT
+  id,
+  start_date,
+  end_date,
+  status
+FROM leave_requests
+WHERE employee_id = $1
+  AND status IN ('PENDING','APPROVED')
+  AND start_date <= $3
+  AND end_date >= $2
+`,
+      [employeeId, start_date, end_date],
+    );
+    if (overlapCheck.rows.length > 0) {
+      const existing = overlapCheck.rows[0];
+
+      const startDate = existing.start_date.toLocaleDateString("en-GB");
+
+      const endDate = existing.end_date.toLocaleDateString("en-GB");
+
+      return res.status(400).json({
+        message: `Overlaps with existing ${existing.status} leave (${startDate} - ${endDate})`,
+      });
+    }
+
     const holidayResult = await pool.query(
       `
   SELECT holiday_date FROM holidays
