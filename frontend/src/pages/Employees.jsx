@@ -89,6 +89,12 @@ export default function Employees() {
     </span>,
     new Date(emp.joining_date).toLocaleDateString(),
     <div className="flex space-x-2">
+       <button
+        onClick={() => navigate(`/employees/${emp.id}`)}
+        className="px-3 py-1 text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+      >
+        View
+      </button>
       <button
         onClick={() => navigate(`/employees/edit/${emp.id}`)}
         className="px-3 py-1 text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"

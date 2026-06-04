@@ -12,6 +12,7 @@ const leaveTypeRoutes = require("./routes/leaveTypeRoutes");
 const leaveBalanceRoutes = require("./routes/leaveBalanceRoutes");
 const holidayRoutes = require("./routes/holidayRoutes");
 const profileRoutes = require("./routes/profileRoutes");
+const employeeProfileRoutes = require("./routes/employeeProfileRoutes");
 const app = express();
 
 app.use(cors());
@@ -26,6 +27,7 @@ app.use("/api/leave-types", leaveTypeRoutes);
 app.use("/api/balances", leaveBalanceRoutes);
 app.use("/api/holidays", holidayRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/employees", employeeProfileRoutes);
 
 app.get("/", (req, res) => {
   res.json({

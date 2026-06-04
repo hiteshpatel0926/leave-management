@@ -15,6 +15,7 @@ import EditEmployee from "./pages/EditEmployee";
 import ChangePassword from "./pages/ChangePassword";
 import Holidays from "./pages/Holidays";
 import MyProfile from "./pages/MyProfile";
+import EmployeeDetails from "./pages/EmployeeDetails";
 
 function App() {
   return (
@@ -138,6 +139,16 @@ function App() {
             <ProtectedRoute>
               <MainLayout>
                 <MyProfile />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employees/:id"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <EmployeeDetails />
               </MainLayout>
             </ProtectedRoute>
           }
