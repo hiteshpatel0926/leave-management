@@ -129,6 +129,17 @@ export default function EmployeeDetails() {
 
             <div className="space-y-1">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Date of Joining
+              </span>
+              <p className="text-gray-900 dark:text-gray-100">
+                {employee.profile.joining_date
+                  ? new Date(employee.profile.joining_date).toLocaleDateString()
+                  : "-"}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Status
               </span>
               <p className="text-gray-900 dark:text-gray-100">

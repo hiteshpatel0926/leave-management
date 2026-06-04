@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MagnifyingGlassIcon, FunnelIcon, PlusIcon } from "@heroicons/react/24/outline";
+import {
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  PlusIcon,
+} from "@heroicons/react/24/outline";
 import api from "../services/api";
 import DataTable from "../components/DataTable";
 
@@ -23,7 +27,7 @@ export default function Employees() {
     try {
       setLoading(true);
       const response = await api.get(
-        `/employees/search?search=${search}&status=${statusFilter}`
+        `/employees/search?search=${search}&status=${statusFilter}`,
       );
       setEmployees(response.data);
     } catch (error) {
@@ -89,7 +93,7 @@ export default function Employees() {
     </span>,
     new Date(emp.joining_date).toLocaleDateString(),
     <div className="flex space-x-2">
-       <button
+      <button
         onClick={() => navigate(`/employees/${emp.id}`)}
         className="px-3 py-1 text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
       >
@@ -133,7 +137,9 @@ export default function Employees() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Employees</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Employees
+          </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
             Manage and monitor all employee records
           </p>
