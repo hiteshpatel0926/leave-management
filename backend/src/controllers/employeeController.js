@@ -17,161 +17,76 @@ const createEmployee = async (req, res) => {
     } = req.body;
 
     const existingUser = await pool.query(
-      `
-        SELECT id
-        FROM users
-        WHERE email = $1
-        `,
-      [email],
+      `SELECT id FROM users WHERE email = $1`,
+      [email]
     );
 
     if (existingUser.rows.length > 0) {
       await pool.query("ROLLBACK");
-
-      return res.status(400).json({
-        message: "Email already exists",
-      });
+      return res.status(400).json({ message: "Email already exists" });
     }
 
     const lastEmployee = await pool.query(
-      `
-    SELECT employee_code
-    FROM employees
-    ORDER BY id DESC
-    LIMIT 1
-    `,
+      `SELECT employee_code FROM employees ORDER BY id DESC LIMIT 1`
     );
 
     let employeeCode = "EMP001";
-
     if (lastEmployee.rows.length > 0) {
       const lastCode = lastEmployee.rows[0].employee_code;
-
       const number = parseInt(lastCode.replace("EMP", ""));
-
       employeeCode = `EMP${String(number + 1).padStart(3, "0")}`;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const userResult = await pool.query(
-      `
-        INSERT INTO users
-        (
-          name,
-          email,
-          password,
-          role,
-          dob,
-          gender
-        )
-        VALUES
-        ($1,$2,$3,$4,$5,$6)
-        RETURNING id
-        `,
-      [
-        `${first_name} ${last_name}`,
-        email,
-        hashedPassword,
-        "EMPLOYEE",
-        dob,
-        gender,
-      ],
+      `INSERT INTO users (name, email, password, role, dob, gender)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+      [`${first_name} ${last_name}`, email, hashedPassword, "EMPLOYEE", dob, gender]
     );
-
     const userId = userResult.rows[0].id;
 
     const employeeResult = await pool.query(
-      `
-        INSERT INTO employees
-        (
-          user_id,
-          employee_code,
-          first_name,
-          last_name,
-          email,
-          department,
-          designation,
-          joining_date,
-          status,
-          dob,
-          gender
-        )
-        VALUES
-        (
-          $1,$2,$3,$4,$5,
-          $6,$7,$8,$9,$10,$11
-        )
-        RETURNING *
-        `,
-      [
-        userId,
-        employeeCode,
-        first_name,
-        last_name,
-        email,
-        department,
-        designation,
-        joining_date,
-        "ACTIVE",
-        dob,
-        gender,
-      ],
+      `INSERT INTO employees
+        (user_id, employee_code, first_name, last_name, email,
+         department, designation, joining_date, status, dob, gender)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [userId, employeeCode, first_name, last_name, email,
+       department, designation, joining_date, "ACTIVE", dob, gender]
     );
-
     const employeeId = employeeResult.rows[0].id;
-
     const currentYear = new Date().getFullYear();
 
     const leaveTypes = await pool.query(
-      `
-        SELECT *
-        FROM leave_types
-        WHERE active = true
-        `,
+      `SELECT * FROM leave_types WHERE active = true`
     );
 
-    for (const leaveType of leaveTypes.rows) {
+    // ✅ Gender‑based filtering using .includes()
+    const filteredLeaveTypes = leaveTypes.rows.filter((leaveType) => {
+      const nameLower = leaveType.name.toLowerCase();
+      if (nameLower.includes("paternity")) return gender === "Male";
+      if (nameLower.includes("maternity")) return gender === "Female";
+      return true; // All other leave types (e.g., annual, sick, comp off)
+    });
+
+    for (const leaveType of filteredLeaveTypes) {
       await pool.query(
-        `
-        INSERT INTO leave_balances
-        (
-          employee_id,
-          leave_type_id,
-          year,
-          entitled_days,
-          used_days,
-          balance_days
-        )
-        VALUES
-        ($1,$2,$3,$4,$5,$6)
-        `,
-        [
-          employeeId,
-          leaveType.id,
-          currentYear,
-          leaveType.annual_entitlement,
-          0,
-          leaveType.annual_entitlement,
-        ],
+        `INSERT INTO leave_balances
+         (employee_id, leave_type_id, year, entitled_days, used_days, balance_days)
+         VALUES ($1,$2,$3,$4,$5,$6)`,
+        [employeeId, leaveType.id, currentYear, leaveType.annual_entitlement, 0, leaveType.annual_entitlement]
       );
     }
 
     await pool.query("COMMIT");
-
     res.status(201).json({
       message: "Employee created successfully",
-
       employee: employeeResult.rows[0],
     });
   } catch (error) {
     await pool.query("ROLLBACK");
-
     console.error(error);
-
-    res.status(500).json({
-      message: "Server Error",
-    });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
