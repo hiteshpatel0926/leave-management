@@ -10,11 +10,15 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   CalendarIcon,
+  ChartBarIcon,
 } from "@heroicons/react/24/outline";
+
+import { ArrowPathIcon as RefreshIcon } from "@heroicons/react/24/outline";
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const navigate = useNavigate();
+
   useEffect(() => {
     loadDashboard();
   }, []);
@@ -56,49 +60,79 @@ export default function Dashboard() {
       new Date(holiday.holiday_date).toLocaleDateString(),
     ]) || [];
 
+  // Helper: Progress bar component for employee leave usage
+  const LeaveProgress = ({ used, total }) => {
+    const percentage = total > 0 ? (used / total) * 100 : 0;
+    const color = percentage > 80 ? "red" : percentage > 60 ? "yellow" : "green";
+    return (
+      <div className="mt-3">
+        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+          <span>Used: {used} days</span>
+          <span>Remaining: {total - used} days</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+          <div
+            className={`h-2.5 rounded-full ${
+              color === "red"
+                ? "bg-red-500"
+                : color === "yellow"
+                ? "bg-yellow-400"
+                : "bg-green-500"
+            }`}
+            style={{ width: `${Math.min(percentage, 100)}%` }}
+          ></div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Dashboard
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
-          {stats.role === "ADMIN"
-            ? "Overview of all employees and leave activity"
-            : "Your leave summary for this year"}
-        </p>
+      {/* Header with refresh button */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Dashboard
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">
+            {stats.role === "ADMIN"
+              ? "Overview of all employees and leave activity"
+              : "Your leave summary for this year"}
+          </p>
+        </div>
+        <button
+          onClick={loadDashboard}
+          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+        >
+          <RefreshIcon className="h-5 w-5 text-gray-500" />
+        </button>
       </div>
 
+      {/* ---------- ADMIN CARDS ---------- */}
       {stats.role === "ADMIN" ? (
         <motion.div
           variants={container}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6"
         >
           <motion.div variants={item}>
-            <div
-              onClick={() => navigate("/employees")}
-              className="cursor-pointer"
-            >
+            <div onClick={() => navigate("/employees")} className="cursor-pointer">
               <DashboardCard
                 title="Total Employees"
                 value={stats.totalEmployees}
                 color="blue"
                 icon={<UsersIcon className="h-6 w-6" />}
-                subtitle="Active employees"
+                subtitle="All employees"
               />
             </div>
           </motion.div>
           <motion.div variants={item}>
-            <div
-              onClick={() => navigate("/employees")}
-              className="cursor-pointer"
-            >
+            <div onClick={() => navigate("/employees")} className="cursor-pointer">
               <DashboardCard
                 title="Active Employees"
                 value={stats.activeEmployees}
@@ -109,12 +143,9 @@ export default function Dashboard() {
             </div>
           </motion.div>
           <motion.div variants={item}>
-            <div
-              onClick={() => navigate("/pending-leaves")}
-              className="cursor-pointer"
-            >
+            <div onClick={() => navigate("/pending-leaves")} className="cursor-pointer">
               <DashboardCard
-                title="Pending Leaves"
+                title="Pending Requests"
                 value={stats.pendingLeaves}
                 color="amber"
                 icon={<ClockIcon className="h-6 w-6" />}
@@ -124,90 +155,116 @@ export default function Dashboard() {
           </motion.div>
           <motion.div variants={item}>
             <DashboardCard
-              title="Approved Leaves"
+              title="Approved Requests"
               value={stats.approvedLeaves}
               color="green"
               icon={<CheckCircleIcon className="h-6 w-6" />}
-              subtitle="This year"
+              subtitle="Approved leaves"
             />
           </motion.div>
           <motion.div variants={item}>
             <DashboardCard
-              title="Rejected Leaves"
+              title="Rejected Requests"
               value={stats.rejectedLeaves}
               color="red"
               icon={<XCircleIcon className="h-6 w-6" />}
-              subtitle="This year"
+              subtitle="Rejected leaves"
             />
           </motion.div>
         </motion.div>
       ) : (
+        /* ---------- EMPLOYEE CARDS ---------- */
         <motion.div
           variants={container}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="space-y-6"
         >
-          <motion.div variants={item}>
-            <div
-              onClick={() => navigate("/leave-balance")}
-              className="cursor-pointer"
-            >
-              <DashboardCard
-                title="Available Leave Balance"
-                value={stats.leaveBalance}
-                color="blue"
-                icon={<CalendarIcon className="h-6 w-6" />}
-                subtitle="Annual leave"
-              />
-            </div>
+          {/* First row: Balance summary */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <motion.div variants={item}>
+              <div onClick={() => navigate("/leave-balance")} className="cursor-pointer">
+                <DashboardCard
+                  title="Available Balance"
+                  value={stats.totalEntitlement}
+                  color="blue"
+                  icon={<CalendarIcon className="h-6 w-6" />}
+                  subtitle="Total leave entitlement"
+                />
+              </div>
+            </motion.div>
+            <motion.div variants={item}>
+              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
+                <DashboardCard
+                  title="Used Leave Days"
+                  value={stats.usedLeaveDays}
+                  color="indigo"
+                  icon={<ChartBarIcon className="h-6 w-6" />}
+                  subtitle="Approved days taken"
+                />
+              </div>
+            </motion.div>
+            <motion.div variants={item}>
+              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
+                <DashboardCard
+                  title="Remaining Balance"
+                  value={stats.remainingBalance}
+                  color="green"
+                  icon={<CalendarIcon className="h-6 w-6" />}
+                  subtitle="Days left to take"
+                />
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Progress bar card */}
+          <motion.div variants={item} className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Leave Utilization
+            </h3>
+            <LeaveProgress used={stats.usedLeaveDays} total={stats.leaveBalance} />
           </motion.div>
-          <motion.div variants={item}>
-            <div
-              onClick={() => navigate("/my-leaves")}
-              className="cursor-pointer"
-            >
-              <DashboardCard
-                title="Approved Days"
-                value={stats.approvedLeaves}
-                color="green"
-                icon={<ClockIcon className="h-6 w-6" />}
-                subtitle="Taken so far"
-              />
-            </div>
-          </motion.div>
-          <motion.div variants={item}>
-            <div
-              onClick={() => navigate("/my-leaves")}
-              className="cursor-pointer"
-            >
-              <DashboardCard
-                title="Pending Leaves"
-                value={stats.pendingLeaves}
-                color="amber"
-                icon={<ClockIcon className="h-6 w-6" />}
-                subtitle="Awaiting approval"
-              />
-            </div>
-          </motion.div>
-          <motion.div variants={item}>
-            <div
-              onClick={() => navigate("/my-leaves")}
-              className="cursor-pointer"
-            >
-              <DashboardCard
-                title="Rejected Leaves"
-                value={stats.rejectedLeaves}
-                color="red"
-                icon={<XCircleIcon className="h-6 w-6" />}
-                subtitle="This year"
-              />
-            </div>
-          </motion.div>
-                
-          </motion.div>
+
+          {/* Second row: Request statuses */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <motion.div variants={item}>
+              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
+                <DashboardCard
+                  title="Pending Days"
+                  value={stats.pendingLeaves}
+                  color="amber"
+                  icon={<ClockIcon className="h-6 w-6" />}
+                  subtitle="Awaiting approval"
+                />
+              </div>
+            </motion.div>
+            <motion.div variants={item}>
+              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
+                <DashboardCard
+                  title="Approved Days"
+                  value={stats.approvedLeaves}
+                  color="green"
+                  icon={<CheckCircleIcon className="h-6 w-6" />}
+                  subtitle="Already approved"
+                />
+              </div>
+            </motion.div>
+            <motion.div variants={item}>
+              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
+                <DashboardCard
+                  title="Rejected Days"
+                  value={stats.rejectedLeaves}
+                  color="red"
+                  icon={<XCircleIcon className="h-6 w-6" />}
+                  subtitle="Not approved"
+                />
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
       )}
 
+      {/* Upcoming Holidays Table */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
         <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
           Upcoming Holidays
