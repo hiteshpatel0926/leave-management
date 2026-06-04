@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import api from "../services/api";
 import DashboardCard from "../components/DashboardCard";
+import { useNavigate } from "react-router-dom";
 import DataTable from "../components/DataTable";
 import {
   UsersIcon,
@@ -13,7 +14,7 @@ import {
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
-
+  const navigate = useNavigate()
   useEffect(() => {
     loadDashboard();
   }, []);
@@ -80,31 +81,34 @@ export default function Dashboard() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         >
           <motion.div variants={item}>
+             <div onClick={() => navigate("/employees")} className="cursor-pointer">
             <DashboardCard
               title="Total Employees"
               value={stats.totalEmployees}
               color="blue"
               icon={<UsersIcon className="h-6 w-6" />}
               subtitle="Active employees"
-            />
+            /></div>
           </motion.div>
           <motion.div variants={item}>
+            <div onClick={() => navigate("/employees")} className="cursor-pointer">
             <DashboardCard
               title="Active Employees"
               value={stats.activeEmployees}
               color="green"
               icon={<UsersIcon className="h-6 w-6" />}
               subtitle="Currently active"
-            />
+            /></div>
           </motion.div>
           <motion.div variants={item}>
+            <div onClick={() => navigate("/pending-leaves")} className="cursor-pointer">
             <DashboardCard
               title="Pending Leaves"
               value={stats.pendingLeaves}
               color="amber"
               icon={<ClockIcon className="h-6 w-6" />}
               subtitle="Awaiting approval"
-            />
+            /></div>
           </motion.div>
           <motion.div variants={item}>
             <DashboardCard
@@ -133,6 +137,7 @@ export default function Dashboard() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
           <motion.div variants={item}>
+             <div onClick={() => navigate("/leave-balance")} className="cursor-pointer">
             <DashboardCard
               title="Available Leave Balance"
               value={stats.leaveBalance}
@@ -140,42 +145,47 @@ export default function Dashboard() {
               icon={<CalendarIcon className="h-6 w-6" />}
               subtitle="Annual leave"
             />
+            </div>
           </motion.div>
           <motion.div variants={item}>
+            <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
             <DashboardCard
               title="Approved Days"
               value={stats.approvedLeaves}
               color="green"
               icon={<ClockIcon className="h-6 w-6" />}
               subtitle="Taken so far"
-            />
+            /></div>
           </motion.div>
           <motion.div variants={item}>
+            <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
             <DashboardCard
               title="Pending Leaves"
               value={stats.pendingLeaves}
               color="amber"
               icon={<ClockIcon className="h-6 w-6" />}
               subtitle="Awaiting approval"
-            />
+            /></div>
           </motion.div>
           <motion.div variants={item}>
+            <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
             <DashboardCard
               title="Rejected Leaves"
               value={stats.rejectedLeaves}
               color="red"
               icon={<XCircleIcon className="h-6 w-6" />}
               subtitle="This year"
-            />
+            /></div>
           </motion.div>
           <motion.div variants={item}>
+            <div onClick={() => navigate("/leave-balance")} className="cursor-pointer">
             <DashboardCard
               title="Remaining Balance"
               value={stats.leaveBalance - stats.approvedLeaves}
               color="green"
               icon={<CheckCircleIcon className="h-6 w-6" />}
               subtitle="Available"
-            />
+            /></div>
           </motion.div>
         </motion.div>
       )}
