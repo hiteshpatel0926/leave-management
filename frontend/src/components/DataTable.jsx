@@ -1,13 +1,19 @@
+import { motion } from "framer-motion";
+
 export default function DataTable({ columns, data, title }) {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden"
+    >
       {title && (
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+        <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-800/50">
             <tr>
               {columns.map((col, idx) => (
@@ -20,30 +26,33 @@ export default function DataTable({ columns, data, title }) {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
             {data.length === 0 ? (
               <tr>
-                <td
-                  colSpan={columns.length}
-                  className="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400"
-                >
+                <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                   No records found.
                 </td>
               </tr>
             ) : (
               data.map((row, rowIdx) => (
-                <tr key={rowIdx} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <motion.tr
+                  key={rowIdx}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: rowIdx * 0.05 }}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                >
                   {row.map((cell, cellIdx) => (
-                    <td key={cellIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                    <td key={cellIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                       {cell}
                     </td>
                   ))}
-                </tr>
+                </motion.tr>
               ))
             )}
           </tbody>
         </table>
       </div>
-    </div>
+    </motion.div>
   );
 }
