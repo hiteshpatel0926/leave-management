@@ -14,6 +14,7 @@ import AddEmployee from "./pages/AddEmployee";
 import EditEmployee from "./pages/EditEmployee";
 import ChangePassword from "./pages/ChangePassword";
 import Holidays from "./pages/Holidays";
+import MyProfile from "./pages/MyProfile";
 
 function App() {
   return (
@@ -127,6 +128,16 @@ function App() {
             <ProtectedRoute>
               <MainLayout>
                 <Holidays />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <MyProfile />
               </MainLayout>
             </ProtectedRoute>
           }

@@ -12,6 +12,7 @@ import {
   SunIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
@@ -24,6 +25,7 @@ export default function Sidebar() {
 
   const mainMenu = [
     { path: "/dashboard", label: "Dashboard", icon: HomeIcon },
+    { path: "/profile", label: "My profile", icon: UserCircleIcon},
     { path: "/apply-leave", label: "Apply Leave", icon: CalendarIcon },
     { path: "/my-leaves", label: "My Leaves", icon: DocumentTextIcon },
     { path: "/leave-balance", label: "Leave Balance", icon: ClipboardDocumentListIcon },
