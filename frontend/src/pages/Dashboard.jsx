@@ -205,7 +205,7 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <motion.div variants={item}>
-              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
+              <div onClick={() => navigate("/leave-balance")} className="cursor-pointer">
                 <DashboardCard
                   title="Remaining Balance"
                   value={stats.remainingBalance}
