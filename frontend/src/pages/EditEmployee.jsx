@@ -12,8 +12,9 @@ export default function EditEmployee() {
     department: "",
     designation: "",
     status: "ACTIVE",
-    dob: "",          // new
-    gender: "",       // new
+    joining_date: "",
+    dob: "", // new
+    gender: "", // new
   });
 
   useEffect(() => {
@@ -21,21 +22,22 @@ export default function EditEmployee() {
   }, []);
 
   const loadEmployee = async () => {
-    try {
-      const response = await api.get(`/employees/${id}`);
-      setFormData({
-        first_name: response.data.first_name,
-        last_name: response.data.last_name,
-        department: response.data.department,
-        designation: response.data.designation,
-        status: response.data.status,
-        dob: response.data.dob ? response.data.dob.split("T")[0] : "", // format YYYY-MM-DD
-        gender: response.data.gender || "",
-      });
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  try {
+    const response = await api.get(`/employees/${id}`);
+    setFormData({
+      first_name: response.data.first_name,
+      last_name: response.data.last_name,
+      department: response.data.department,
+      designation: response.data.designation,
+      status: response.data.status,
+      joining_date: response.data.joining_date ? response.data.joining_date.split("T")[0] : "",
+      dob: response.data.dob ? response.data.dob.split("T")[0] : "",
+      gender: response.data.gender || "",
+    });
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   const handleChange = (e) => {
     setFormData({
@@ -115,6 +117,19 @@ export default function EditEmployee() {
                 onChange={handleChange}
                 className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Date of Joining
+              </label>
+              <input
+                type="date"
+                name="joining_date"
+                value={formData.joining_date}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 

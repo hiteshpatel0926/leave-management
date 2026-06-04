@@ -209,6 +209,7 @@ const updateEmployee = async (req, res) => {
       department,
       designation,
       status,
+      joining_date,
       dob,
       gender,
     } = req.body;
@@ -222,12 +223,13 @@ const updateEmployee = async (req, res) => {
           department = $3,
           designation = $4,
           status = $5,
-          dob = $6,
-          gender = $7
-        WHERE id = $8
+          joining_date = $6,
+          dob = $7,
+          gender = $8
+        WHERE id = $9
         RETURNING *
         `,
-      [first_name, last_name, department, designation, status, dob, gender, id],
+      [first_name, last_name, department, designation, status, joining_date, dob, gender, id],
     );
 
     if (result.rows.length === 0) {
