@@ -204,21 +204,8 @@ export default function Dashboard() {
               />
             </div>
           </motion.div>
-          <motion.div variants={item}>
-            <div
-              onClick={() => navigate("/leave-balance")}
-              className="cursor-pointer"
-            >
-              <DashboardCard
-                title="Remaining Balance"
-                value={stats.leaveBalance - stats.approvedLeaves}
-                color="green"
-                icon={<CheckCircleIcon className="h-6 w-6" />}
-                subtitle="Available"
-              />
-            </div>
+                
           </motion.div>
-        </motion.div>
       )}
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">

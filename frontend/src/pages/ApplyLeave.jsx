@@ -97,6 +97,9 @@ export default function ApplyLeave() {
     }
   };
 
+  // Check if selected leave type is "Leave Without Pay" (id = 6)
+  const isLeaveWithoutPay = Number(form.leave_type_id) === 6;
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -136,6 +139,13 @@ export default function ApplyLeave() {
               ))}
             </select>
           </div>
+
+          {/* LOP Info Message */}
+          {isLeaveWithoutPay && (
+            <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 text-sm">
+              ℹ️ <strong>Leave Without Pay (LOP)</strong> does not deduct from your leave balance. No balance check will be applied.
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
