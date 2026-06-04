@@ -11,7 +11,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const leaveTypeRoutes = require("./routes/leaveTypeRoutes");
 const leaveBalanceRoutes = require("./routes/leaveBalanceRoutes");
 const holidayRoutes = require("./routes/holidayRoutes");
-
+const profileRoutes = require("./routes/profileRoutes");
 const app = express();
 
 app.use(cors());
@@ -22,13 +22,14 @@ app.use("/api/users", userRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/leaves", leaveRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/leave-types",leaveTypeRoutes);
+app.use("/api/leave-types", leaveTypeRoutes);
 app.use("/api/balances", leaveBalanceRoutes);
 app.use("/api/holidays", holidayRoutes);
+app.use("/api/profile", profileRoutes);
 
 app.get("/", (req, res) => {
   res.json({
-    message: "Leave Management API Running"
+    message: "Leave Management API Running",
   });
 });
 
