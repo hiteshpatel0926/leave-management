@@ -25,10 +25,14 @@ export default function Sidebar() {
 
   const mainMenu = [
     { path: "/dashboard", label: "Dashboard", icon: HomeIcon },
-    { path: "/profile", label: "My profile", icon: UserCircleIcon},
+    { path: "/profile", label: "My profile", icon: UserCircleIcon },
     { path: "/apply-leave", label: "Apply Leave", icon: CalendarIcon },
     { path: "/my-leaves", label: "My Leaves", icon: DocumentTextIcon },
-    { path: "/leave-balance", label: "Leave Balance", icon: ClipboardDocumentListIcon },
+    {
+      path: "/leave-balance",
+      label: "Leave Balance",
+      icon: ClipboardDocumentListIcon,
+    },
     { path: "/change-password", label: "Change Password", icon: KeyIcon },
   ];
 
@@ -100,10 +104,11 @@ export default function Sidebar() {
             exit={{ opacity: 0 }}
             className="flex items-center gap-2"
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">L</span>
+            <div className="px-3 py-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+              <span className="text-white font-bold text-sm whitespace-nowrap">
+                MBOS LMS
+              </span>
             </div>
-            <span className="font-bold text-gray-800 dark:text-white">MBOS LMS</span>
           </motion.div>
         )}
         <button

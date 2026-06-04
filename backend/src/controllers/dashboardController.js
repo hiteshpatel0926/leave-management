@@ -1,92 +1,85 @@
 const pool = require("../config/db");
 
-const getDashboardStats = async (
-  req,
-  res
-) => {
-
+const getDashboardStats = async (req, res) => {
   try {
-
     const role = req.user.role;
 
     if (role === "ADMIN") {
-
-      const employees =
-        await pool.query(
-          `
+      const employees = await pool.query(
+        `
           SELECT COUNT(*) total
           FROM employees
-          `
-        );
+          `,
+      );
 
-      const pending =
-        await pool.query(
-          `
+      const pending = await pool.query(
+        `
           SELECT COUNT(*) total
           FROM leave_requests
           WHERE status='PENDING'
-          `
-        );
+          `,
+      );
 
-      const approved =
-        await pool.query(
-          `
+      const approved = await pool.query(
+        `
           SELECT COUNT(*) total
           FROM leave_requests
           WHERE status='APPROVED'
-          `
-        );
+          `,
+      );
 
-      const rejected =
-        await pool.query(
-          `
+      const rejected = await pool.query(
+        `
           SELECT COUNT(*) total
           FROM leave_requests
           WHERE status='REJECTED'
-          `
-        );
+          `,
+      );
+
+      const activeEmployees = await pool.query(`
+            SELECT COUNT(*) total
+            FROM employees
+            WHERE status = 'ACTIVE'
+      `);
+
+      const upcomingHolidays = await pool.query(
+        `
+            SELECT
+              holiday_name,
+              holiday_date
+            FROM holidays
+            WHERE holiday_date >= CURRENT_DATE
+            ORDER BY holiday_date
+            LIMIT 5
+            `,
+      );
 
       return res.json({
         role: "ADMIN",
-        totalEmployees:
-          Number(
-            employees.rows[0].total
-          ),
-        pendingLeaves:
-          Number(
-            pending.rows[0].total
-          ),
-        approvedLeaves:
-          Number(
-            approved.rows[0].total
-          ),
-        rejectedLeaves:
-          Number(
-            rejected.rows[0].total
-          )
+        totalEmployees: Number(employees.rows[0].total),
+        pendingLeaves: Number(pending.rows[0].total),
+        approvedLeaves: Number(approved.rows[0].total),
+        rejectedLeaves: Number(rejected.rows[0].total),
+        activeEmployees: Number(activeEmployees.rows[0].total),
+        upcomingHolidays: upcomingHolidays.rows
       });
-
     }
 
-    const employee =
-      await pool.query(
-        `
+    const employee = await pool.query(
+      `
         SELECT id
         FROM employees
         WHERE user_id=$1
         `,
-        [req.user.userId]
-      );
+      [req.user.userId],
+    );
 
-    const employeeId =
-      employee.rows[0].id;
+    const employeeId = employee.rows[0].id;
 
-    const currentYear =
-      new Date().getFullYear();
+    const currentYear = new Date().getFullYear();
 
-    const balance =
-      await pool.query(
-        `
+    const balance = await pool.query(
+      `
         SELECT
         COALESCE(
           SUM(balance_days),
@@ -96,83 +89,72 @@ const getDashboardStats = async (
         WHERE employee_id=$1
         AND year=$2
         `,
-        [
-          employeeId,
-          currentYear
-        ]
-      );
+      [employeeId, currentYear],
+    );
 
-    const pending =
-      await pool.query(
-        `
+    const pending = await pool.query(
+      `
         SELECT COUNT(*) total
         FROM leave_requests
         WHERE employee_id=$1
         AND status='PENDING'
         `,
-        [employeeId]
-      );
+      [employeeId],
+    );
 
-    const approved =
-      await pool.query(
-        `
+    const approved = await pool.query(
+      `
         SELECT COUNT(*) total
         FROM leave_requests
         WHERE employee_id=$1
         AND status='APPROVED'
         `,
-        [employeeId]
-      );
+      [employeeId],
+    );
 
-    const rejected =
-      await pool.query(
-        `
+    const rejected = await pool.query(
+      `
         SELECT COUNT(*) total
         FROM leave_requests
         WHERE employee_id=$1
         AND status='REJECTED'
         `,
-        [employeeId]
+      [employeeId],
+    );
+
+    const upcomingHolidays = await pool.query(
+        `
+            SELECT
+              holiday_name,
+              holiday_date
+            FROM holidays
+            WHERE holiday_date >= CURRENT_DATE
+            ORDER BY holiday_date
+            LIMIT 5
+            `,
       );
 
     res.json({
-
       role: "EMPLOYEE",
 
-      leaveBalance:
-        Number(
-          balance.rows[0].total
-        ),
+      leaveBalance: Number(balance.rows[0].total),
 
-      pendingLeaves:
-        Number(
-          pending.rows[0].total
-        ),
+      pendingLeaves: Number(pending.rows[0].total),
 
-      approvedLeaves:
-        Number(
-          approved.rows[0].total
-        ),
+      approvedLeaves: Number(approved.rows[0].total),
 
-      rejectedLeaves:
-        Number(
-          rejected.rows[0].total
-        )
-
+      rejectedLeaves: Number(rejected.rows[0].total),
+      upcomingHolidays: upcomingHolidays.rows,
     });
-
-  } catch(error){
-
+  } catch (error) {
     console.error(error);
 
     res.status(500).json({
-      message:"Server Error"
+      message: "Server Error",
     });
-
   }
-
 };
 
 module.exports = {
-  getDashboardStats
+  getDashboardStats,
 };

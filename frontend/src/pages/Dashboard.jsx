@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import api from "../services/api";
 import DashboardCard from "../components/DashboardCard";
+import DataTable from "../components/DataTable";
 import {
   UsersIcon,
   ClockIcon,
@@ -47,6 +48,13 @@ export default function Dashboard() {
     show: { opacity: 1, y: 0 },
   };
 
+  const holidayColumns = ["Holiday", "Date"];
+  const holidayData =
+    stats.upcomingHolidays?.map((holiday) => [
+      holiday.holiday_name,
+      new Date(holiday.holiday_date).toLocaleDateString(),
+    ]) || [];
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -78,6 +86,15 @@ export default function Dashboard() {
               color="blue"
               icon={<UsersIcon className="h-6 w-6" />}
               subtitle="Active employees"
+            />
+          </motion.div>
+          <motion.div variants={item}>
+            <DashboardCard
+              title="Active Employees"
+              value={stats.activeEmployees}
+              color="green"
+              icon={<UsersIcon className="h-6 w-6" />}
+              subtitle="Currently active"
             />
           </motion.div>
           <motion.div variants={item}>
@@ -117,8 +134,8 @@ export default function Dashboard() {
         >
           <motion.div variants={item}>
             <DashboardCard
-              title="Entitled Days"
-              value={stats.leaveBalance}        // ← fixed
+              title="Available Leave Balance"
+              value={stats.leaveBalance}
               color="blue"
               icon={<CalendarIcon className="h-6 w-6" />}
               subtitle="Annual leave"
@@ -126,17 +143,35 @@ export default function Dashboard() {
           </motion.div>
           <motion.div variants={item}>
             <DashboardCard
-              title="Used Days"
-              value={stats.approvedLeaves}      // ← fixed
-              color="amber"
+              title="Approved Days"
+              value={stats.approvedLeaves}
+              color="green"
               icon={<ClockIcon className="h-6 w-6" />}
               subtitle="Taken so far"
             />
           </motion.div>
           <motion.div variants={item}>
             <DashboardCard
+              title="Pending Leaves"
+              value={stats.pendingLeaves}
+              color="amber"
+              icon={<ClockIcon className="h-6 w-6" />}
+              subtitle="Awaiting approval"
+            />
+          </motion.div>
+          <motion.div variants={item}>
+            <DashboardCard
+              title="Rejected Leaves"
+              value={stats.rejectedLeaves}
+              color="red"
+              icon={<XCircleIcon className="h-6 w-6" />}
+              subtitle="This year"
+            />
+          </motion.div>
+          <motion.div variants={item}>
+            <DashboardCard
               title="Remaining Balance"
-              value={stats.leaveBalance - stats.approvedLeaves}  // ← fixed calculation
+              value={stats.leaveBalance - stats.approvedLeaves}
               color="green"
               icon={<CheckCircleIcon className="h-6 w-6" />}
               subtitle="Available"
@@ -144,6 +179,13 @@ export default function Dashboard() {
           </motion.div>
         </motion.div>
       )}
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+          Upcoming Holidays
+        </h2>
+        <DataTable columns={holidayColumns} data={holidayData} />
+      </div>
     </motion.div>
   );
 }
