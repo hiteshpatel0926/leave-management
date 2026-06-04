@@ -12,6 +12,8 @@ export default function EditEmployee() {
     department: "",
     designation: "",
     status: "ACTIVE",
+    dob: "",          // new
+    gender: "",       // new
   });
 
   useEffect(() => {
@@ -27,6 +29,8 @@ export default function EditEmployee() {
         department: response.data.department,
         designation: response.data.designation,
         status: response.data.status,
+        dob: response.data.dob ? response.data.dob.split("T")[0] : "", // format YYYY-MM-DD
+        gender: response.data.gender || "",
       });
     } catch (error) {
       console.error(error);
@@ -113,6 +117,39 @@ export default function EditEmployee() {
                 required
               />
             </div>
+
+            {/* NEW: Date of Birth */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Date of Birth
+              </label>
+              <input
+                type="date"
+                name="dob"
+                value={formData.dob}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            {/* NEW: Gender */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Gender
+              </label>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Status

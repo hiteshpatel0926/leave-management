@@ -12,6 +12,8 @@ const createEmployee = async (req, res) => {
       department,
       designation,
       joining_date,
+      dob,
+      gender,
     } = req.body;
 
     const existingUser = await pool.query(
@@ -59,13 +61,22 @@ const createEmployee = async (req, res) => {
           name,
           email,
           password,
-          role
+          role,
+          dob,
+          gender
         )
         VALUES
-        ($1,$2,$3,$4)
+        ($1,$2,$3,$4,$5,$6)
         RETURNING id
         `,
-      [`${first_name} ${last_name}`, email, hashedPassword, "EMPLOYEE"],
+      [
+        `${first_name} ${last_name}`,
+        email,
+        hashedPassword,
+        "EMPLOYEE",
+        dob,
+        gender,
+      ],
     );
 
     const userId = userResult.rows[0].id;
@@ -82,12 +93,14 @@ const createEmployee = async (req, res) => {
           department,
           designation,
           joining_date,
-          status
+          status,
+          dob,
+          gender
         )
         VALUES
         (
           $1,$2,$3,$4,$5,
-          $6,$7,$8,$9
+          $6,$7,$8,$9,$10,$11
         )
         RETURNING *
         `,
@@ -101,6 +114,8 @@ const createEmployee = async (req, res) => {
         designation,
         joining_date,
         "ACTIVE",
+        dob,
+        gender,
       ],
     );
 
@@ -248,7 +263,15 @@ const updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { first_name, last_name, department, designation, status } = req.body;
+    const {
+      first_name,
+      last_name,
+      department,
+      designation,
+      status,
+      dob,
+      gender,
+    } = req.body;
 
     const result = await pool.query(
       `
@@ -258,11 +281,13 @@ const updateEmployee = async (req, res) => {
           last_name = $2,
           department = $3,
           designation = $4,
-          status = $5
-        WHERE id = $6
+          status = $5,
+          dob = $6,
+          gender = $7
+        WHERE id = $8
         RETURNING *
         `,
-      [first_name, last_name, department, designation, status, id],
+      [first_name, last_name, department, designation, status, dob, gender, id],
     );
 
     if (result.rows.length === 0) {

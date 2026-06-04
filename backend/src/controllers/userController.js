@@ -15,6 +15,8 @@ const getProfile = async (req, res) => {
         e.department,
         e.designation,
         e.joining_date,
+        e.dob,
+        e.gender,
         u.email,
         u.role
       FROM employees e

@@ -55,25 +55,29 @@ export default function Employees() {
     }
   };
 
-  // Define columns for DataTable
+  // Define columns for DataTable (added DOB and Gender)
   const columns = [
     "Code",
     "Name",
     "Email",
     "Department",
     "Designation",
+    "DOB",           // new
+    "Gender",        // new
     "Status",
     "Joining Date",
     "Actions",
   ];
 
-  // Transform employees into rows (each row is an array)
+  // Transform employees into rows
   const data = employees.map((emp) => [
     emp.employee_code,
     `${emp.first_name} ${emp.last_name}`,
     emp.email,
     emp.department,
     emp.designation,
+    emp.dob ? new Date(emp.dob).toLocaleDateString() : "-",      // new
+    emp.gender || "-",                                            // new
     <span
       className={`px-2 py-1 text-xs font-medium rounded-full ${
         emp.status === "ACTIVE"
