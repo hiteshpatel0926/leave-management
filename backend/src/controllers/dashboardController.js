@@ -54,7 +54,7 @@ const getDashboardStats = async (req, res) => {
       const nameLower = leaveType.name.toLowerCase();
       if (nameLower.includes("paternity")) return gender === "Male";
       if (nameLower.includes("maternity")) return gender === "Female";
-      return true; // Annual, Sick, Comp Off, Bereavement, etc.
+      return true;
     });
 
     // 4. Calculate total entitlement (sum of annual_entitlement)
@@ -63,28 +63,51 @@ const getDashboardStats = async (req, res) => {
       0
     );
 
-    // 5. Get remaining balance from leave_balances (already stored)
+    // 5. Get remaining balance from leave_balances (excluding LOP)
     const balance = await pool.query(
       `SELECT COALESCE(SUM(balance_days), 0) AS total
        FROM leave_balances
-       WHERE employee_id = $1 AND year = $2 AND leave_type_id != 6`, // exclude LOP
+       WHERE employee_id = $1 AND year = $2 AND leave_type_id != 6`,
       [employeeId, currentYear]
     );
     const remainingBalance = Number(balance.rows[0].total);
 
-    // 6. Get leave request sums (PENDING, APPROVED, REJECTED days)
-    const result = await pool.query(
-      `SELECT status, COALESCE(SUM(total_days), 0) AS total_days_sum
+    // 6. Get leave request sums - separate for regular leaves vs LOP
+    // Regular approved days (excluding LOP)
+    const regularApproved = await pool.query(
+      `SELECT COALESCE(SUM(total_days), 0) AS total
        FROM leave_requests
-       WHERE employee_id = $1 AND status IN ('PENDING', 'APPROVED', 'REJECTED')
-       GROUP BY status`,
+       WHERE employee_id = $1
+         AND status = 'APPROVED'
+         AND leave_type_id != 6`,
       [employeeId]
     );
-    const sums = { PENDING: 0, APPROVED: 0, REJECTED: 0 };
-    result.rows.forEach((row) => {
-      sums[row.status] = Number(row.total_days_sum);
-    });
-    const usedLeaveDays = sums.APPROVED;
+    const usedLeaveDays = Number(regularApproved.rows[0].total);
+
+    // LOP approved days
+    const lopApproved = await pool.query(
+      `SELECT COALESCE(SUM(total_days), 0) AS total
+       FROM leave_requests
+       WHERE employee_id = $1
+         AND status = 'APPROVED'
+         AND leave_type_id = 6`,
+      [employeeId]
+    );
+    const lopDaysTaken = Number(lopApproved.rows[0].total);
+
+    // Pending and rejected days (all leave types, including LOP if needed)
+    const pendingResult = await pool.query(
+      `SELECT COALESCE(SUM(total_days), 0) AS total
+       FROM leave_requests
+       WHERE employee_id = $1 AND status = 'PENDING'`,
+      [employeeId]
+    );
+    const rejectedResult = await pool.query(
+      `SELECT COALESCE(SUM(total_days), 0) AS total
+       FROM leave_requests
+       WHERE employee_id = $1 AND status = 'REJECTED'`,
+      [employeeId]
+    );
 
     // 7. Upcoming holidays
     const upcomingHolidays = await pool.query(
@@ -98,13 +121,13 @@ const getDashboardStats = async (req, res) => {
     // 8. Send response
     res.json({
       role: "EMPLOYEE",
-      totalEntitlement: totalEntitlement,   // ✅ e.g., 43 for Male, 211 for Female
-      leaveBalance: remainingBalance,       // remaining after used (optional)
-      usedLeaveDays: usedLeaveDays,
+      totalEntitlement: totalEntitlement,   // e.g., 43 Male, 211 Female
+      usedLeaveDays: usedLeaveDays,         // approved days without LOP
+      lopDaysTaken: lopDaysTaken,           // approved LOP days
       remainingBalance: remainingBalance,
-      pendingLeaves: sums.PENDING,
-      approvedLeaves: sums.APPROVED,
-      rejectedLeaves: sums.REJECTED,
+      pendingLeaves: Number(pendingResult.rows[0].total),
+      approvedLeaves: usedLeaveDays + lopDaysTaken, // total approved days (including LOP)
+      rejectedLeaves: Number(rejectedResult.rows[0].total),
       upcomingHolidays: upcomingHolidays.rows,
     });
   } catch (error) {

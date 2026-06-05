@@ -12,7 +12,6 @@ import {
   CalendarIcon,
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
-
 import { ArrowPathIcon as RefreshIcon } from "@heroicons/react/24/outline";
 
 export default function Dashboard() {
@@ -60,7 +59,7 @@ export default function Dashboard() {
       new Date(holiday.holiday_date).toLocaleDateString(),
     ]) || [];
 
-  // Helper: Progress bar component for employee leave usage
+  // Progress bar component for employee leave usage (against total entitlement)
   const LeaveProgress = ({ used, total }) => {
     const percentage = total > 0 ? (used / total) * 100 : 0;
     const color = percentage > 80 ? "red" : percentage > 60 ? "yellow" : "green";
@@ -181,15 +180,15 @@ export default function Dashboard() {
           className="space-y-6"
         >
           {/* First row: Balance summary */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <motion.div variants={item}>
               <div onClick={() => navigate("/leave-balance")} className="cursor-pointer">
                 <DashboardCard
-                  title="Available Balance"
+                  title="Total Entitlement"
                   value={stats.totalEntitlement}
                   color="blue"
                   icon={<CalendarIcon className="h-6 w-6" />}
-                  subtitle="Total leave entitlement"
+                  subtitle="All leave types combined"
                 />
               </div>
             </motion.div>
@@ -200,7 +199,7 @@ export default function Dashboard() {
                   value={stats.usedLeaveDays}
                   color="indigo"
                   icon={<ChartBarIcon className="h-6 w-6" />}
-                  subtitle="Approved days taken"
+                  subtitle="Approved days (excl. LOP)"
                 />
               </div>
             </motion.div>
@@ -215,6 +214,17 @@ export default function Dashboard() {
                 />
               </div>
             </motion.div>
+            <motion.div variants={item}>
+              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
+                <DashboardCard
+                  title="LOP Days Taken"
+                  value={stats.lopDaysTaken}
+                  color="red"
+                  icon={<XCircleIcon className="h-6 w-6" />}
+                  subtitle="Leave Without Pay"
+                />
+              </div>
+            </motion.div>
           </div>
 
           {/* Progress bar card */}
@@ -222,10 +232,10 @@ export default function Dashboard() {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Leave Utilization
             </h3>
-            <LeaveProgress used={stats.usedLeaveDays} total={stats.leaveBalance} />
+            <LeaveProgress used={stats.usedLeaveDays} total={stats.totalEntitlement} />
           </motion.div>
 
-          {/* Second row: Request statuses */}
+          {/* Second row: Request statuses (days) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <motion.div variants={item}>
               <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
@@ -245,7 +255,7 @@ export default function Dashboard() {
                   value={stats.approvedLeaves}
                   color="green"
                   icon={<CheckCircleIcon className="h-6 w-6" />}
-                  subtitle="Already approved"
+                  subtitle="Including LOP"
                 />
               </div>
             </motion.div>
