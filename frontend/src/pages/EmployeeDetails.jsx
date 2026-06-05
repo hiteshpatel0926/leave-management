@@ -22,6 +22,7 @@ export default function EmployeeDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     loadEmployee();
@@ -31,6 +32,7 @@ export default function EmployeeDetails() {
     try {
       const response = await api.get(`/employees/${id}/details`);
       setEmployee(response.data);
+      setImgError(false);
     } catch (error) {
       console.error(error);
     }
@@ -109,11 +111,12 @@ export default function EmployeeDetails() {
         <div className="p-6 md:p-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
             {/* Profile Picture */}
-            {employee.profile.profile_picture ? (
+            {!imgError && employee.profile.profile_picture ? (
               <img
                 src={getImageUrl(employee.profile.profile_picture)}
                 alt="Profile"
                 className="h-20 w-20 rounded-full object-cover border-2 border-white shadow-lg"
+                onError={() => setImgError(true)}
               />
             ) : (
               <div className="bg-white/20 backdrop-blur rounded-full p-4">
