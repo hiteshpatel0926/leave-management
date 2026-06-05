@@ -13,9 +13,12 @@ import "./index.css";
 import App from "./App";
 
 import { AuthProvider } from "./context/AuthContext";
+import { SocketProvider } from "./context/SocketContext"; // ✅ import
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <AuthProvider>
-    <App />
+    <SocketProvider>    {/* ✅ wrap App with SocketProvider */}
+      <App />
+    </SocketProvider>
   </AuthProvider>,
 );

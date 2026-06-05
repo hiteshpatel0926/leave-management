@@ -13,6 +13,7 @@ import {
 import { getImageUrl } from "../utils/imageHelper";
 import api from "../services/api";
 import logo from "../assets/ALOPEX.jpg";
+import NotificationDropdown from './NotificationDropdown';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -118,10 +119,7 @@ export default function Navbar() {
         {/* Right side actions */}
         <div className="flex items-center gap-3">
           {/* Notification bell */}
-          <button className="relative p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-            <BellIcon className="h-5 w-5" />
-            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900"></span>
-          </button>
+          <NotificationDropdown />
 
           {/* User menu */}
           <div className="relative" ref={dropdownRef}>
