@@ -1,6 +1,8 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require('crypto'); // ← must be at the top
+const { sendResetEmail } = require("../config/email");
 
 const register = async (req, res) => {
   // ... (unchanged)
@@ -75,37 +77,31 @@ const changePassword = async (req, res) => {
   // ... (unchanged)
 };
 
+
+
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    // Case-insensitive lookup
     const userResult = await pool.query(
-      'SELECT id, email FROM users WHERE LOWER(email) = LOWER($1)',
+      "SELECT id, email FROM users WHERE LOWER(email) = LOWER($1)",
       [email]
     );
     if (userResult.rows.length === 0) {
-      // For security, still return success (don't reveal if email exists)
-      return res.json({ message: 'If that email exists, we sent a reset link.' });
+      return res.json({ message: "If that email exists, we sent a reset link." });
     }
-
     const user = userResult.rows[0];
-    const token = crypto.randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 3600000); // 1 hour
-
+    const token = crypto.randomBytes(32).toString('hex'); // ← now works
+    const expires = new Date(Date.now() + 3600000);
     await pool.query(
-      `UPDATE users 
-       SET reset_password_token = $1, reset_password_expires = $2
-       WHERE id = $3`,
+      "UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE id = $3",
       [token, expires, user.id]
     );
-
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
     await sendResetEmail(user.email, resetUrl);
-
-    res.json({ message: 'If that email exists, we sent a reset link.' });
+    res.json({ message: "If that email exists, we sent a reset link." });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 

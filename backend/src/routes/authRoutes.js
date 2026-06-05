@@ -6,14 +6,14 @@ const {
   register,
   login,
   changePassword,
-  forgotPassword,
-  resetPassword,
+  forgotPassword,   // ← add this
+  resetPassword,    // ← add this
 } = require("../controllers/authController");
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/forgot-password", forgotPassword);   // ← add this line
+router.post("/reset-password", resetPassword);     // ← add this line
 router.put("/change-password", authenticate, changePassword);
-router.post('/reset-password', resetPassword);
-router.put('/change-password', authenticate, changePassword);
 
 module.exports = router;
