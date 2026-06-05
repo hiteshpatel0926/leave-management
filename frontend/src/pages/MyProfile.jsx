@@ -54,6 +54,7 @@ export default function MyProfile() {
               src={avatar}
               alt="Profile"
               className="w-24 h-24 rounded-full object-cover border-4 border-indigo-200"
+              onError={() => setAvatar(null)} // ← add this line
             />
           ) : (
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">

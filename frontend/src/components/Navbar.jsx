@@ -131,6 +131,7 @@ export default function Navbar() {
                   src={profilePicture}
                   alt="Profile"
                   className="h-9 w-9 rounded-full object-cover ring-2 ring-indigo-200 dark:ring-indigo-800"
+    onError={() => setProfilePicture(null)} 
                 />
               ) : (
                 <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full p-1.5 shadow-md">

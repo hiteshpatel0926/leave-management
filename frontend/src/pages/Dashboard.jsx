@@ -85,6 +85,11 @@ export default function Dashboard() {
     );
   };
 
+  // Calculate utilization percentage safely
+  const utilizationPercentage = stats.totalEntitlement > 0
+    ? Math.round((stats.usedLeaveDays / stats.totalEntitlement) * 100)
+    : 0;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -235,8 +240,8 @@ export default function Dashboard() {
             <LeaveProgress used={stats.usedLeaveDays} total={stats.totalEntitlement} />
           </motion.div>
 
-          {/* Second row: Request statuses (days) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Second row: Request statuses (days) + Utilization Percentage */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <motion.div variants={item}>
               <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
                 <DashboardCard
@@ -269,6 +274,16 @@ export default function Dashboard() {
                   subtitle="Not approved"
                 />
               </div>
+            </motion.div>
+            {/* New Card: Leave Utilization Percentage */}
+            <motion.div variants={item}>
+              <DashboardCard
+                title="Leave Utilization"
+                value={`${utilizationPercentage}%`}
+                color="purple"
+                icon={<ChartBarIcon className="h-6 w-6" />}
+                subtitle="Used vs Entitlement"
+              />
             </motion.div>
           </div>
         </motion.div>
