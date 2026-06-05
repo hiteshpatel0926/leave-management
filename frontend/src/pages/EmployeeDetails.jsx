@@ -15,14 +15,17 @@ import {
   EnvelopeIcon,
   UsersIcon,
   BuildingOfficeIcon,
+  CameraIcon,
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
+import ImageCropUpload from "../components/ImageCropUpload";
 
 export default function EmployeeDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
   const [imgError, setImgError] = useState(false);
+  const [showCrop, setShowCrop] = useState(false);
 
   useEffect(() => {
     loadEmployee();
@@ -36,6 +39,10 @@ export default function EmployeeDetails() {
     } catch (error) {
       console.error(error);
     }
+  };
+
+  const handleUploadSuccess = () => {
+    loadEmployee(); // refresh employee data to show new picture
   };
 
   if (!employee) {
@@ -110,19 +117,28 @@ export default function EmployeeDetails() {
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg overflow-hidden">
         <div className="p-6 md:p-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-            {/* Profile Picture */}
-            {!imgError && employee.profile.profile_picture ? (
-              <img
-                src={getImageUrl(employee.profile.profile_picture)}
-                alt="Profile"
-                className="h-20 w-20 rounded-full object-cover border-2 border-white shadow-lg"
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <div className="bg-white/20 backdrop-blur rounded-full p-4">
-                <UserIcon className="h-16 w-16 text-white" />
-              </div>
-            )}
+            {/* Profile Picture with Upload Button */}
+            <div className="relative">
+              {!imgError && employee.profile.profile_picture ? (
+                <img
+                  src={getImageUrl(employee.profile.profile_picture)}
+                  alt="Profile"
+                  className="h-20 w-20 rounded-full object-cover border-2 border-white shadow-lg"
+                  onError={() => setImgError(true)}
+                />
+              ) : (
+                <div className="bg-white/20 backdrop-blur rounded-full p-4">
+                  <UserIcon className="h-16 w-16 text-white" />
+                </div>
+              )}
+              <button
+                onClick={() => setShowCrop(true)}
+                className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-1.5 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                title="Upload new photo"
+              >
+                <CameraIcon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+              </button>
+            </div>
             <div className="flex-1 text-white">
               <h1 className="text-3xl font-bold">
                 {employee.profile.first_name} {employee.profile.last_name}
@@ -151,7 +167,7 @@ export default function EmployeeDetails() {
         </div>
       </div>
 
-      {/* Summary Stats Cards */}
+      {/* Summary Stats Cards - unchanged */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 p-5 hover:shadow-lg transition">
           <div className="flex items-center justify-between">
@@ -171,7 +187,6 @@ export default function EmployeeDetails() {
             </div>
           </div>
         </div>
-
         <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 p-5 hover:shadow-lg transition">
           <div className="flex items-center justify-between">
             <div>
@@ -188,7 +203,6 @@ export default function EmployeeDetails() {
             </div>
           </div>
         </div>
-
         <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 p-5 hover:shadow-lg transition">
           <div className="flex items-center justify-between">
             <div>
@@ -205,7 +219,6 @@ export default function EmployeeDetails() {
             </div>
           </div>
         </div>
-
         <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 p-5 hover:shadow-lg transition">
           <div className="flex items-center justify-between">
             <div>
@@ -232,7 +245,7 @@ export default function EmployeeDetails() {
         </div>
       </div>
 
-      {/* Employee Information Card */}
+      {/* Employee Information Card - unchanged */}
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -289,7 +302,7 @@ export default function EmployeeDetails() {
         </div>
       </div>
 
-      {/* Leave Balances Table (unchanged) */}
+      {/* Leave Balances Table */}
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -339,7 +352,7 @@ export default function EmployeeDetails() {
         </div>
       </div>
 
-      {/* Leave History Table (unchanged) */}
+      {/* Leave History Table */}
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -408,6 +421,15 @@ export default function EmployeeDetails() {
           </table>
         </div>
       </div>
+
+      {/* Image Crop Modal */}
+      {showCrop && (
+        <ImageCropUpload
+          employeeId={employee.profile.id}
+          onUploadSuccess={handleUploadSuccess}
+          onClose={() => setShowCrop(false)}
+        />
+      )}
     </motion.div>
   );
 }

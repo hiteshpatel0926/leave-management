@@ -172,10 +172,7 @@ export default function MyProfile() {
       </div>
 
       {showCrop && (
-        <ImageCropUpload
-          employeeId={profile.id}
-          onUploadSuccess={handleUploadSuccess}
-          onClose={() => setShowCrop(false)}
+        <ImageCropUpload employeeId={profile.id} onUploadSuccess={handleUploadSuccess} onClose={() => setShowCrop(false)}
         />
       )}
     </div>
