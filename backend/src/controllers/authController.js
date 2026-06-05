@@ -100,67 +100,47 @@ const getProfile = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     const userId = req.user.userId;
-
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
     if (newPassword !== confirmPassword) {
-      return res.status(400).json({
-        message: "Passwords do not match",
-      });
+      return res.status(400).json({ message: "Passwords do not match" });
     }
-
     if (newPassword.length < 6) {
-      return res.status(400).json({
-        message: "Password must be at least 6 characters",
-      });
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
     }
 
-    const user = await pool.query(
-      `
-        SELECT *
-        FROM users
-        WHERE id = $1
-        `,
-      [userId],
-    );
-
+    const user = await pool.query(`SELECT * FROM users WHERE id = $1`, [
+      userId,
+    ]);
     if (user.rows.length === 0) {
-      return res.status(404).json({
-        message: "User not found",
-      });
+      return res.status(404).json({ message: "User not found" });
     }
 
     const isMatch = await bcrypt.compare(
       currentPassword,
       user.rows[0].password,
     );
-
     if (!isMatch) {
-      return res.status(400).json({
-        message: "Current password is incorrect",
-      });
+      return res.status(400).json({ message: "Current password is incorrect" });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await pool.query(`UPDATE users SET password = $1 WHERE id = $2`, [
+      hashedPassword,
+      userId,
+    ]);
 
-    await pool.query(
-      `
-      UPDATE users
-      SET password = $1
-      WHERE id = $2
-      `,
-      [hashedPassword, userId],
-    );
-
+    // Return a flag indicating the user must re-login
     res.json({
-      message: "Password changed successfully",
+      message:
+        "Password changed successfully. Please log in again with your new password.",
+      needsRelogin: true,
     });
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      message: "Server Error",
-    });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 

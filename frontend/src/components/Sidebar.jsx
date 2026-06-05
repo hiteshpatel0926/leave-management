@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,13 +14,37 @@ import {
   ChevronRightIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
+import api from "../services/api";
+import { getImageUrl } from "../utils/imageHelper";
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const user = JSON.parse(localStorage.getItem("user"));
-  const isAdmin = user?.role === "ADMIN";
+  const [user, setUser] = useState(null);
+  const [profilePicture, setProfilePicture] = useState(null);
   const location = useLocation();
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.get("/profile/me");
+        const data = response.data;
+        setUser(data);
+        if (data.profile_picture) {
+          setProfilePicture(getImageUrl(data.profile_picture));
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+        // Fallback to localStorage user if API fails
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const isAdmin = user?.role === "ADMIN";
   const isActive = (path) => location.pathname === path;
 
   const mainMenu = [
@@ -89,6 +113,10 @@ export default function Sidebar() {
     </div>
   );
 
+  // Get user's display name
+  const displayName = user?.first_name || user?.name || "User";
+  const firstLetter = displayName.charAt(0).toUpperCase();
+
   return (
     <motion.aside
       initial={false}
@@ -148,12 +176,21 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* User Profile */}
+      {/* User Profile Section with Profile Picture */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-            {user?.name?.charAt(0) || "U"}
-          </div>
+          {profilePicture ? (
+            <img
+              src={profilePicture}
+              alt="Profile"
+              className="flex-shrink-0 w-10 h-10 rounded-full object-cover ring-2 ring-indigo-200 dark:ring-indigo-800"
+              onError={() => setProfilePicture(null)}
+            />
+          ) : (
+            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold shadow-md">
+              {firstLetter}
+            </div>
+          )}
           {!collapsed && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -162,7 +199,7 @@ export default function Sidebar() {
               className="flex-1 min-w-0"
             >
               <p className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">
-                {user?.name || "User"}
+                {displayName}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {user?.role || "Employee"}

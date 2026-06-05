@@ -1,14 +1,14 @@
 // frontend/src/components/Navbar.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
   ChevronDownIcon,
-  Cog6ToothIcon,
   HomeIcon,
   BellIcon,
+  KeyIcon, // added for change password
 } from "@heroicons/react/24/outline";
 import { getImageUrl } from "../utils/imageHelper";
 import api from "../services/api";
@@ -19,6 +19,7 @@ export default function Navbar() {
   const [user, setUser] = useState(null);
   const [profilePicture, setProfilePicture] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
   const fetchUserProfile = async () => {
     try {
@@ -55,6 +56,17 @@ export default function Navbar() {
     return () => window.removeEventListener("profile-updated", fetchUserProfile);
   }, []);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -77,7 +89,7 @@ export default function Navbar() {
       className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200/70 dark:border-gray-800/70 sticky top-0 z-50 shadow-sm"
     >
       <div className="px-4 md:px-8 py-2 flex items-center justify-between">
-        {/* Logo area - Improved size and styling */}
+        {/* Logo area */}
         <div
           className="flex items-center gap-3 cursor-pointer group"
           onClick={() => navigate("/dashboard")}
@@ -105,14 +117,14 @@ export default function Navbar() {
 
         {/* Right side actions */}
         <div className="flex items-center gap-3">
-          {/* Notification bell with improved badge */}
+          {/* Notification bell */}
           <button className="relative p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
             <BellIcon className="h-5 w-5" />
             <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900"></span>
           </button>
 
           {/* User menu */}
-          <div className="relative">
+          <div className="relative" ref={dropdownRef}>
             <div className="hidden md:flex items-center gap-3">
               <div className="text-right">
                 <p className="text-sm font-semibold text-gray-800 dark:text-white">
@@ -131,7 +143,7 @@ export default function Navbar() {
                   src={profilePicture}
                   alt="Profile"
                   className="h-9 w-9 rounded-full object-cover ring-2 ring-indigo-200 dark:ring-indigo-800"
-    onError={() => setProfilePicture(null)} 
+                  onError={() => setProfilePicture(null)}
                 />
               ) : (
                 <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full p-1.5 shadow-md">
@@ -181,14 +193,15 @@ export default function Navbar() {
                     >
                       <UserCircleIcon className="h-4 w-4" /> My Profile
                     </button>
+                    {/* Change Password button - moved here */}
                     <button
                       onClick={() => {
                         setShowDropdown(false);
-                        navigate("/settings");
+                        navigate("/change-password");
                       }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <Cog6ToothIcon className="h-4 w-4" /> Settings
+                      <KeyIcon className="h-4 w-4" /> Change Password
                     </button>
                     <hr className="my-1 border-gray-200 dark:border-gray-700" />
                     <button
