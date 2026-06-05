@@ -22,6 +22,8 @@ export default function Employees() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [viewMode, setViewMode] = useState("table");
+  // Track image errors per employee
+  const [imageErrors, setImageErrors] = useState({});
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -37,6 +39,8 @@ export default function Employees() {
         `/employees/search?search=${search}&status=${statusFilter}`
       );
       setEmployees(response.data);
+      // Reset image errors for new data
+      setImageErrors({});
     } catch (error) {
       console.error(error);
     } finally {
@@ -84,6 +88,10 @@ export default function Employees() {
 
   const getInitials = (firstName, lastName) => {
     return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase();
+  };
+
+  const handleImageError = (empId) => {
+    setImageErrors(prev => ({ ...prev, [empId]: true }));
   };
 
   if (loading) {
@@ -200,96 +208,77 @@ export default function Employees() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                {employees.map((emp) => (
-                  <tr
-                    key={emp.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        {emp.profile_picture ? (
-                          <img src={getImageUrl(emp.profile_picture)}alt={emp.first_name} className="h-9 w-9 rounded-full object-cover" />
-                        ) : (
-                          <div className="flex-shrink-0 h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
-                            {getInitials(emp.first_name, emp.last_name)}
+                {employees.map((emp) => {
+                  const hasImageError = imageErrors[emp.id];
+                  return (
+                    <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          {emp.profile_picture && !hasImageError ? (
+                            <img
+                              src={getImageUrl(emp.profile_picture)}
+                              alt={emp.first_name}
+                              className="h-9 w-9 rounded-full object-cover"
+                              onError={() => handleImageError(emp.id)}
+                            />
+                          ) : (
+                            <div className="flex-shrink-0 h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
+                              {getInitials(emp.first_name, emp.last_name)}
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {emp.first_name} {emp.last_name}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {emp.email}
+                            </p>
                           </div>
-                        )}
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {emp.first_name} {emp.last_name}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {emp.email}
-                          </p>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
-                      {emp.employee_code}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">
-                      {emp.department}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden lg:table-cell">
-                      {emp.designation}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden xl:table-cell">
-                      {formatDate(emp.dob)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          emp.status === "ACTIVE"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                        }`}
-                      >
-                        {emp.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => navigate(`/employees/${emp.id}`)}
-                          className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                          title="View"
-                        >
-                          <EyeIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/employees/edit/${emp.id}`)}
-                          className="p-1.5 rounded-lg text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
-                          title="Edit"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => resetPassword(emp.user_id)}
-                          className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
-                          title="Reset Password"
-                        >
-                          <KeyIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => deleteEmployee(emp.id)}
-                          className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                          title="Deactivate"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
+                        {emp.employee_code}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">
+                        {emp.department}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden lg:table-cell">
+                        {emp.designation}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden xl:table-cell">
+                        {formatDate(emp.dob)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${emp.status === "ACTIVE" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"}`}>
+                          {emp.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => navigate(`/employees/${emp.id}`)} className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="View">
+                            <EyeIcon className="h-4 w-4" />
+                          </button>
+                          <button onClick={() => navigate(`/employees/edit/${emp.id}`)} className="p-1.5 rounded-lg text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors" title="Edit">
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                          <button onClick={() => resetPassword(emp.user_id)} className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Reset Password">
+                            <KeyIcon className="h-4 w-4" />
+                          </button>
+                          <button onClick={() => deleteEmployee(emp.id)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Deactivate">
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
           {employees.length === 0 && (
             <div className="text-center py-12">
               <UserCircleIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                No employees found
-              </p>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No employees found</p>
             </div>
           )}
         </div>
@@ -298,95 +287,51 @@ export default function Employees() {
       {/* View: Cards Mode */}
       {viewMode === "cards" && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {employees.map((emp) => (
-            <div
-              key={emp.id}
-              className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-5 hover:shadow-md transition"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  {emp.profile_picture ? (
-                    <img
-                      src={getImageUrl(emp.profile_picture)}
-                      alt={emp.first_name}
-                      className="h-12 w-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base font-bold">
-                      {getInitials(emp.first_name, emp.last_name)}
+          {employees.map((emp) => {
+            const hasImageError = imageErrors[emp.id];
+            return (
+              <div key={emp.id} className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-5 hover:shadow-md transition">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    {emp.profile_picture && !hasImageError ? (
+                      <img
+                        src={getImageUrl(emp.profile_picture)}
+                        alt={emp.first_name}
+                        className="h-12 w-12 rounded-full object-cover"
+                        onError={() => handleImageError(emp.id)}
+                      />
+                    ) : (
+                      <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base font-bold">
+                        {getInitials(emp.first_name, emp.last_name)}
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{emp.first_name} {emp.last_name}</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{emp.employee_code}</p>
                     </div>
-                  )}
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
-                      {emp.first_name} {emp.last_name}
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {emp.employee_code}
-                    </p>
                   </div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${emp.status === "ACTIVE" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"}`}>
+                    {emp.status}
+                  </span>
                 </div>
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    emp.status === "ACTIVE"
-                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                      : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                  }`}
-                >
-                  {emp.status}
-                </span>
+                <div className="mt-4 space-y-2 text-sm">
+                  <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Email:</span><span className="text-gray-700 dark:text-gray-300 truncate ml-2">{emp.email}</span></p>
+                  <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Department:</span><span className="text-gray-700 dark:text-gray-300">{emp.department}</span></p>
+                  <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Designation:</span><span className="text-gray-700 dark:text-gray-300">{emp.designation}</span></p>
+                  <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Joining:</span><span className="text-gray-700 dark:text-gray-300">{formatDate(emp.joining_date)}</span></p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 flex justify-between gap-2">
+                  <button onClick={() => navigate(`/employees/${emp.id}`)} className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 transition"><EyeIcon className="h-3.5 w-3.5" /> View</button>
+                  <button onClick={() => navigate(`/employees/edit/${emp.id}`)} className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-yellow-700 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 transition"><PencilIcon className="h-3.5 w-3.5" /> Edit</button>
+                  <button onClick={() => resetPassword(emp.user_id)} className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 transition"><KeyIcon className="h-3.5 w-3.5" /> Reset</button>
+                </div>
               </div>
-
-              <div className="mt-4 space-y-2 text-sm">
-                <p className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Email:</span>
-                  <span className="text-gray-700 dark:text-gray-300 truncate ml-2">
-                    {emp.email}
-                  </span>
-                </p>
-                <p className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Department:</span>
-                  <span className="text-gray-700 dark:text-gray-300">{emp.department}</span>
-                </p>
-                <p className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Designation:</span>
-                  <span className="text-gray-700 dark:text-gray-300">{emp.designation}</span>
-                </p>
-                <p className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Joining:</span>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {formatDate(emp.joining_date)}
-                  </span>
-                </p>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 flex justify-between gap-2">
-                <button
-                  onClick={() => navigate(`/employees/${emp.id}`)}
-                  className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 transition"
-                >
-                  <EyeIcon className="h-3.5 w-3.5" /> View
-                </button>
-                <button
-                  onClick={() => navigate(`/employees/edit/${emp.id}`)}
-                  className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-yellow-700 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 transition"
-                >
-                  <PencilIcon className="h-3.5 w-3.5" /> Edit
-                </button>
-                <button
-                  onClick={() => resetPassword(emp.user_id)}
-                  className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 transition"
-                >
-                  <KeyIcon className="h-3.5 w-3.5" /> Reset
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {employees.length === 0 && (
             <div className="col-span-full text-center py-12">
               <UserCircleIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                No employees found
-              </p>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No employees found</p>
             </div>
           )}
         </div>

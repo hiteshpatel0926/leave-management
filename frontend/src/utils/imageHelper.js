@@ -1,3 +1,4 @@
+// frontend/src/utils/imageHelper.js
 export const getImageUrl = (path) => {
   if (!path) return null;
   if (path.startsWith('http')) return path;
