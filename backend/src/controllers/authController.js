@@ -82,23 +82,51 @@ const changePassword = async (req, res) => {
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
+
+    // 1. Find user and join with employees to get status
     const userResult = await pool.query(
-      "SELECT id, email FROM users WHERE LOWER(email) = LOWER($1)",
+      `SELECT u.id, u.email, e.status AS employee_status
+       FROM users u
+       LEFT JOIN employees e ON e.user_id = u.id
+       WHERE LOWER(u.email) = LOWER($1)`,
       [email]
     );
+
+    // 2. If no user found → not authorized
     if (userResult.rows.length === 0) {
-      return res.json({ message: "If that email exists, we sent a reset link." });
+      return res.status(404).json({
+        message: "You are not an authorized user. No account found with this email."
+      });
     }
+
     const user = userResult.rows[0];
-    const token = crypto.randomBytes(32).toString('hex'); // ← now works
+
+    // 3. If the user is linked to an employee and that employee is INACTIVE → block
+    if (user.employee_status && user.employee_status !== 'ACTIVE') {
+      return res.status(403).json({
+        message: "Your account is inactive. Please contact your administrator."
+      });
+    }
+
+    // 4. Generate reset token (1 hour expiry)
+    const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 3600000);
+
     await pool.query(
-      "UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE id = $3",
+      `UPDATE users 
+       SET reset_password_token = $1, reset_password_expires = $2
+       WHERE id = $3`,
       [token, expires, user.id]
     );
+
+    // 5. Send reset email
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
     await sendResetEmail(user.email, resetUrl);
-    res.json({ message: "If that email exists, we sent a reset link." });
+
+    // 6. Return success (same message for both existing and non‑existing emails for security)
+    res.json({
+      message: "If that email exists and the account is active, we sent a reset link."
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
