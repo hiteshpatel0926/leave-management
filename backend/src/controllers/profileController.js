@@ -7,6 +7,7 @@ const getMyProfile = async (req, res) => {
       `
       SELECT
         e.id,
+        e.profile_picture,
         e.employee_code,
         e.first_name,
         e.last_name,

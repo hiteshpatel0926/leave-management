@@ -1,3 +1,4 @@
+// frontend/src/pages/Employees.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -19,7 +20,7 @@ export default function Employees() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [viewMode, setViewMode] = useState("table"); // 'table' or 'cards'
+  const [viewMode, setViewMode] = useState("table");
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -32,7 +33,7 @@ export default function Employees() {
     try {
       setLoading(true);
       const response = await api.get(
-        `/employees/search?search=${search}&status=${statusFilter}`,
+        `/employees/search?search=${search}&status=${statusFilter}`
       );
       setEmployees(response.data);
     } catch (error) {
@@ -59,7 +60,7 @@ export default function Employees() {
 
   const deleteEmployee = async (id) => {
     const confirmDelete = window.confirm(
-      "Are you sure you want to deactivate this employee?",
+      "Are you sure you want to deactivate this employee?"
     );
     if (!confirmDelete) return;
     try {
@@ -109,7 +110,6 @@ export default function Employees() {
           </p>
         </div>
         <div className="flex gap-3">
-          {/* View Toggle */}
           <div className="flex rounded-lg border border-gray-200 dark:border-gray-800 p-1">
             <button
               onClick={() => setViewMode("table")}
@@ -206,9 +206,13 @@ export default function Employees() {
                   >
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0 h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
-                          {getInitials(emp.first_name, emp.last_name)}
-                        </div>
+                        {emp.profile_picture ? (
+                          <img src={emp.profile_picture} alt={emp.first_name} className="h-9 w-9 rounded-full object-cover" />
+                        ) : (
+                          <div className="flex-shrink-0 h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
+                            {getInitials(emp.first_name, emp.last_name)}
+                          </div>
+                        )}
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">
                             {emp.first_name} {emp.last_name}
@@ -300,9 +304,17 @@ export default function Employees() {
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base font-bold">
-                    {getInitials(emp.first_name, emp.last_name)}
-                  </div>
+                  {emp.profile_picture ? (
+                    <img
+                      src={emp.profile_picture}
+                      alt={emp.first_name}
+                      className="h-12 w-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base font-bold">
+                      {getInitials(emp.first_name, emp.last_name)}
+                    </div>
+                  )}
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">
                       {emp.first_name} {emp.last_name}
@@ -325,33 +337,21 @@ export default function Employees() {
 
               <div className="mt-4 space-y-2 text-sm">
                 <p className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Email:
-                  </span>
+                  <span className="text-gray-500 dark:text-gray-400">Email:</span>
                   <span className="text-gray-700 dark:text-gray-300 truncate ml-2">
                     {emp.email}
                   </span>
                 </p>
                 <p className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Department:
-                  </span>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {emp.department}
-                  </span>
+                  <span className="text-gray-500 dark:text-gray-400">Department:</span>
+                  <span className="text-gray-700 dark:text-gray-300">{emp.department}</span>
                 </p>
                 <p className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Designation:
-                  </span>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {emp.designation}
-                  </span>
+                  <span className="text-gray-500 dark:text-gray-400">Designation:</span>
+                  <span className="text-gray-700 dark:text-gray-300">{emp.designation}</span>
                 </p>
                 <p className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Joining:
-                  </span>
+                  <span className="text-gray-500 dark:text-gray-400">Joining:</span>
                   <span className="text-gray-700 dark:text-gray-300">
                     {formatDate(emp.joining_date)}
                   </span>

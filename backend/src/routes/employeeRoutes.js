@@ -4,6 +4,9 @@ const router = express.Router();
 
 const { authenticate, authorize } = require("../middleware/authMiddleware");
 
+const upload = require('../middleware/upload');
+const { uploadProfilePicture } = require('../controllers/uploadController');
+
 const {
   createEmployee,
   getEmployees,
@@ -55,6 +58,7 @@ router.get(
   getEmployees
 );
 
-
+// PUT /employees/:id/profile-picture
+router.put('/:id/profile-picture', upload.single('profilePicture'), uploadProfilePicture);
 
 module.exports = router;
