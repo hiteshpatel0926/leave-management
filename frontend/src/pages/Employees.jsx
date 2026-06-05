@@ -32,7 +32,7 @@ export default function Employees() {
     try {
       setLoading(true);
       const response = await api.get(
-        `/employees/search?search=${search}&status=${statusFilter}`
+        `/employees/search?search=${search}&status=${statusFilter}`,
       );
       setEmployees(response.data);
     } catch (error) {
@@ -59,7 +59,7 @@ export default function Employees() {
 
   const deleteEmployee = async (id) => {
     const confirmDelete = window.confirm(
-      "Are you sure you want to deactivate this employee?"
+      "Are you sure you want to deactivate this employee?",
     );
     if (!confirmDelete) return;
     try {
@@ -325,21 +325,33 @@ export default function Employees() {
 
               <div className="mt-4 space-y-2 text-sm">
                 <p className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Email:</span>
+                  <span className="text-gray-500 dark:text-gray-400">
+                    Email:
+                  </span>
                   <span className="text-gray-700 dark:text-gray-300 truncate ml-2">
                     {emp.email}
                   </span>
                 </p>
                 <p className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Department:</span>
-                  <span className="text-gray-700 dark:text-gray-300">{emp.department}</span>
+                  <span className="text-gray-500 dark:text-gray-400">
+                    Department:
+                  </span>
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {emp.department}
+                  </span>
                 </p>
                 <p className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Designation:</span>
-                  <span className="text-gray-700 dark:text-gray-300">{emp.designation}</span>
+                  <span className="text-gray-500 dark:text-gray-400">
+                    Designation:
+                  </span>
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {emp.designation}
+                  </span>
                 </p>
                 <p className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Joining:</span>
+                  <span className="text-gray-500 dark:text-gray-400">
+                    Joining:
+                  </span>
                   <span className="text-gray-700 dark:text-gray-300">
                     {formatDate(emp.joining_date)}
                   </span>
