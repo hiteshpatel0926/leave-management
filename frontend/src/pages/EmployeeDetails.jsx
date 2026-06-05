@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { getImageUrl } from "../utils/imageHelper";
 import {
   ArrowLeftIcon,
   UserIcon,
@@ -110,7 +111,7 @@ export default function EmployeeDetails() {
             {/* Profile Picture */}
             {employee.profile.profile_picture ? (
               <img
-                src={employee.profile.profile_picture}
+                src={getImageUrl(employee.profile.profile_picture)}
                 alt="Profile"
                 className="h-20 w-20 rounded-full object-cover border-2 border-white shadow-lg"
               />

@@ -1,26 +1,22 @@
 // frontend/src/components/ImageCropUpload.jsx
-import React, { useState, useRef } from 'react';
-import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css';
-import api from '../services/api';
+import React, { useState, useRef } from "react";
+import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
+import api from "../services/api";
 
 function centerAspectCrop(mediaWidth, mediaHeight, aspect) {
   return centerCrop(
-    makeAspectCrop(
-      {
-        unit: '%',
-        width: 90,
-      },
-      aspect,
-      mediaWidth,
-      mediaHeight,
-    ),
+    makeAspectCrop({ unit: "%", width: 90 }, aspect, mediaWidth, mediaHeight),
     mediaWidth,
     mediaHeight,
   );
 }
 
-export default function ImageCropUpload({ employeeId, onUploadSuccess, onClose }) {
+export default function ImageCropUpload({
+  employeeId,
+  onUploadSuccess,
+  onClose,
+}) {
   const [imgSrc, setImgSrc] = useState(null);
   const [crop, setCrop] = useState();
   const [completedCrop, setCompletedCrop] = useState();
@@ -31,9 +27,9 @@ export default function ImageCropUpload({ employeeId, onUploadSuccess, onClose }
     if (e.target.files && e.target.files.length) {
       const file = e.target.files[0];
       const reader = new FileReader();
-      reader.addEventListener('load', () => {
+      reader.addEventListener("load", () => {
         setImgSrc(reader.result);
-        setCrop(undefined); // reset crop
+        setCrop(undefined);
       });
       reader.readAsDataURL(file);
     }
@@ -41,25 +37,25 @@ export default function ImageCropUpload({ employeeId, onUploadSuccess, onClose }
 
   const onImageLoad = (e) => {
     const { width, height } = e.currentTarget;
-    const crop = centerAspectCrop(width, height, 1); // 1:1 aspect ratio
+    const crop = centerAspectCrop(width, height, 1);
     setCrop(crop);
   };
 
   const handleUpload = async () => {
     if (!completedCrop || !imgRef.current) return;
 
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     const image = imgRef.current;
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     const pixelRatio = window.devicePixelRatio;
 
     canvas.width = completedCrop.width * pixelRatio;
     canvas.height = completedCrop.height * pixelRatio;
 
     ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingQuality = "high";
 
     ctx.drawImage(
       image,
@@ -73,22 +69,28 @@ export default function ImageCropUpload({ employeeId, onUploadSuccess, onClose }
       completedCrop.height,
     );
 
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
-    const file = new File([blob], 'profile.jpg', { type: 'image/jpeg' });
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.95),
+    );
+    const file = new File([blob], "profile.jpg", { type: "image/jpeg" });
 
     const formData = new FormData();
-    formData.append('profilePicture', file);
+    formData.append("profilePicture", file);
 
     setUploading(true);
     try {
-      const response = await api.put(`/employees/${employeeId}/profile-picture`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const response = await api.put(
+        `/employees/${employeeId}/profile-picture`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
       if (onUploadSuccess) onUploadSuccess(response.data.profilePicture);
       if (onClose) onClose();
     } catch (err) {
       console.error(err);
-      alert('Upload failed');
+      alert("Upload failed");
     } finally {
       setUploading(false);
     }
@@ -98,7 +100,12 @@ export default function ImageCropUpload({ employeeId, onUploadSuccess, onClose }
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6">
         <h3 className="text-lg font-semibold mb-4">Upload Profile Picture</h3>
-        <input type="file" accept="image/*" onChange={onSelectFile} className="mb-4" />
+        <input
+          type="file"
+          accept="image/*"
+          onChange={onSelectFile}
+          className="mb-4"
+        />
         {imgSrc && (
           <div className="mb-4">
             <ReactCrop
@@ -113,19 +120,21 @@ export default function ImageCropUpload({ employeeId, onUploadSuccess, onClose }
                 src={imgSrc}
                 alt="Crop preview"
                 onLoad={onImageLoad}
-                style={{ maxHeight: '300px' }}
+                style={{ maxHeight: "300px" }}
               />
             </ReactCrop>
           </div>
         )}
         <div className="flex gap-3 justify-end">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border">Cancel</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border">
+            Cancel
+          </button>
           <button
             onClick={handleUpload}
             disabled={!completedCrop || uploading}
             className="px-4 py-2 rounded-lg bg-indigo-600 text-white disabled:opacity-50"
           >
-            {uploading ? 'Uploading...' : 'Upload'}
+            {uploading ? "Uploading..." : "Upload"}
           </button>
         </div>
       </div>

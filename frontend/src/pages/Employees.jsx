@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { getImageUrl } from "../utils/imageHelper";
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -207,7 +208,7 @@ export default function Employees() {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         {emp.profile_picture ? (
-                          <img src={emp.profile_picture} alt={emp.first_name} className="h-9 w-9 rounded-full object-cover" />
+                          <img src={getImageUrl(emp.profile_picture)}alt={emp.first_name} className="h-9 w-9 rounded-full object-cover" />
                         ) : (
                           <div className="flex-shrink-0 h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
                             {getInitials(emp.first_name, emp.last_name)}
@@ -306,7 +307,7 @@ export default function Employees() {
                 <div className="flex items-center gap-3">
                   {emp.profile_picture ? (
                     <img
-                      src={emp.profile_picture}
+                      src={getImageUrl(emp.profile_picture)}
                       alt={emp.first_name}
                       className="h-12 w-12 rounded-full object-cover"
                     />
