@@ -1,7 +1,7 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const crypto = require('crypto'); // ← must be at the top
+const crypto = require("crypto"); // ← must be at the top
 const { sendResetEmail } = require("../config/email");
 
 const register = async (req, res) => {
@@ -18,7 +18,7 @@ const login = async (req, res) => {
        FROM users u
        LEFT JOIN employees e ON e.user_id = u.id
        WHERE LOWER(u.email) = LOWER($1)`,
-      [email]
+      [email],
     );
 
     if (result.rows.length === 0) {
@@ -50,7 +50,7 @@ const login = async (req, res) => {
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: "1d" },
     );
 
     res.json({
@@ -70,14 +70,99 @@ const login = async (req, res) => {
 };
 
 const getProfile = async (req, res) => {
-  // ... (unchanged)
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        e.*,
+        u.email,
+        u.role,
+        u.dob,
+        u.gender
+      FROM employees e
+      JOIN users u
+        ON e.user_id = u.id
+      WHERE u.id = $1
+      `,
+      [req.user.userId],
+    );
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server Error",
+    });
+  }
 };
 
 const changePassword = async (req, res) => {
-  // ... (unchanged)
+  try {
+    const userId = req.user.userId;
+
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        message: "Passwords do not match",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    const user = await pool.query(
+      `
+        SELECT *
+        FROM users
+        WHERE id = $1
+        `,
+      [userId],
+    );
+
+    if (user.rows.length === 0) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(
+      currentPassword,
+      user.rows[0].password,
+    );
+
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Current password is incorrect",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+      `
+      UPDATE users
+      SET password = $1
+      WHERE id = $2
+      `,
+      [hashedPassword, userId],
+    );
+
+    res.json({
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server Error",
+    });
+  }
 };
-
-
 
 const forgotPassword = async (req, res) => {
   try {
@@ -89,34 +174,35 @@ const forgotPassword = async (req, res) => {
        FROM users u
        LEFT JOIN employees e ON e.user_id = u.id
        WHERE LOWER(u.email) = LOWER($1)`,
-      [email]
+      [email],
     );
 
     // 2. If no user found → not authorized
     if (userResult.rows.length === 0) {
       return res.status(404).json({
-        message: "You are not an authorized user. No account found with this email."
+        message:
+          "You are not an authorized user. No account found with this email.",
       });
     }
 
     const user = userResult.rows[0];
 
     // 3. If the user is linked to an employee and that employee is INACTIVE → block
-    if (user.employee_status && user.employee_status !== 'ACTIVE') {
+    if (user.employee_status && user.employee_status !== "ACTIVE") {
       return res.status(403).json({
-        message: "Your account is inactive. Please contact your administrator."
+        message: "Your account is inactive. Please contact your administrator.",
       });
     }
 
     // 4. Generate reset token (1 hour expiry)
-    const token = crypto.randomBytes(32).toString('hex');
+    const token = crypto.randomBytes(32).toString("hex");
     const expires = new Date(Date.now() + 3600000);
 
     await pool.query(
       `UPDATE users 
        SET reset_password_token = $1, reset_password_expires = $2
        WHERE id = $3`,
-      [token, expires, user.id]
+      [token, expires, user.id],
     );
 
     // 5. Send reset email
@@ -125,7 +211,8 @@ const forgotPassword = async (req, res) => {
 
     // 6. Return success (same message for both existing and non‑existing emails for security)
     res.json({
-      message: "If that email exists and the account is active, we sent a reset link."
+      message:
+        "If that email exists and the account is active, we sent a reset link.",
     });
   } catch (error) {
     console.error(error);
@@ -138,21 +225,23 @@ const resetPassword = async (req, res) => {
     const { token, newPassword, confirmPassword } = req.body;
 
     if (newPassword !== confirmPassword) {
-      return res.status(400).json({ message: 'Passwords do not match' });
+      return res.status(400).json({ message: "Passwords do not match" });
     }
     if (newPassword.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
     }
 
     const userResult = await pool.query(
       `SELECT id FROM users 
        WHERE reset_password_token = $1 
        AND reset_password_expires > NOW()`,
-      [token]
+      [token],
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
+      return res.status(400).json({ message: "Invalid or expired token" });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -160,13 +249,13 @@ const resetPassword = async (req, res) => {
       `UPDATE users 
        SET password = $1, reset_password_token = NULL, reset_password_expires = NULL
        WHERE id = $2`,
-      [hashedPassword, userResult.rows[0].id]
+      [hashedPassword, userResult.rows[0].id],
     );
 
-    res.json({ message: 'Password reset successful. You can now login.' });
+    res.json({ message: "Password reset successful. You can now login." });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 

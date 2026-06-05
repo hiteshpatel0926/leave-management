@@ -21,7 +21,16 @@ export default function ForgotPassword() {
       setMessage(response.data.message);
       setEmail("");
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong");
+      const status = err.response?.status;
+      const serverMessage = err.response?.data?.message;
+      
+      if (status === 404) {
+        setError("❌ You are not an authorized user. No account found with this email.");
+      } else if (status === 403) {
+        setError("⚠️ Your account is inactive. Please contact your administrator.");
+      } else {
+        setError(serverMessage || "Something went wrong. Please try again later.");
+      }
     } finally {
       setLoading(false);
     }
