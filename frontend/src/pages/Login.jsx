@@ -1,3 +1,4 @@
+// frontend/src/pages/Login.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -20,7 +21,12 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(response.data.user));
       navigate("/dashboard");
     } catch (error) {
-      setError(error.response?.data?.message || "Login failed");
+      const code = error.response?.data?.code;
+      if (code === "INACTIVE_ACCOUNT") {
+        setError("⚠️ Your account is inactive. Please contact your administrator.");
+      } else {
+        setError(error.response?.data?.message || "Login failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -36,7 +42,7 @@ export default function Login() {
         <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8">
           <div className="text-center mb-8">
             <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <span className="text-white font-bold text-xl">MBOS</span>
+              <span className="text-white font-bold text-xl">MBOS</span>
             </div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               Leave Management
