@@ -1,47 +1,19 @@
-"# leave-management" 
+Completed Modules
 
-
-Authentication & Security
-
-✅ Login
-✅ JWT Authentication
-✅ Role-Based Authorization
-✅ Change Password
-✅ Admin Reset Password
-
-
-Employee Management
-
-✅ Add Employee
-✅ Edit Employee
-✅ Search Employee
-✅ Active/Inactive Filter
-✅ Deactivate Employee
-
-Leave Management
-
+✅ Authentication & Authorization
+✅ Employee Management
+✅ User Management
+✅ Profile Management
+✅ Leave Types
+✅ Leave Balances
 ✅ Apply Leave
-✅ Leave Balance Validation
-✅ My Leaves
-✅ Pending Leaves
-✅ Approve Leave
-✅ Reject Leave
+✅ Leave Approval Workflow
 ✅ Cancel Leave
-✅ Double Approval Prevention
-✅ Transaction Handling
-✅ Dynamic Leave Year
-
-Dashboard
-
-✅ Admin Dashboard
-✅ Employee Dashboard
-
-
-Leave Balance
-
-✅ Balance Tracking
-✅ Entitled Days
-✅ Used Days
-✅ Remaining Balance
-
-
+✅ Weekend Exclusion
+✅ Holiday Exclusion
+✅ Leave Overlap Validation
+✅ Holiday Management
+✅ Dashboard Statistics
+✅ Employee Details Screen
+✅ Admin Reset Password
+✅ Change Password
