@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import api from "../services/api";
 import DataTable from "../components/DataTable";
 import { motion } from "framer-motion";
-import { ScaleIcon } from "@heroicons/react/24/outline";
+import { ScaleIcon, FunnelIcon } from "@heroicons/react/24/outline";
 
 export default function LeaveBalance() {
-  const [balances, setBalances] = useState([]);
+  const [allBalances, setAllBalances] = useState([]);
+  const [selectedYear, setSelectedYear] = useState("all");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadBalances();
@@ -14,17 +16,39 @@ export default function LeaveBalance() {
   const loadBalances = async () => {
     try {
       const response = await api.get("/balances/my-balance");
-      setBalances(response.data);
+      setAllBalances(response.data);
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const columns = ["Leave Type", "Allocated", "Used", "Balance"];
+  // Extract unique years from balances
+  const years = [...new Set(allBalances.map(b => b.year))].sort((a, b) => b - a);
 
-  const data = balances.map((row) => [
+  // Filter balances by selected year
+  const filteredBalances = selectedYear === "all"
+    ? allBalances
+    : allBalances.filter(b => b.year === parseInt(selectedYear));
+
+  // Calculate totals for the filtered data
+  const totals = filteredBalances.reduce((acc, row) => {
+    acc.entitled += parseFloat(row.entitled_days) || 0;
+    acc.used += parseFloat(row.used_days) || 0;
+    acc.balance += parseFloat(row.balance_days) || 0;
+    return acc;
+  }, { entitled: 0, used: 0, balance: 0 });
+
+  const columns = ["Leave Type", "Year", "Allocated", "Used", "Balance"];
+
+  // Prepare data rows
+  const data = filteredBalances.map((row) => [
     <span className="font-medium text-gray-900 dark:text-white">
       {row.code} - {row.name}
+    </span>,
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+      {row.year}
     </span>,
     <span className="text-gray-600 dark:text-gray-400">{row.entitled_days}</span>,
     <span className="text-gray-600 dark:text-gray-400">{row.used_days}</span>,
@@ -33,24 +57,62 @@ export default function LeaveBalance() {
     </span>,
   ]);
 
+  // Add total row if there are filtered balances
+  if (filteredBalances.length > 0) {
+    data.push([
+      <span className="font-bold text-gray-900 dark:text-white">Total</span>,
+      <span></span>,
+      <span className="font-bold text-gray-900 dark:text-white">{totals.entitled.toFixed(2)}</span>,
+      <span className="font-bold text-gray-900 dark:text-white">{totals.used.toFixed(2)}</span>,
+      <span className="inline-flex font-bold text-indigo-800 dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-900/50 px-3 py-1 rounded-lg">
+        {totals.balance.toFixed(2)}
+      </span>,
+    ]);
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500" />
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      <div className="flex items-center gap-4">
-        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50">
-          <ScaleIcon className="h-6 w-6" />
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50">
+            <ScaleIcon className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              My Leave Balance
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
+              Check your total allocated, used, and remaining time off
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            My Leave Balance
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Check your total allocated, used, and remaining time off
-          </p>
-        </div>
+        {years.length > 0 && (
+          <div className="relative">
+            <FunnelIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none cursor-pointer"
+            >
+              <option value="all">All Years</option>
+              {years.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
       
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">

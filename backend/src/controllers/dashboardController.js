@@ -2,137 +2,145 @@ const pool = require("../config/db");
 
 const getDashboardStats = async (req, res) => {
   try {
-    const role = req.user.role;
+    const userId = req.user.userId;
+    let userRole = req.user.role;
 
-    // ---------- ADMIN ----------
-    if (role === "ADMIN") {
-      const employees = await pool.query(`SELECT COUNT(*) total FROM employees`);
-      const pending = await pool.query(`SELECT COUNT(*) total FROM leave_requests WHERE status='PENDING'`);
-      const approved = await pool.query(`SELECT COUNT(*) total FROM leave_requests WHERE status='APPROVED'`);
-      const rejected = await pool.query(`SELECT COUNT(*) total FROM leave_requests WHERE status='REJECTED'`);
-      const activeEmployees = await pool.query(`SELECT COUNT(*) total FROM employees WHERE status = 'ACTIVE'`);
-      const upcomingHolidays = await pool.query(
-        `SELECT holiday_name, holiday_date
-         FROM holidays
-         WHERE holiday_date >= CURRENT_DATE
-         ORDER BY holiday_date
-         LIMIT 5`
-      );
-
-      return res.json({
-        role: "ADMIN",
-        totalEmployees: Number(employees.rows[0].total),
-        pendingLeaves: Number(pending.rows[0].total),
-        approvedLeaves: Number(approved.rows[0].total),
-        rejectedLeaves: Number(rejected.rows[0].total),
-        activeEmployees: Number(activeEmployees.rows[0].total),
-        upcomingHolidays: upcomingHolidays.rows,
-      });
+    if (!userRole) {
+      const userRes = await pool.query("SELECT role FROM users WHERE id = $1", [userId]);
+      if (userRes.rows.length === 0) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      userRole = userRes.rows[0].role;
     }
 
-    // ---------- EMPLOYEE ----------
-    // 1. Get employee details (id, gender)
-    const employee = await pool.query(
-      `SELECT id, gender FROM employees WHERE user_id = $1`,
-      [req.user.userId]
-    );
-    if (employee.rows.length === 0) {
-      return res.status(404).json({ message: "Employee not found" });
-    }
-    const employeeId = employee.rows[0].id;
-    const gender = employee.rows[0].gender; // 'Male' or 'Female'
-    const currentYear = new Date().getFullYear();
+    const year = req.query.year ? parseInt(req.query.year) : new Date().getFullYear();
 
-    // 2. Get all active leave types
-    const leaveTypesResult = await pool.query(
-      `SELECT * FROM leave_types WHERE active = true`
-    );
-    const allLeaveTypes = leaveTypesResult.rows;
-
-    // 3. Filter leave types by gender (same logic as createEmployee)
-    const filteredLeaveTypes = allLeaveTypes.filter((leaveType) => {
-      const nameLower = leaveType.name.toLowerCase();
-      if (nameLower.includes("paternity")) return gender === "Male";
-      if (nameLower.includes("maternity")) return gender === "Female";
-      return true;
-    });
-
-    // 4. Calculate total entitlement (sum of annual_entitlement)
-    const totalEntitlement = filteredLeaveTypes.reduce(
-      (sum, lt) => sum + (lt.annual_entitlement || 0),
-      0
-    );
-
-    // 5. Get remaining balance from leave_balances (excluding LOP)
-    const balance = await pool.query(
-      `SELECT COALESCE(SUM(balance_days), 0) AS total
-       FROM leave_balances
-       WHERE employee_id = $1 AND year = $2 AND leave_type_id != 6`,
-      [employeeId, currentYear]
-    );
-    const remainingBalance = Number(balance.rows[0].total);
-
-    // 6. Get leave request sums - separate for regular leaves vs LOP
-    // Regular approved days (excluding LOP)
-    const regularApproved = await pool.query(
-      `SELECT COALESCE(SUM(total_days), 0) AS total
-       FROM leave_requests
-       WHERE employee_id = $1
-         AND status = 'APPROVED'
-         AND leave_type_id != 6`,
-      [employeeId]
-    );
-    const usedLeaveDays = Number(regularApproved.rows[0].total);
-
-    // LOP approved days
-    const lopApproved = await pool.query(
-      `SELECT COALESCE(SUM(total_days), 0) AS total
-       FROM leave_requests
-       WHERE employee_id = $1
-         AND status = 'APPROVED'
-         AND leave_type_id = 6`,
-      [employeeId]
-    );
-    const lopDaysTaken = Number(lopApproved.rows[0].total);
-
-    // Pending and rejected days (all leave types, including LOP if needed)
-    const pendingResult = await pool.query(
-      `SELECT COALESCE(SUM(total_days), 0) AS total
-       FROM leave_requests
-       WHERE employee_id = $1 AND status = 'PENDING'`,
-      [employeeId]
-    );
-    const rejectedResult = await pool.query(
-      `SELECT COALESCE(SUM(total_days), 0) AS total
-       FROM leave_requests
-       WHERE employee_id = $1 AND status = 'REJECTED'`,
-      [employeeId]
-    );
-
-    // 7. Upcoming holidays
-    const upcomingHolidays = await pool.query(
-      `SELECT holiday_name, holiday_date
+    // Upcoming holidays (always based on current date)
+    const upcomingHolidaysRes = await pool.query(
+      `SELECT id, holiday_name, holiday_date
        FROM holidays
        WHERE holiday_date >= CURRENT_DATE
-       ORDER BY holiday_date
+       ORDER BY holiday_date ASC
        LIMIT 5`
     );
 
-    // 8. Send response
+    // ---------- ADMIN CASE ----------
+    if (userRole === "ADMIN") {
+      const totalEmpRes = await pool.query("SELECT COUNT(*) FROM employees");
+      const totalEmployees = parseInt(totalEmpRes.rows[0].count);
+
+      const activeEmpRes = await pool.query(
+        "SELECT COUNT(*) FROM employees WHERE status = 'ACTIVE'"
+      );
+      const activeEmployees = parseInt(activeEmpRes.rows[0].count);
+
+      // Leave counts for the selected year (for all employees)
+      const leavesRes = await pool.query(
+        `SELECT status, COUNT(*) as count
+         FROM leave_requests
+         WHERE EXTRACT(YEAR FROM start_date) = $1
+         GROUP BY status`,
+        [year]
+      );
+
+      let pendingLeaves = 0, approvedLeaves = 0, rejectedLeaves = 0;
+      leavesRes.rows.forEach((row) => {
+        if (row.status === "PENDING") pendingLeaves = parseInt(row.count);
+        else if (row.status === "APPROVED") approvedLeaves = parseInt(row.count);
+        else if (row.status === "REJECTED") rejectedLeaves = parseInt(row.count);
+      });
+
+      // For admin, we can still return a list of years for the year dropdown
+      // Get distinct years from leave_requests (or leave_balances) – use any table with year info
+      const yearsRes = await pool.query(
+        `SELECT DISTINCT EXTRACT(YEAR FROM start_date) as year
+         FROM leave_requests
+         ORDER BY year DESC`
+      );
+      const availableYears = yearsRes.rows.map(r => r.year);
+
+      res.json({
+        role: "ADMIN",
+        totalEmployees,
+        activeEmployees,
+        pendingLeaves,
+        approvedLeaves,
+        rejectedLeaves,
+        availableYears,
+        upcomingHolidays: upcomingHolidaysRes.rows,
+      });
+      return;
+    }
+
+    // ---------- EMPLOYEE / MANAGER CASE ----------
+    const empRes = await pool.query(
+      `SELECT id, first_name, last_name, department, designation, manager_id
+       FROM employees
+       WHERE user_id = $1`,
+      [userId]
+    );
+    if (empRes.rows.length === 0) {
+      return res.status(404).json({ message: "Employee record not found" });
+    }
+    const employeeId = empRes.rows[0].id;
+
+    // Get leave balances for the selected year
+    const balancesRes = await pool.query(
+      `SELECT lb.entitled_days, lb.used_days, lb.balance_days, lt.name
+       FROM leave_balances lb
+       JOIN leave_types lt ON lb.leave_type_id = lt.id
+       WHERE lb.employee_id = $1 AND lb.year = $2`,
+      [employeeId, year]
+    );
+
+    let totalEntitlement = 0, totalUsed = 0, remainingBalance = 0, lopDaysTaken = 0;
+    balancesRes.rows.forEach((b) => {
+      totalEntitlement += parseFloat(b.entitled_days);
+      totalUsed += parseFloat(b.used_days);
+      remainingBalance += parseFloat(b.balance_days);
+      if (b.name === "Leave Without Pay" || b.name === "LOP") {
+        lopDaysTaken += parseFloat(b.used_days);
+      }
+    });
+
+    // Leave request statuses for the selected year
+    const requestsRes = await pool.query(
+      `SELECT status, COUNT(*) as count
+       FROM leave_requests
+       WHERE employee_id = $1 AND EXTRACT(YEAR FROM start_date) = $2
+       GROUP BY status`,
+      [employeeId, year]
+    );
+
+    let pendingLeaves = 0, approvedLeaves = 0, rejectedLeaves = 0;
+    requestsRes.rows.forEach((row) => {
+      if (row.status === "PENDING") pendingLeaves = parseInt(row.count);
+      else if (row.status === "APPROVED") approvedLeaves = parseInt(row.count);
+      else if (row.status === "REJECTED") rejectedLeaves = parseInt(row.count);
+    });
+
+    // Get available years for employee (for dropdown)
+    const yearsRes = await pool.query(
+      `SELECT DISTINCT year FROM leave_balances WHERE employee_id = $1 ORDER BY year DESC`,
+      [employeeId]
+    );
+    const availableYears = yearsRes.rows.map((r) => r.year);
+
     res.json({
-      role: "EMPLOYEE",
-      totalEntitlement: totalEntitlement,   // e.g., 43 Male, 211 Female
-      usedLeaveDays: usedLeaveDays,         // approved days without LOP
-      lopDaysTaken: lopDaysTaken,           // approved LOP days
-      remainingBalance: remainingBalance,
-      pendingLeaves: Number(pendingResult.rows[0].total),
-      approvedLeaves: usedLeaveDays + lopDaysTaken, // total approved days (including LOP)
-      rejectedLeaves: Number(rejectedResult.rows[0].total),
-      upcomingHolidays: upcomingHolidays.rows,
+      role: userRole,
+      totalEntitlement: totalEntitlement.toFixed(2),
+      usedLeaveDays: totalUsed.toFixed(2),
+      remainingBalance: remainingBalance.toFixed(2),
+      lopDaysTaken: lopDaysTaken.toFixed(2),
+      pendingLeaves,
+      approvedLeaves,
+      rejectedLeaves,
+      availableYears,
+      upcomingHolidays: upcomingHolidaysRes.rows,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 

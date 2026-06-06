@@ -12,20 +12,30 @@ import {
   CalendarIcon,
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
-import { ArrowPathIcon as RefreshIcon } from "@heroicons/react/24/outline";
+import { ArrowPathIcon as RefreshIcon, FunnelIcon } from "@heroicons/react/24/outline";
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [availableYears, setAvailableYears] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     loadDashboard();
-  }, []);
+  }, [selectedYear]);
 
   const loadDashboard = async () => {
     try {
-      const response = await api.get("/dashboard");
+      const response = await api.get(`/dashboard?year=${selectedYear}`);
       setStats(response.data);
+      // Extract years from upcomingHolidays or from a separate endpoint
+      if (response.data.availableYears) {
+        setAvailableYears(response.data.availableYears);
+      } else {
+        // fallback: generate some years (current -1, current, current+1)
+        const year = new Date().getFullYear();
+        setAvailableYears([year - 1, year, year + 1]);
+      }
     } catch (error) {
       console.error(error);
     }
@@ -59,7 +69,6 @@ export default function Dashboard() {
       new Date(holiday.holiday_date).toLocaleDateString(),
     ]) || [];
 
-  // Progress bar component for employee leave usage (against total entitlement)
   const LeaveProgress = ({ used, total }) => {
     const percentage = total > 0 ? (used / total) * 100 : 0;
     const color = percentage > 80 ? "red" : percentage > 60 ? "yellow" : "green";
@@ -85,7 +94,6 @@ export default function Dashboard() {
     );
   };
 
-  // Calculate utilization percentage safely
   const utilizationPercentage = stats.totalEntitlement > 0
     ? Math.round((stats.usedLeaveDays / stats.totalEntitlement) * 100)
     : 0;
@@ -96,8 +104,8 @@ export default function Dashboard() {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      {/* Header with refresh button */}
-      <div className="flex justify-between items-center">
+      {/* Header with refresh and year filter */}
+      <div className="flex flex-wrap justify-between items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Dashboard
@@ -105,18 +113,33 @@ export default function Dashboard() {
           <p className="text-gray-500 dark:text-gray-400 mt-1">
             {stats.role === "ADMIN"
               ? "Overview of all employees and leave activity"
-              : "Your leave summary for this year"}
+              : "Your leave summary"}
           </p>
         </div>
-        <button
-          onClick={loadDashboard}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-        >
-          <RefreshIcon className="h-5 w-5 text-gray-500" />
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Year selector */}
+          <div className="relative">
+            <FunnelIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer"
+            >
+              {availableYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={loadDashboard}
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          >
+            <RefreshIcon className="h-5 w-5 text-gray-500" />
+          </button>
+        </div>
       </div>
 
-      {/* ---------- ADMIN CARDS ---------- */}
+      {/* ---------- ADMIN CARDS (same structure but year-filtered) ---------- */}
       {stats.role === "ADMIN" ? (
         <motion.div
           variants={container}
@@ -153,7 +176,7 @@ export default function Dashboard() {
                 value={stats.pendingLeaves}
                 color="amber"
                 icon={<ClockIcon className="h-6 w-6" />}
-                subtitle="Awaiting approval"
+                subtitle={`Awaiting approval (${selectedYear})`}
               />
             </div>
           </motion.div>
@@ -163,7 +186,7 @@ export default function Dashboard() {
               value={stats.approvedLeaves}
               color="green"
               icon={<CheckCircleIcon className="h-6 w-6" />}
-              subtitle="Approved leaves"
+              subtitle={`Approved leaves (${selectedYear})`}
             />
           </motion.div>
           <motion.div variants={item}>
@@ -172,7 +195,7 @@ export default function Dashboard() {
               value={stats.rejectedLeaves}
               color="red"
               icon={<XCircleIcon className="h-6 w-6" />}
-              subtitle="Rejected leaves"
+              subtitle={`Rejected leaves (${selectedYear})`}
             />
           </motion.div>
         </motion.div>
@@ -184,7 +207,6 @@ export default function Dashboard() {
           animate="show"
           className="space-y-6"
         >
-          {/* First row: Balance summary */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <motion.div variants={item}>
               <div onClick={() => navigate("/leave-balance")} className="cursor-pointer">
@@ -193,7 +215,7 @@ export default function Dashboard() {
                   value={stats.totalEntitlement}
                   color="blue"
                   icon={<CalendarIcon className="h-6 w-6" />}
-                  subtitle="All leave types combined"
+                  subtitle={`All leave types (${selectedYear})`}
                 />
               </div>
             </motion.div>
@@ -204,7 +226,7 @@ export default function Dashboard() {
                   value={stats.usedLeaveDays}
                   color="indigo"
                   icon={<ChartBarIcon className="h-6 w-6" />}
-                  subtitle="Approved days (excl. LOP)"
+                  subtitle={`Approved days (${selectedYear})`}
                 />
               </div>
             </motion.div>
@@ -215,7 +237,7 @@ export default function Dashboard() {
                   value={stats.remainingBalance}
                   color="green"
                   icon={<CalendarIcon className="h-6 w-6" />}
-                  subtitle="Days left to take"
+                  subtitle={`Days left (${selectedYear})`}
                 />
               </div>
             </motion.div>
@@ -226,21 +248,19 @@ export default function Dashboard() {
                   value={stats.lopDaysTaken}
                   color="red"
                   icon={<XCircleIcon className="h-6 w-6" />}
-                  subtitle="Leave Without Pay"
+                  subtitle={`Leave Without Pay (${selectedYear})`}
                 />
               </div>
             </motion.div>
           </div>
 
-          {/* Progress bar card */}
           <motion.div variants={item} className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Leave Utilization
+              Leave Utilization ({selectedYear})
             </h3>
             <LeaveProgress used={stats.usedLeaveDays} total={stats.totalEntitlement} />
           </motion.div>
 
-          {/* Second row: Request statuses (days) + Utilization Percentage */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <motion.div variants={item}>
               <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
@@ -249,7 +269,7 @@ export default function Dashboard() {
                   value={stats.pendingLeaves}
                   color="amber"
                   icon={<ClockIcon className="h-6 w-6" />}
-                  subtitle="Awaiting approval"
+                  subtitle={`Awaiting approval (${selectedYear})`}
                 />
               </div>
             </motion.div>
@@ -260,7 +280,7 @@ export default function Dashboard() {
                   value={stats.approvedLeaves}
                   color="green"
                   icon={<CheckCircleIcon className="h-6 w-6" />}
-                  subtitle="Including LOP"
+                  subtitle={`Including LOP (${selectedYear})`}
                 />
               </div>
             </motion.div>
@@ -271,25 +291,24 @@ export default function Dashboard() {
                   value={stats.rejectedLeaves}
                   color="red"
                   icon={<XCircleIcon className="h-6 w-6" />}
-                  subtitle="Not approved"
+                  subtitle={`Not approved (${selectedYear})`}
                 />
               </div>
             </motion.div>
-            {/* New Card: Leave Utilization Percentage */}
             <motion.div variants={item}>
               <DashboardCard
                 title="Leave Utilization"
                 value={`${utilizationPercentage}%`}
                 color="purple"
                 icon={<ChartBarIcon className="h-6 w-6" />}
-                subtitle="Used vs Entitlement"
+                subtitle={`Used vs Entitlement (${selectedYear})`}
               />
             </motion.div>
           </div>
         </motion.div>
       )}
 
-      {/* Upcoming Holidays Table */}
+      {/* Upcoming Holidays Table (year‑independent) */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
         <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
           Upcoming Holidays

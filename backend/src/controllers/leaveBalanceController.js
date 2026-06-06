@@ -21,25 +21,14 @@ const getMyLeaveBalances = async (req, res) => {
 
     const currentYear = new Date().getFullYear();
 
-    const result = await pool.query(
-      `
-        SELECT
-          lt.code,
-          lt.name,
-          lb.entitled_days,
-          lb.used_days,
-          lb.balance_days
-        FROM leave_balances lb
-        JOIN leave_types lt
-          ON lt.id = lb.leave_type_id
-        WHERE
-          lb.employee_id = $1
-          AND lb.year = $2
-        ORDER BY lt.name
-        `,
-      [employeeId, currentYear],
+   const result = await pool.query(
+      `SELECT lt.code, lt.name, lb.year, lb.entitled_days, lb.used_days, lb.balance_days
+       FROM leave_balances lb
+       JOIN leave_types lt ON lb.leave_type_id = lt.id
+       WHERE lb.employee_id = $1
+       ORDER BY lb.year DESC, lt.id`,
+      [employeeId]
     );
-
     res.json(result.rows);
   } catch (error) {
     console.error(error);
