@@ -19,7 +19,6 @@ const getDashboardStats = async (req, res) => {
       ? parseInt(req.query.year)
       : new Date().getFullYear();
 
-    // Upcoming holidays (always based on current date)
     const upcomingHolidaysRes = await pool.query(
       `SELECT id, holiday_name, holiday_date
        FROM holidays
@@ -28,7 +27,7 @@ const getDashboardStats = async (req, res) => {
        LIMIT 5`,
     );
 
-    // ---------- ADMIN CASE ----------
+    // ---------- ADMIN CASE (unchanged) ----------
     if (userRole === "ADMIN") {
       const totalEmpRes = await pool.query("SELECT COUNT(*) FROM employees");
       const totalEmployees = parseInt(totalEmpRes.rows[0].count);
@@ -38,7 +37,6 @@ const getDashboardStats = async (req, res) => {
       );
       const activeEmployees = parseInt(activeEmpRes.rows[0].count);
 
-      // Leave counts for the selected year (for all employees)
       const leavesRes = await pool.query(
         `SELECT status, COUNT(*) as count
          FROM leave_requests
@@ -47,19 +45,13 @@ const getDashboardStats = async (req, res) => {
         [year],
       );
 
-      let pendingLeaves = 0,
-        approvedLeaves = 0,
-        rejectedLeaves = 0;
+      let pendingLeaves = 0, approvedLeaves = 0, rejectedLeaves = 0;
       leavesRes.rows.forEach((row) => {
         if (row.status === "PENDING") pendingLeaves = parseInt(row.count);
-        else if (row.status === "APPROVED")
-          approvedLeaves = parseInt(row.count);
-        else if (row.status === "REJECTED")
-          rejectedLeaves = parseInt(row.count);
+        else if (row.status === "APPROVED") approvedLeaves = parseInt(row.count);
+        else if (row.status === "REJECTED") rejectedLeaves = parseInt(row.count);
       });
 
-      // For admin, we can still return a list of years for the year dropdown
-      // Get distinct years from leave_requests (or leave_balances) – use any table with year info
       const yearsRes = await pool.query(
         `SELECT DISTINCT EXTRACT(YEAR FROM start_date) as year
          FROM leave_requests
@@ -83,8 +75,8 @@ const getDashboardStats = async (req, res) => {
     // ---------- EMPLOYEE / MANAGER CASE ----------
     const empRes = await pool.query(
       `SELECT id, first_name, last_name, department, designation, manager_id
-   FROM employees
-   WHERE user_id = $1`,
+       FROM employees
+       WHERE user_id = $1`,
       [userId],
     );
     if (empRes.rows.length === 0) {
@@ -92,86 +84,95 @@ const getDashboardStats = async (req, res) => {
     }
     const employeeId = empRes.rows[0].id;
 
-    // ----- Get leave balances for the selected year (for entitlement & remaining) -----
+    // Leave balances
     const balancesRes = await pool.query(
       `SELECT lb.entitled_days, lb.balance_days
-   FROM leave_balances lb
-   WHERE lb.employee_id = $1 AND lb.year = $2`,
+       FROM leave_balances lb
+       WHERE lb.employee_id = $1 AND lb.year = $2`,
       [employeeId, year],
     );
 
-    let totalEntitlement = 0,
-      remainingBalance = 0;
+    let totalEntitlement = 0, remainingBalance = 0;
     balancesRes.rows.forEach((b) => {
       totalEntitlement += parseFloat(b.entitled_days);
       remainingBalance += parseFloat(b.balance_days);
     });
 
-    // ----- Used leave days (sum of approved days, excluding LOP) -----
+    // Used leave days (approved, excluding LOP)
     const usedDaysRes = await pool.query(
       `SELECT SUM(total_days) as total
-   FROM leave_requests
-   WHERE employee_id = $1
-     AND EXTRACT(YEAR FROM start_date) = $2
-     AND status = 'APPROVED'
-     AND leave_type_id != 6`, // exclude Leave Without Pay
+       FROM leave_requests
+       WHERE employee_id = $1
+         AND EXTRACT(YEAR FROM start_date) = $2
+         AND status = 'APPROVED'
+         AND leave_type_id != 6`,
       [employeeId, year],
     );
-    let usedLeaveDays = usedDaysRes.rows[0].total
-      ? parseFloat(usedDaysRes.rows[0].total)
-      : 0;
+    let usedLeaveDays = usedDaysRes.rows[0].total ? parseFloat(usedDaysRes.rows[0].total) : 0;
 
-    // ----- LOP days taken (approved LOP) -----
+    // LOP days taken (approved LOP)
     const lopDaysRes = await pool.query(
       `SELECT SUM(total_days) as total
-   FROM leave_requests
-   WHERE employee_id = $1
-     AND EXTRACT(YEAR FROM start_date) = $2
-     AND status = 'APPROVED'
-     AND leave_type_id = 6`,
+       FROM leave_requests
+       WHERE employee_id = $1
+         AND EXTRACT(YEAR FROM start_date) = $2
+         AND status = 'APPROVED'
+         AND leave_type_id = 6`,
       [employeeId, year],
     );
-    let lopDaysTaken = lopDaysRes.rows[0].total
-      ? parseFloat(lopDaysRes.rows[0].total)
-      : 0;
+    let lopDaysTaken = lopDaysRes.rows[0].total ? parseFloat(lopDaysRes.rows[0].total) : 0;
 
-    // ----- Pending and rejected counts (number of requests) -----
-    const pendingCountRes = await pool.query(
-      `SELECT COUNT(*) as count
-   FROM leave_requests
-   WHERE employee_id = $1
-     AND EXTRACT(YEAR FROM start_date) = $2
-     AND status = 'PENDING'`,
+    // Approved days including LOP
+    const allApprovedRes = await pool.query(
+      `SELECT SUM(total_days) as total
+       FROM leave_requests
+       WHERE employee_id = $1
+         AND EXTRACT(YEAR FROM start_date) = $2
+         AND status = 'APPROVED'`,
       [employeeId, year],
     );
-    const pendingLeaves = parseInt(pendingCountRes.rows[0].count);
+    let approvedLeaves = allApprovedRes.rows[0].total ? parseFloat(allApprovedRes.rows[0].total) : 0;
 
-    const rejectedCountRes = await pool.query(
-      `SELECT COUNT(*) as count
-   FROM leave_requests
-   WHERE employee_id = $1
-     AND EXTRACT(YEAR FROM start_date) = $2
-     AND status = 'REJECTED'`,
+    // ----- Pending days (sum of days for pending requests) -----
+    const pendingDaysRes = await pool.query(
+      `SELECT SUM(total_days) as total
+       FROM leave_requests
+       WHERE employee_id = $1
+         AND EXTRACT(YEAR FROM start_date) = $2
+         AND status = 'PENDING'`,
       [employeeId, year],
     );
-    const rejectedLeaves = parseInt(rejectedCountRes.rows[0].count);
+    let pendingLeaves = pendingDaysRes.rows[0].total ? parseFloat(pendingDaysRes.rows[0].total) : 0;
 
-    // Get available years for dropdown
+    // ----- Rejected days (sum of days for rejected requests) -----
+    const rejectedDaysRes = await pool.query(
+      `SELECT SUM(total_days) as total
+       FROM leave_requests
+       WHERE employee_id = $1
+         AND EXTRACT(YEAR FROM start_date) = $2
+         AND status = 'REJECTED'`,
+      [employeeId, year],
+    );
+    let rejectedLeaves = rejectedDaysRes.rows[0].total ? parseFloat(rejectedDaysRes.rows[0].total) : 0;
+
+    // Available years
     const yearsRes = await pool.query(
       `SELECT DISTINCT year FROM leave_balances WHERE employee_id = $1 ORDER BY year DESC`,
       [employeeId],
     );
     const availableYears = yearsRes.rows.map((r) => r.year);
 
+    const roundToInt = (val) => Math.round(val);
+
     res.json({
       role: userRole,
-      totalEntitlement: totalEntitlement.toFixed(2),
-      usedLeaveDays: usedLeaveDays.toFixed(2),
-      remainingBalance: remainingBalance.toFixed(2),
-      lopDaysTaken: lopDaysTaken.toFixed(2),
-      pendingLeaves,
-      approvedLeaves: usedLeaveDays.toFixed(2), // approved days excluding LOP (as shown in card)
-      rejectedLeaves,
+      totalEntitlement: roundToInt(totalEntitlement),
+      usedLeaveDays: roundToInt(usedLeaveDays),
+      remainingBalance: roundToInt(remainingBalance),
+      lopDaysTaken: roundToInt(lopDaysTaken),
+      pendingLeaves: roundToInt(pendingLeaves),
+      approvedLeaves: roundToInt(approvedLeaves),
+      rejectedLeaves: roundToInt(rejectedLeaves),
       availableYears,
       upcomingHolidays: upcomingHolidaysRes.rows,
     });

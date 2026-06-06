@@ -28,11 +28,9 @@ export default function Dashboard() {
     try {
       const response = await api.get(`/dashboard?year=${selectedYear}`);
       setStats(response.data);
-      // Extract years from upcomingHolidays or from a separate endpoint
       if (response.data.availableYears) {
         setAvailableYears(response.data.availableYears);
       } else {
-        // fallback: generate some years (current -1, current, current+1)
         const year = new Date().getFullYear();
         setAvailableYears([year - 1, year, year + 1]);
       }
@@ -44,7 +42,12 @@ export default function Dashboard() {
   if (!stats) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500" />
+        <div className="relative">
+          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-indigo-600"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="h-6 w-6 rounded-full bg-indigo-100 animate-ping"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -53,7 +56,7 @@ export default function Dashboard() {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 },
+      transition: { staggerChildren: 0.08 },
     },
   };
 
@@ -72,21 +75,20 @@ export default function Dashboard() {
   const LeaveProgress = ({ used, total }) => {
     const percentage = total > 0 ? (used / total) * 100 : 0;
     const color = percentage > 80 ? "red" : percentage > 60 ? "yellow" : "green";
+    const colorMap = {
+      red: "bg-red-500",
+      yellow: "bg-yellow-500",
+      green: "bg-emerald-500",
+    };
     return (
-      <div className="mt-3">
-        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+      <div className="mt-4">
+        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1.5 font-medium">
           <span>Used: {used} days</span>
           <span>Remaining: {total - used} days</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
           <div
-            className={`h-2.5 rounded-full ${
-              color === "red"
-                ? "bg-red-500"
-                : color === "yellow"
-                ? "bg-yellow-400"
-                : "bg-green-500"
-            }`}
+            className={`h-3 rounded-full transition-all duration-700 ${colorMap[color]} shadow-inner`}
             style={{ width: `${Math.min(percentage, 100)}%` }}
           ></div>
         </div>
@@ -102,28 +104,27 @@ export default function Dashboard() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-6"
+      className="space-y-8 px-2 md:px-4"
     >
-      {/* Header with refresh and year filter */}
-      <div className="flex flex-wrap justify-between items-center gap-4">
+      {/* Header with glass effect */}
+      <div className="flex flex-wrap justify-between items-center gap-4 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm p-5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
             Dashboard
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
             {stats.role === "ADMIN"
-              ? "Overview of all employees and leave activity"
-              : "Your leave summary"}
+              ? "Enterprise overview of employees and leave activity"
+              : "Your personal leave summary at a glance"}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Year selector */}
           <div className="relative">
-            <FunnelIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <FunnelIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer"
+              className="pl-10 pr-8 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none cursor-pointer shadow-sm"
             >
               {availableYears.map(year => (
                 <option key={year} value={year}>{year}</option>
@@ -132,23 +133,23 @@ export default function Dashboard() {
           </div>
           <button
             onClick={loadDashboard}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+            className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 active:scale-95"
           >
             <RefreshIcon className="h-5 w-5 text-gray-500" />
           </button>
         </div>
       </div>
 
-      {/* ---------- ADMIN CARDS (same structure but year-filtered) ---------- */}
+      {/* ---------- ADMIN CARDS ---------- */}
       {stats.role === "ADMIN" ? (
         <motion.div
           variants={container}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6"
         >
           <motion.div variants={item}>
-            <div onClick={() => navigate("/employees")} className="cursor-pointer">
+            <div onClick={() => navigate("/employees")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
               <DashboardCard
                 title="Total Employees"
                 value={stats.totalEmployees}
@@ -159,7 +160,7 @@ export default function Dashboard() {
             </div>
           </motion.div>
           <motion.div variants={item}>
-            <div onClick={() => navigate("/employees")} className="cursor-pointer">
+            <div onClick={() => navigate("/employees")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
               <DashboardCard
                 title="Active Employees"
                 value={stats.activeEmployees}
@@ -170,7 +171,7 @@ export default function Dashboard() {
             </div>
           </motion.div>
           <motion.div variants={item}>
-            <div onClick={() => navigate("/pending-leaves")} className="cursor-pointer">
+            <div onClick={() => navigate("/pending-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
               <DashboardCard
                 title="Pending Requests"
                 value={stats.pendingLeaves}
@@ -205,11 +206,11 @@ export default function Dashboard() {
           variants={container}
           initial="hidden"
           animate="show"
-          className="space-y-6"
+          className="space-y-8"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <motion.div variants={item}>
-              <div onClick={() => navigate("/leave-balance")} className="cursor-pointer">
+              <div onClick={() => navigate("/leave-balance")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
                 <DashboardCard
                   title="Total Entitlement"
                   value={stats.totalEntitlement}
@@ -220,7 +221,7 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <motion.div variants={item}>
-              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
+              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
                 <DashboardCard
                   title="Used Leave Days"
                   value={stats.usedLeaveDays}
@@ -231,7 +232,7 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <motion.div variants={item}>
-              <div onClick={() => navigate("/leave-balance")} className="cursor-pointer">
+              <div onClick={() => navigate("/leave-balance")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
                 <DashboardCard
                   title="Remaining Balance"
                   value={stats.remainingBalance}
@@ -242,7 +243,7 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <motion.div variants={item}>
-              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
+              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
                 <DashboardCard
                   title="LOP Days Taken"
                   value={stats.lopDaysTaken}
@@ -254,16 +255,17 @@ export default function Dashboard() {
             </motion.div>
           </div>
 
-          <motion.div variants={item} className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          <motion.div variants={item} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <ChartBarIcon className="h-5 w-5 text-indigo-500" />
               Leave Utilization ({selectedYear})
             </h3>
             <LeaveProgress used={stats.usedLeaveDays} total={stats.totalEntitlement} />
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <motion.div variants={item}>
-              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
+              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
                 <DashboardCard
                   title="Pending Days"
                   value={stats.pendingLeaves}
@@ -274,7 +276,7 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <motion.div variants={item}>
-              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
+              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
                 <DashboardCard
                   title="Approved Days"
                   value={stats.approvedLeaves}
@@ -285,7 +287,7 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <motion.div variants={item}>
-              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer">
+              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
                 <DashboardCard
                   title="Rejected Days"
                   value={stats.rejectedLeaves}
@@ -308,9 +310,10 @@ export default function Dashboard() {
         </motion.div>
       )}
 
-      {/* Upcoming Holidays Table (year‑independent) */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+      {/* Upcoming Holidays Table */}
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
+        <h2 className="text-xl font-semibold mb-5 text-gray-900 dark:text-white flex items-center gap-2">
+          <CalendarIcon className="h-5 w-5 text-indigo-500" />
           Upcoming Holidays
         </h2>
         <DataTable columns={holidayColumns} data={holidayData} />

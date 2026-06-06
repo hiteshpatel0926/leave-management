@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import { motion } from "framer-motion";
-import { CalendarDaysIcon, InformationCircleIcon, DocumentTextIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { CalendarDaysIcon, InformationCircleIcon, DocumentTextIcon, ArrowPathIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
 
 export default function ApplyLeave() {
   const [leaveTypes, setLeaveTypes] = useState([]);
@@ -103,141 +103,85 @@ export default function ApplyLeave() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6 max-w-3xl mx-auto"
+      className="space-y-6 max-w-3xl mx-auto px-4"
     >
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Apply Leave</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Submit a new time-off request for approval</p>
+      <div className="flex items-center gap-4">
+        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50">
+          <DocumentTextIcon className="h-6 w-6" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">Apply Leave</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Submit a new time-off request for approval</p>
+        </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 sm:p-8">
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 md:p-8">
         {message && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 p-4 rounded-xl bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800 flex items-start gap-3">
-            <InformationCircleIcon className="h-5 w-5 mt-0.5 flex-shrink-0" />
-            <p className="text-sm font-medium">{message}</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 flex items-start gap-3">
+            <CheckCircleIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">{message}</p>
           </motion.div>
         )}
 
         {error && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 p-4 rounded-xl bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800 flex items-start gap-3">
-            <InformationCircleIcon className="h-5 w-5 mt-0.5 flex-shrink-0" />
-            <p className="text-sm font-medium">{error}</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 flex items-start gap-3">
+            <InformationCircleIcon className="h-5 w-5 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm font-medium text-rose-700 dark:text-rose-400">{error}</p>
           </motion.div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Leave Type
-            </label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Leave Type</label>
             <div className="relative">
-              <DocumentTextIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <select
-                name="leave_type_id"
-                value={form.leave_type_id}
-                onChange={handleChange}
-                className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
-                required
-              >
+              <DocumentTextIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <select name="leave_type_id" value={form.leave_type_id} onChange={handleChange} className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none transition-all" required>
                 <option value="">Select Leave Type</option>
-                {leaveTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.code} - {type.name}
-                  </option>
-                ))}
+                {leaveTypes.map((type) => <option key={type.id} value={type.id}>{type.code} - {type.name}</option>)}
               </select>
             </div>
           </div>
 
           {isLeaveWithoutPay && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 text-sm flex items-start gap-3">
-              <InformationCircleIcon className="h-5 w-5 mt-0.5 flex-shrink-0" />
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 text-sm flex items-start gap-3">
+              <InformationCircleIcon className="h-5 w-5 flex-shrink-0" />
               <p><strong>Leave Without Pay (LOP)</strong> does not deduct from your leave balance. No balance check will be applied.</p>
             </motion.div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Start Date
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
               <div className="relative">
-                <CalendarDaysIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="date"
-                  name="start_date"
-                  value={form.start_date}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
+                <CalendarDaysIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input type="date" name="start_date" value={form.start_date} onChange={handleChange} className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all" required />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                End Date
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">End Date</label>
               <div className="relative">
-                <CalendarDaysIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="date"
-                  name="end_date"
-                  value={form.end_date}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
+                <CalendarDaysIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input type="date" name="end_date" value={form.end_date} onChange={handleChange} className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all" required />
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Total Working Days
-            </label>
-            <input
-              type="text"
-              value={totalDays}
-              readOnly
-              className="w-full px-4 py-2.5 font-medium text-sm rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 cursor-not-allowed"
-            />
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Total Working Days</label>
+            <input type="text" value={totalDays} readOnly className="w-full px-4 py-2.5 font-semibold text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 cursor-default" />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Reason
-            </label>
-            <textarea
-              name="reason"
-              rows="4"
-              value={form.reason}
-              onChange={handleChange}
-              placeholder="Provide a brief reason for your leave..."
-              className="w-full px-4 py-3 text-sm rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-              required
-            />
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Reason</label>
+            <textarea name="reason" rows="4" value={form.reason} onChange={handleChange} placeholder="Provide a brief reason for your leave..." className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none transition-all" required />
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
-            <button
-              type="submit"
-              className="inline-flex justify-center items-center gap-2 px-6 py-2.5 text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm w-full sm:w-auto"
-            >
-              <DocumentTextIcon className="h-5 w-5" />
-              Apply Leave
+          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <button type="submit" className="inline-flex justify-center items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg w-full sm:w-auto">
+              <DocumentTextIcon className="h-5 w-5" /> Apply Leave
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setForm({ leave_type_id: "", start_date: "", end_date: "", reason: "" });
-                setTotalDays(0);
-                setMessage("");
-                setError("");
-              }}
-              className="inline-flex justify-center items-center gap-2 px-6 py-2.5 text-sm font-medium rounded-xl text-gray-700 bg-gray-100 hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors w-full sm:w-auto"
-            >
-              <ArrowPathIcon className="h-5 w-5" />
-              Reset Form
+            <button type="button" onClick={() => { setForm({ leave_type_id: "", start_date: "", end_date: "", reason: "" }); setTotalDays(0); setMessage(""); setError(""); }} className="inline-flex justify-center items-center gap-2 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-xl transition-all w-full sm:w-auto">
+              <ArrowPathIcon className="h-5 w-5" /> Reset Form
             </button>
           </div>
         </form>

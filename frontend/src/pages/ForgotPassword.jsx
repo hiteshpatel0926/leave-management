@@ -1,8 +1,8 @@
-// frontend/src/pages/ForgotPassword.jsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import api from "../services/api";
+import { KeyIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -41,44 +41,62 @@ export default function ForgotPassword() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8">
-          <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-6">
-            Forgot Password?
-          </h2>
-          {message && (
-            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 text-green-600 rounded">
-              {message}
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-8">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <KeyIcon className="h-8 w-8 text-white" />
             </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Forgot Password?</h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-2">Enter your email to receive a reset link</p>
+          </div>
+
+          {message && (
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-sm">
+              {message}
+            </motion.div>
           )}
           {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 rounded">
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 text-sm">
               {error}
-            </div>
+            </motion.div>
           )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
-            <input
-              type="email"
-              placeholder="Your email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                required
+              />
+            </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
+              className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
             >
-              {loading ? "Sending..." : "Send Reset Link"}
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Sending...
+                </div>
+              ) : (
+                "Send Reset Link"
+              )}
             </button>
           </form>
-          <div className="text-center mt-4">
+          <div className="text-center mt-6">
             <button
               onClick={() => navigate("/login")}
-              className="text-indigo-600 hover:underline"
+              className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium transition-colors"
             >
+              <ArrowLeftIcon className="h-4 w-4" />
               Back to Login
             </button>
           </div>

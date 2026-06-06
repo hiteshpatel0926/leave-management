@@ -3,9 +3,10 @@ import { motion } from "framer-motion";
 const themes = {
   blue: "from-blue-500 to-blue-600",
   amber: "from-amber-500 to-amber-600",
-  green: "from-green-500 to-green-600",
-  red: "from-red-500 to-red-600",
+  green: "from-emerald-500 to-emerald-600",
+  red: "from-rose-500 to-rose-600",
   purple: "from-purple-500 to-purple-600",
+  indigo: "from-indigo-500 to-indigo-600",
 };
 
 export default function DashboardCard({ title, value, color = "blue", icon, subtitle }) {
@@ -13,24 +14,26 @@ export default function DashboardCard({ title, value, color = "blue", icon, subt
 
   return (
     <motion.div
-      whileHover={{ y: -4 }}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
       transition={{ type: "spring", stiffness: 300 }}
-      className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden"
+      className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden group"
     >
-      <div className={`h-1 bg-gradient-to-r ${gradient}`} />
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+      <div className={`h-1 bg-gradient-to-r ${gradient} group-hover:h-1.5 transition-all duration-300`} />
+      <div className="p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             {title}
           </h3>
-          <div className={`p-2 rounded-lg bg-gradient-to-r ${gradient} bg-opacity-10`}>
+          <div className={`p-2 rounded-xl bg-gradient-to-r ${gradient} bg-opacity-10 shadow-sm group-hover:scale-110 transition-transform duration-200`}>
             <div className="text-white">{icon}</div>
           </div>
         </div>
         <div className="flex items-baseline justify-between">
           <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
           {subtitle && (
-            <span className="text-sm text-gray-500 dark:text-gray-400">{subtitle}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium truncate ml-2">
+              {subtitle}
+            </span>
           )}
         </div>
       </div>
