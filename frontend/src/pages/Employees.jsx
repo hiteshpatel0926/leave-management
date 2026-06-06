@@ -13,6 +13,8 @@ import {
   UserCircleIcon,
   ViewColumnsIcon,
   Squares2X2Icon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
 
@@ -25,11 +27,20 @@ export default function Employees() {
   const [viewMode, setViewMode] = useState("table");
   const [imageErrors, setImageErrors] = useState({});
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       getEmployees();
     }, 300);
     return () => clearTimeout(timeout);
+  }, [search, statusFilter]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
   }, [search, statusFilter]);
 
   const getEmployees = async () => {
@@ -93,6 +104,17 @@ export default function Employees() {
     setImageErrors((prev) => ({ ...prev, [empId]: true }));
   };
 
+  // Pagination calculations
+  const totalItems = employees.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentEmployees = employees.slice(startIndex, endIndex);
+
+  const goToPage = (page) => {
+    setCurrentPage(Math.min(Math.max(1, page), totalPages));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -154,6 +176,7 @@ export default function Employees() {
         </div>
       </div>
 
+      {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
           <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -179,144 +202,244 @@ export default function Employees() {
         </div>
       </div>
 
+      {/* Table View */}
       {viewMode === "table" && (
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50/80 dark:bg-gray-900/50">
-                <tr>
-                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Employee</th>
-                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">Code</th>
-                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Dept</th>
-                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Designation</th>
-                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">Manager</th>
-                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {employees.map((emp) => {
-                  const hasImageError = imageErrors[emp.id];
-                  return (
-                    <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all duration-150">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
-                          {emp.profile_picture && !hasImageError ? (
-                            <img
-                              src={getImageUrl(emp.profile_picture)}
-                              alt={emp.first_name}
-                              className="h-10 w-10 rounded-xl object-cover shadow-sm"
-                              onError={() => handleImageError(emp.id)}
-                            />
-                          ) : (
-                            <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
-                              {getInitials(emp.first_name, emp.last_name)}
+        <>
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50/80 dark:bg-gray-900/50">
+                  <tr>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Employee</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">Code</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Dept</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Designation</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">Manager</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {currentEmployees.map((emp) => {
+                    const hasImageError = imageErrors[emp.id];
+                    return (
+                      <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all duration-150">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            {emp.profile_picture && !hasImageError ? (
+                              <img
+                                src={getImageUrl(emp.profile_picture)}
+                                alt={emp.first_name}
+                                className="h-10 w-10 rounded-xl object-cover shadow-sm"
+                                onError={() => handleImageError(emp.id)}
+                              />
+                            ) : (
+                              <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                                {getInitials(emp.first_name, emp.last_name)}
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                {emp.first_name} {emp.last_name}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {emp.email}
+                              </p>
                             </div>
-                          )}
-                          <div>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                              {emp.first_name} {emp.last_name}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {emp.email}
-                            </p>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 hidden sm:table-cell font-mono">
-                        {emp.employee_code}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 hidden md:table-cell">
-                        {emp.department}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 hidden lg:table-cell">
-                        {emp.designation}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 hidden xl:table-cell">
-                        {emp.manager_name || "-"}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${emp.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"}`}>
-                          {emp.status}
-                        </span>
-                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="flex justify-end gap-1.5">
-                          <button onClick={() => navigate(`/employees/${emp.id}`)} className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="View">
-                            <EyeIcon className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => navigate(`/employees/edit/${emp.id}`)} className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors" title="Edit">
-                            <PencilIcon className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => resetPassword(emp.user_id)} className="p-2 rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Reset Password">
-                            <KeyIcon className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => deleteEmployee(emp.id)} className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors" title="Deactivate">
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                       </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 hidden sm:table-cell font-mono">
+                          {emp.employee_code}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 hidden md:table-cell">
+                          {emp.department}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 hidden lg:table-cell">
+                          {emp.designation}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 hidden xl:table-cell">
+                          {emp.manager_name || "-"}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${emp.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"}`}>
+                            {emp.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right">
+                          <div className="flex justify-end gap-1.5">
+                            <button onClick={() => navigate(`/employees/${emp.id}`)} className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="View">
+                              <EyeIcon className="h-4 w-4" />
+                            </button>
+                            <button onClick={() => navigate(`/employees/edit/${emp.id}`)} className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors" title="Edit">
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                            <button onClick={() => resetPassword(emp.user_id)} className="p-2 rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Reset Password">
+                              <KeyIcon className="h-4 w-4" />
+                            </button>
+                            <button onClick={() => deleteEmployee(emp.id)} className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors" title="Deactivate">
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {employees.length === 0 && (
+              <div className="text-center py-16">
+                <UserCircleIcon className="mx-auto h-14 w-14 text-gray-300 dark:text-gray-600" />
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">No employees found</p>
+              </div>
+            )}
           </div>
-          {employees.length === 0 && (
-            <div className="text-center py-16">
-              <UserCircleIcon className="mx-auto h-14 w-14 text-gray-300 dark:text-gray-600" />
-              <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">No employees found</p>
+
+          {/* Pagination - dropdown style */}
+          {totalItems > 0 && (
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <span>Show</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                  className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                >
+                  {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+                <span>entries</span>
+                <span className="ml-4">Total: {totalItems} employees</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                >
+                  <ChevronLeftIcon className="h-5 w-5" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Page</span>
+                  <select
+                    value={currentPage}
+                    onChange={(e) => goToPage(Number(e.target.value))}
+                    className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                  >
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">of {totalPages}</span>
+                </div>
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                >
+                  <ChevronRightIcon className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           )}
-        </div>
+        </>
       )}
 
+      {/* Cards View with same pagination */}
       {viewMode === "cards" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {employees.map((emp) => {
-            const hasImageError = imageErrors[emp.id];
-            return (
-              <div key={emp.id} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-5 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    {emp.profile_picture && !hasImageError ? (
-                      <img src={getImageUrl(emp.profile_picture)} alt={emp.first_name} className="h-14 w-14 rounded-xl object-cover shadow-sm" onError={() => handleImageError(emp.id)} />
-                    ) : (
-                      <div className="flex-shrink-0 h-14 w-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base font-bold shadow-sm">
-                        {getInitials(emp.first_name, emp.last_name)}
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentEmployees.map((emp) => {
+              const hasImageError = imageErrors[emp.id];
+              return (
+                <div key={emp.id} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-5 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      {emp.profile_picture && !hasImageError ? (
+                        <img src={getImageUrl(emp.profile_picture)} alt={emp.first_name} className="h-14 w-14 rounded-xl object-cover shadow-sm" onError={() => handleImageError(emp.id)} />
+                      ) : (
+                        <div className="flex-shrink-0 h-14 w-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base font-bold shadow-sm">
+                          {getInitials(emp.first_name, emp.last_name)}
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">{emp.first_name} {emp.last_name}</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{emp.employee_code}</p>
                       </div>
-                    )}
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{emp.first_name} {emp.last_name}</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{emp.employee_code}</p>
                     </div>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${emp.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"}`}>
+                      {emp.status}
+                    </span>
                   </div>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${emp.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"}`}>
-                    {emp.status}
-                  </span>
+                  <div className="mt-4 space-y-2 text-sm">
+                    <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Email:</span><span className="text-gray-700 dark:text-gray-300 truncate ml-2">{emp.email}</span></p>
+                    <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Department:</span><span className="text-gray-700 dark:text-gray-300">{emp.department}</span></p>
+                    <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Designation:</span><span className="text-gray-700 dark:text-gray-300">{emp.designation}</span></p>
+                    <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Manager:</span><span className="text-gray-700 dark:text-gray-300">{emp.manager_name || "-"}</span></p>
+                    <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Joining:</span><span className="text-gray-700 dark:text-gray-300">{formatDate(emp.joining_date)}</span></p>
+                  </div>
+                  <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between gap-2">
+                    <button onClick={() => navigate(`/employees/${emp.id}`)} className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 transition"> <EyeIcon className="h-3.5 w-3.5" /> View </button>
+                    <button onClick={() => navigate(`/employees/edit/${emp.id}`)} className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 transition"> <PencilIcon className="h-3.5 w-3.5" /> Edit </button>
+                    <button onClick={() => resetPassword(emp.user_id)} className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 transition"> <KeyIcon className="h-3.5 w-3.5" /> Reset </button>
+                  </div>
                 </div>
-                <div className="mt-4 space-y-2 text-sm">
-                  <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Email:</span><span className="text-gray-700 dark:text-gray-300 truncate ml-2">{emp.email}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Department:</span><span className="text-gray-700 dark:text-gray-300">{emp.department}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Designation:</span><span className="text-gray-700 dark:text-gray-300">{emp.designation}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Manager:</span><span className="text-gray-700 dark:text-gray-300">{emp.manager_name || "-"}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Joining:</span><span className="text-gray-700 dark:text-gray-300">{formatDate(emp.joining_date)}</span></p>
-                </div>
-                <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between gap-2">
-                  <button onClick={() => navigate(`/employees/${emp.id}`)} className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 transition"> <EyeIcon className="h-3.5 w-3.5" /> View </button>
-                  <button onClick={() => navigate(`/employees/edit/${emp.id}`)} className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 transition"> <PencilIcon className="h-3.5 w-3.5" /> Edit </button>
-                  <button onClick={() => resetPassword(emp.user_id)} className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 transition"> <KeyIcon className="h-3.5 w-3.5" /> Reset </button>
-                </div>
+              );
+            })}
+            {employees.length === 0 && (
+              <div className="col-span-full text-center py-16">
+                <UserCircleIcon className="mx-auto h-14 w-14 text-gray-300 dark:text-gray-600" />
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">No employees found</p>
               </div>
-            );
-          })}
-          {employees.length === 0 && (
-            <div className="col-span-full text-center py-16">
-              <UserCircleIcon className="mx-auto h-14 w-14 text-gray-300 dark:text-gray-600" />
-              <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">No employees found</p>
+            )}
+          </div>
+
+          {/* Pagination - same dropdown style */}
+          {totalItems > 0 && (
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <span>Show</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                  className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                >
+                  {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+                <span>entries</span>
+                <span className="ml-4">Total: {totalItems} employees</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                >
+                  <ChevronLeftIcon className="h-5 w-5" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Page</span>
+                  <select
+                    value={currentPage}
+                    onChange={(e) => goToPage(Number(e.target.value))}
+                    className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                  >
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">of {totalPages}</span>
+                </div>
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                >
+                  <ChevronRightIcon className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           )}
-        </div>
+        </>
       )}
     </motion.div>
   );

@@ -13,7 +13,7 @@ const getTeam = async (req, res) => {
     if (!managerEmployeeId) return res.status(404).json({ message: 'Employee record not found' });
 
     const result = await pool.query(
-      `SELECT id, first_name, last_name, email, department, designation, status
+      `SELECT id, first_name, last_name, email, department, designation, status, profile_picture
        FROM employees
        WHERE manager_id = $1
        ORDER BY first_name`,

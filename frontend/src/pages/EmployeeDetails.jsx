@@ -16,10 +16,11 @@ import {
   BuildingOfficeIcon,
   CameraIcon,
   IdentificationIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
 import ImageCropUpload from "../components/ImageCropUpload";
-
 
 export default function EmployeeDetails() {
   const { id } = useParams();
@@ -27,6 +28,10 @@ export default function EmployeeDetails() {
   const [employee, setEmployee] = useState(null);
   const [imgError, setImgError] = useState(false);
   const [showCrop, setShowCrop] = useState(false);
+
+  // Pagination for Leave History
+  const [currentLeavePage, setCurrentLeavePage] = useState(1);
+  const [leavesPerPage, setLeavesPerPage] = useState(5);
 
   useEffect(() => {
     loadEmployee();
@@ -37,6 +42,8 @@ export default function EmployeeDetails() {
       const response = await api.get(`/employees/${id}/details`);
       setEmployee(response.data);
       setImgError(false);
+      // Reset leave pagination when employee changes
+      setCurrentLeavePage(1);
     } catch (error) {
       console.error(error);
     }
@@ -102,6 +109,17 @@ export default function EmployeeDetails() {
       month: "short",
       day: "numeric",
     });
+  };
+
+  // Pagination calculations for leave history
+  const totalLeaves = leaves.length;
+  const totalLeavePages = Math.ceil(totalLeaves / leavesPerPage);
+  const startLeaveIndex = (currentLeavePage - 1) * leavesPerPage;
+  const endLeaveIndex = startLeaveIndex + leavesPerPage;
+  const currentLeaves = leaves.slice(startLeaveIndex, endLeaveIndex);
+
+  const goToLeavePage = (page) => {
+    setCurrentLeavePage(Math.min(Math.max(1, page), totalLeavePages));
   };
 
   return (
@@ -371,7 +389,7 @@ export default function EmployeeDetails() {
         </div>
       </div>
 
-      {/* Leave History Table */}
+      {/* Leave History Table with Pagination */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -400,7 +418,7 @@ export default function EmployeeDetails() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {leaves.map((leave) => (
+              {currentLeaves.map((leave) => (
                 <tr
                   key={leave.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
@@ -426,7 +444,7 @@ export default function EmployeeDetails() {
                   </td>
                 </tr>
               ))}
-              {leaves.length === 0 && (
+              {currentLeaves.length === 0 && (
                 <tr>
                   <td
                     colSpan="5"
@@ -439,6 +457,68 @@ export default function EmployeeDetails() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls for Leave History */}
+        {totalLeaves > 0 && (
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-900/30">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <span>Show</span>
+              <select
+                value={leavesPerPage}
+                onChange={(e) => {
+                  setLeavesPerPage(Number(e.target.value));
+                  setCurrentLeavePage(1);
+                }}
+                className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+              >
+                {[5, 10, 20, 50].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              <span>entries</span>
+              <span className="ml-4">Total: {totalLeaves} requests</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => goToLeavePage(currentLeavePage - 1)}
+                disabled={currentLeavePage === 1}
+                className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              >
+                <ChevronLeftIcon className="h-5 w-5" />
+              </button>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Page
+                </span>
+                <select
+                  value={currentLeavePage}
+                  onChange={(e) => goToLeavePage(Number(e.target.value))}
+                  className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                >
+                  {Array.from({ length: totalLeavePages }, (_, i) => i + 1).map(
+                    (p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ),
+                  )}
+                </select>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  of {totalLeavePages}
+                </span>
+              </div>
+              <button
+                onClick={() => goToLeavePage(currentLeavePage + 1)}
+                disabled={currentLeavePage === totalLeavePages}
+                className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              >
+                <ChevronRightIcon className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {showCrop && (
