@@ -22,22 +22,31 @@ export default function EditEmployee() {
   }, []);
 
   const loadEmployee = async () => {
-  try {
-    const response = await api.get(`/employees/${id}`);
-    setFormData({
-      first_name: response.data.first_name,
-      last_name: response.data.last_name,
-      department: response.data.department,
-      designation: response.data.designation,
-      status: response.data.status,
-      joining_date: response.data.joining_date ? response.data.joining_date.split("T")[0] : "",
-      dob: response.data.dob ? response.data.dob.split("T")[0] : "",
-      gender: response.data.gender || "",
-    });
-  } catch (error) {
-    console.error(error);
-  }
-};
+    try {
+      const response = await api.get(`/employees/${id}`);
+
+      // Helper function to convert UTC date to local YYYY-MM-DD
+      const formatLocalDate = (dateString) => {
+        if (!dateString) return "";
+        const date = new Date(dateString);
+        // Return YYYY-MM-DD in local timezone
+        return date.toLocaleDateString("en-CA"); // 'en-CA' gives YYYY-MM-DD
+      };
+
+      setFormData({
+        first_name: response.data.first_name,
+        last_name: response.data.last_name,
+        department: response.data.department,
+        designation: response.data.designation,
+        status: response.data.status,
+        joining_date: formatLocalDate(response.data.joining_date),
+        dob: formatLocalDate(response.data.dob),
+        gender: response.data.gender || "",
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({

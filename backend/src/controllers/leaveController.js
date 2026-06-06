@@ -38,6 +38,7 @@ const applyLeave = async (req, res) => {
     const { leave_type_id, start_date, end_date, reason } = req.body;
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
+    const leaveYear = startDate.getFullYear(); // ✅ leave's year
     const leaveTypeIdNum = Number(leave_type_id);
 
     // Overlap check
@@ -60,11 +61,11 @@ const applyLeave = async (req, res) => {
       });
     }
 
-    // Get holidays
+    // ✅ Get holidays for the leave's year (not currentYear)
     const holidayResult = await pool.query(
       `SELECT holiday_date FROM holidays
        WHERE EXTRACT(YEAR FROM holiday_date) = $1`,
-      [currentYear],
+      [leaveYear],
     );
     const holidays = holidayResult.rows.map(
       (h) => h.holiday_date.toISOString().split("T")[0],
@@ -102,16 +103,19 @@ const applyLeave = async (req, res) => {
 
     // Skip balance check for Leave Without Pay (id = 6)
     if (leaveTypeIdNum !== 6) {
+      // ✅ Use leaveYear instead of currentYear
       const balanceResult = await pool.query(
         `SELECT * FROM leave_balances
          WHERE employee_id = $1
            AND leave_type_id = $2
            AND year = $3`,
-        [employeeId, leave_type_id, currentYear],
+        [employeeId, leave_type_id, leaveYear],
       );
 
       if (balanceResult.rows.length === 0) {
-        return res.status(400).json({ message: "Leave balance not found" });
+        return res
+          .status(400)
+          .json({ message: "Leave balance not found for this year" });
       }
 
       const available = Number(balanceResult.rows[0].balance_days);
@@ -131,9 +135,8 @@ const applyLeave = async (req, res) => {
 
     const newLeaveId = result.rows[0].id;
 
-    // Notify all admins about new leave request
+    // ✅ Notify all admins (req is passed correctly)
     await notifyAdminsNewLeave(req, newLeaveId, employeeName);
-    //await notifyAdminsNewLeave(newLeaveId, employeeName);
 
     res.status(201).json({
       message: "Leave applied successfully",
