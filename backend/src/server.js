@@ -43,6 +43,7 @@ app.use("/api/balances", leaveBalanceRoutes);
 app.use("/api/holidays", holidayRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/employees", employeeProfileRoutes);
+app.use('/api/admin', require('./routes/carryForwardRoutes'));
 // Make io accessible in routes/controllers
 app.set('io', io);
 
@@ -80,3 +81,13 @@ const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 
+const cron = require('node-cron');
+const { carryForwardLeaves } = require('./utils/carryForwardLeaves');
+
+// Run on Jan 1 at 00:01
+cron.schedule('1 0 1 1 *', async () => {
+  const currentYear = new Date().getFullYear() - 1; // previous year
+  const nextYear = currentYear + 1;
+  console.log(`Running scheduled carry-forward for ${currentYear} -> ${nextYear}`);
+  await carryForwardLeaves(currentYear, nextYear);
+});

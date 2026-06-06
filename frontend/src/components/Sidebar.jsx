@@ -13,6 +13,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   UserCircleIcon,
+  Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
 import { getImageUrl } from "../utils/imageHelper";
@@ -64,6 +65,12 @@ export default function Sidebar() {
     { path: "/employees", label: "Employees", icon: UserGroupIcon },
     { path: "/pending-leaves", label: "Pending Leaves", icon: ClockIcon },
     { path: "/holidays", label: "Holidays", icon: SunIcon },
+    // ✅ New menu item for carry‑forward
+    {
+      path: "/admin/carry-forward",
+      label: "Carry Forward",
+      icon: Cog6ToothIcon,
+    },
   ];
 
   const toggleSidebar = () => setCollapsed(!collapsed);

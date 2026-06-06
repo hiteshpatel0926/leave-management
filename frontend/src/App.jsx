@@ -22,6 +22,7 @@ const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const Holidays = lazy(() => import("./pages/Holidays"));
 const MyProfile = lazy(() => import("./pages/MyProfile"));
 const EmployeeDetails = lazy(() => import("./pages/EmployeeDetails"));
+const AdminCarryForward = lazy(() => import("./pages/AdminCarryForward"));
 
 function App() {
   return (
@@ -150,6 +151,16 @@ function App() {
               <ProtectedRoute>
                 <MainLayout>
                   <EmployeeDetails />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/carry-forward"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <AdminCarryForward />
                 </MainLayout>
               </ProtectedRoute>
             }

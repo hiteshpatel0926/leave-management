@@ -217,6 +217,9 @@ const approveLeave = async (req, res) => {
     const employeeUserId = leaveRequest.employee_user_id;
     const leaveTypeName = leaveRequest.leave_type;
 
+    // ✅ Get the year from the leave start_date
+    const leaveYear = new Date(leaveRequest.start_date).getFullYear();
+
     if (leaveRequest.status !== "PENDING") {
       return res
         .status(400)
@@ -225,13 +228,12 @@ const approveLeave = async (req, res) => {
 
     // Skip balance check and deduction for Leave Without Pay (id = 6)
     if (leaveTypeIdNum !== 6) {
-      const currentYear = new Date().getFullYear();
       const balance = await pool.query(
         `SELECT * FROM leave_balances
          WHERE employee_id = $1
            AND leave_type_id = $2
            AND year = $3`,
-        [leaveRequest.employee_id, leaveRequest.leave_type_id, currentYear],
+        [leaveRequest.employee_id, leaveRequest.leave_type_id, leaveYear],
       );
 
       if (balance.rows.length === 0) {
@@ -263,11 +265,13 @@ const approveLeave = async (req, res) => {
          SET used_days = used_days + $1,
              balance_days = balance_days - $1
          WHERE employee_id = $2
-           AND leave_type_id = $3`,
+           AND leave_type_id = $3
+           AND year = $4`, // ✅ added year filter
         [
           leaveRequest.total_days,
           leaveRequest.employee_id,
           leaveRequest.leave_type_id,
+          leaveYear,
         ],
       );
     }
@@ -275,9 +279,13 @@ const approveLeave = async (req, res) => {
     await pool.query("COMMIT");
 
     // Notify employee about approval
-    await notifyEmployeeLeaveUpdate(req, employeeUserId, leaveId, 'approved', leaveTypeName);
-    //await notifyEmployeeLeaveUpdate(employeeUserId,leaveId,"approved",leaveTypeName,);
-
+    await notifyEmployeeLeaveUpdate(
+      req,
+      employeeUserId,
+      leaveId,
+      "approved",
+      leaveTypeName,
+    );
 
     res.json({ message: "Leave Approved" });
   } catch (error) {
@@ -315,7 +323,13 @@ const rejectLeave = async (req, res) => {
     );
 
     // Notify employee about rejection
-    await notifyEmployeeLeaveUpdate(req, employeeUserId, leaveId, 'rejected', leaveTypeName);
+    await notifyEmployeeLeaveUpdate(
+      req,
+      employeeUserId,
+      leaveId,
+      "rejected",
+      leaveTypeName,
+    );
     //await notifyEmployeeLeaveUpdate(employeeUserId,leaveId,"rejected",leaveTypeName,);
 
     res.json({ message: "Leave Rejected" });
