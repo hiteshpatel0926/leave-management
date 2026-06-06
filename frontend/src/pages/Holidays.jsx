@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import DataTable from "../components/DataTable";
+import { motion, AnimatePresence } from "framer-motion";
+import { CalendarIcon, PlusIcon, PencilSquareIcon, TrashIcon, XMarkIcon, CheckIcon } from "@heroicons/react/24/outline";
 
 export default function Holidays() {
   const [holidays, setHolidays] = useState([]);
   const [holidayName, setHolidayName] = useState("");
   const [holidayDate, setHolidayDate] = useState("");
   const [editingId, setEditingId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
 
   const loadHolidays = async () => {
     try {
@@ -17,23 +20,15 @@ export default function Holidays() {
     }
   };
 
-  useEffect(() => {
-    loadHolidays();
-  }, []);
+  useEffect(() => { loadHolidays(); }, []);
 
   const addHoliday = async (e) => {
     e.preventDefault();
     try {
-      await api.post("/holidays", {
-        holiday_name: holidayName,
-        holiday_date: holidayDate,
-      });
-      setHolidayName("");
-      setHolidayDate("");
+      await api.post("/holidays", { holiday_name: holidayName, holiday_date: holidayDate });
+      resetForm();
       loadHolidays();
-      alert("Holiday added successfully");
     } catch (error) {
-      console.error(error);
       alert(error.response?.data?.message || "Failed to add holiday");
     }
   };
@@ -41,129 +36,108 @@ export default function Holidays() {
   const updateHoliday = async (e) => {
     e.preventDefault();
     try {
-      await api.put(`/holidays/${editingId}`, {
-        holiday_name: holidayName,
-        holiday_date: holidayDate,
-      });
-      alert("Holiday updated successfully");
-      setEditingId(null);
-      setHolidayName("");
-      setHolidayDate("");
+      await api.put(`/holidays/${editingId}`, { holiday_name: holidayName, holiday_date: holidayDate });
+      resetForm();
       loadHolidays();
     } catch (error) {
-      console.error(error);
       alert(error.response?.data?.message || "Failed to update holiday");
     }
   };
 
   const deleteHoliday = async (id) => {
-    const confirmDelete = window.confirm("Delete this holiday?");
-    if (!confirmDelete) return;
+    if (!window.confirm("Delete this holiday?")) return;
     try {
       await api.delete(`/holidays/${id}`);
       loadHolidays();
-      alert("Holiday deleted successfully");
     } catch (error) {
-      console.error(error);
       alert(error.response?.data?.message || "Failed to delete holiday");
     }
   };
 
   const editHoliday = (holiday) => {
+    setShowForm(true);
     setEditingId(holiday.id);
     setHolidayName(holiday.holiday_name);
-    setHolidayDate(new Date(holiday.holiday_date).toLocaleDateString("en-CA")); // YYYY-MM-DD for date input
+    setHolidayDate(new Date(holiday.holiday_date).toLocaleDateString("en-CA"));
   };
 
-  // Define columns for DataTable
-  const columns = ["Holiday", "Date", "Actions"];
+  const resetForm = () => {
+    setEditingId(null);
+    setHolidayName("");
+    setHolidayDate("");
+    setShowForm(false);
+  };
 
-  // Transform holidays into rows for DataTable
+  const columns = ["Holiday", "Date", "Actions"];
   const data = holidays.map((holiday) => [
-    holiday.holiday_name,
-    new Date(holiday.holiday_date).toLocaleDateString(),
-    <div className="flex space-x-2">
-      <button
-        onClick={() => editHoliday(holiday)}
-        className="px-3 py-1 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-      >
-        Edit
+    <span className="font-medium text-gray-900 dark:text-gray-100">{holiday.holiday_name}</span>,
+    new Date(holiday.holiday_date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }),
+    <div className="flex items-center gap-2">
+      <button onClick={() => editHoliday(holiday)} className="p-1.5 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors" title="Edit">
+        <PencilSquareIcon className="h-5 w-5" />
       </button>
-      <button
-        onClick={() => deleteHoliday(holiday.id)}
-        className="px-3 py-1 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors"
-      >
-        Delete
+      <button onClick={() => deleteHoliday(holiday.id)} className="p-1.5 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="Delete">
+        <TrashIcon className="h-5 w-5" />
       </button>
     </div>,
   ]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-        Holidays
-      </h1>
-
-      {/* Form for adding/editing holidays */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          {editingId ? "Edit Holiday" : "Add New Holiday"}
-        </h2>
-        <form
-          onSubmit={editingId ? updateHoliday : addHoliday}
-          className="space-y-4"
-        >
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Holiday Name
-            </label>
-            <input
-              type="text"
-              placeholder="e.g., Diwali, Republic Day"
-              value={holidayName}
-              onChange={(e) => setHolidayName(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Holiday Date
-            </label>
-            <input
-              type="date"
-              value={holidayDate}
-              onChange={(e) => setHolidayDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required
-            />
-          </div>
-          <div className="flex space-x-3">
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
-            >
-              {editingId ? "Update Holiday" : "Add Holiday"}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingId(null);
-                  setHolidayName("");
-                  setHolidayDate("");
-                }}
-                className="px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Company Holidays</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage official company holidays and observances</p>
+        </div>
+        {!showForm && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors"
+          >
+            <PlusIcon className="h-5 w-5" />
+            Add Holiday
+          </button>
+        )}
       </div>
 
-      {/* DataTable for holidays list */}
-      <DataTable columns={columns} data={data} title="Holidays List" />
-    </div>
+      <AnimatePresence>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-indigo-100 dark:border-indigo-900/30 p-6 mb-6 relative">
+              <div className="absolute top-4 right-4">
+                <button onClick={resetForm} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5 text-indigo-500" />
+                {editingId ? "Edit Holiday Entry" : "New Holiday Entry"}
+              </h2>
+              <form onSubmit={editingId ? updateHoliday : addHoliday} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                <div className="md:col-span-5">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Event Name</label>
+                  <input type="text" placeholder="e.g., Diwali, New Year" value={holidayName} onChange={(e) => setHolidayName(e.target.value)} className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500" required />
+                </div>
+                <div className="md:col-span-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Date</label>
+                  <input type="date" value={holidayDate} onChange={(e) => setHolidayDate(e.target.value)} className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500" required />
+                </div>
+                <div className="md:col-span-3">
+                  <button type="submit" className="w-full inline-flex justify-center items-center gap-2 px-6 py-2.5 text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm">
+                    {editingId ? <CheckIcon className="h-5 w-5" /> : <PlusIcon className="h-5 w-5" />}
+                    {editingId ? "Update" : "Save Holiday"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <DataTable columns={columns} data={data} title={showForm ? "" : "Upcoming Holidays"} />
+    </motion.div>
   );
 }
