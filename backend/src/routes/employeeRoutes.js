@@ -13,52 +13,27 @@ const {
   getEmployeeById,
   updateEmployee,
   deleteEmployee,
-  searchEmployees
+  searchEmployees,
+  getPotentialManagers,
+  updateEmployeeManager
 } = require("../controllers/employeeController");
 
-router.post(
-  "/",
-  authenticate,
-  authorize("ADMIN"),
-  createEmployee
-);
+// ✅ Specific routes (no dynamic :id)
+router.post("/", authenticate, authorize("ADMIN"), createEmployee);
+router.get("/search", authenticate, authorize("ADMIN"), searchEmployees);
+router.get("/potential-managers", authenticate, authorize("ADMIN"), getPotentialManagers);
 
-router.put(
-  "/:id",
-  authenticate,
-  authorize("ADMIN"),
-  updateEmployee
-);
+// ✅ Routes with :id but with fixed suffixes
+router.put("/:id/profile-picture", upload.single('profilePicture'), uploadProfilePicture);
+router.put("/:employeeId/manager", authenticate, authorize("ADMIN"), updateEmployeeManager);
 
-router.delete(
-  "/:id",
-  authenticate,
-  authorize("ADMIN"),
-  deleteEmployee
-);
+// ✅ Generic single‑employee routes (by id)
+router.get("/:id", authenticate, authorize("ADMIN", "EMPLOYEE"), getEmployeeById);
+router.put("/:id", authenticate, authorize("ADMIN"), updateEmployee);
+router.delete("/:id", authenticate, authorize("ADMIN"), deleteEmployee);
 
-router.get(
-  "/search",
-  authenticate,
-  authorize("ADMIN"),
-  searchEmployees
-);
+// ✅ Get all employees – placed after all param routes
+router.get("/", authenticate, authorize("ADMIN", "EMPLOYEE"), getEmployees);
 
-router.get(
-  "/:id",
-  authenticate,
-  authorize("ADMIN", "EMPLOYEE"),
-  getEmployeeById
-);
-
-router.get(
-  "/",
-  authenticate,
-  authorize("ADMIN", "EMPLOYEE"),
-  getEmployees
-);
-
-// PUT /employees/:id/profile-picture
-router.put('/:id/profile-picture', upload.single('profilePicture'), uploadProfilePicture);
 
 module.exports = router;

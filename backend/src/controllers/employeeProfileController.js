@@ -2,7 +2,6 @@ const pool = require("../config/db");
 
 const getEmployeeDetails = async (req, res) => {
   try {
-
     const employeeId = req.params.id;
 
     const profile = await pool.query(
@@ -10,10 +9,11 @@ const getEmployeeDetails = async (req, res) => {
       SELECT
         e.*,
         u.email,
-        u.role
+        u.role,
+        CONCAT(m.first_name, ' ', m.last_name) AS manager_name
       FROM employees e
-      JOIN users u
-        ON e.user_id = u.id
+      JOIN users u ON e.user_id = u.id
+      LEFT JOIN employees m ON e.manager_id = m.id
       WHERE e.id = $1
       `,
       [employeeId]
@@ -34,8 +34,7 @@ const getEmployeeDetails = async (req, res) => {
         lb.used_days,
         lb.balance_days
       FROM leave_balances lb
-      JOIN leave_types lt
-        ON lt.id = lb.leave_type_id
+      JOIN leave_types lt ON lt.id = lb.leave_type_id
       WHERE lb.employee_id = $1
       ORDER BY lt.name
       `,
@@ -48,8 +47,7 @@ const getEmployeeDetails = async (req, res) => {
         lr.*,
         lt.name AS leave_type
       FROM leave_requests lr
-      JOIN leave_types lt
-        ON lt.id = lr.leave_type_id
+      JOIN leave_types lt ON lt.id = lr.leave_type_id
       WHERE lr.employee_id = $1
       ORDER BY lr.applied_at DESC
       `,
@@ -61,15 +59,11 @@ const getEmployeeDetails = async (req, res) => {
       balances: balances.rows,
       leaves: leaves.rows,
     });
-
   } catch (error) {
-
     console.error(error);
-
     res.status(500).json({
       message: "Server Error",
     });
-
   }
 };
 

@@ -65,11 +65,21 @@ export default function Sidebar() {
     { path: "/employees", label: "Employees", icon: UserGroupIcon },
     { path: "/pending-leaves", label: "Pending Leaves", icon: ClockIcon },
     { path: "/holidays", label: "Holidays", icon: SunIcon },
-    // ✅ New menu item for carry‑forward
     {
       path: "/admin/carry-forward",
       label: "Carry Forward",
       icon: Cog6ToothIcon,
+    },
+  ];
+
+  // ✅ Manager menu items
+  const managerMenu = [
+    { path: "/manager/team", label: "My Team", icon: UserGroupIcon },
+    { path: "/manager/pending-leaves", label: "Team Pending", icon: ClockIcon },
+    {
+      path: "/manager/leave-balances",
+      label: "Team Balances",
+      icon: ClipboardDocumentListIcon,
     },
   ];
 
@@ -169,6 +179,18 @@ export default function Sidebar() {
               ))}
             </div>
           </div>
+
+          {/* ✅ MANAGER SECTION – visible for MANAGER or ADMIN */}
+          {(user?.role === "MANAGER" || user?.role === "ADMIN") && (
+            <div>
+              <SectionHeader title="MANAGER" />
+              <div className="space-y-1">
+                {managerMenu.map((item) => (
+                  <MenuItem key={item.path} item={item} />
+                ))}
+              </div>
+            </div>
+          )}
 
           {isAdmin && (
             <div>

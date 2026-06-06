@@ -23,6 +23,9 @@ const Holidays = lazy(() => import("./pages/Holidays"));
 const MyProfile = lazy(() => import("./pages/MyProfile"));
 const EmployeeDetails = lazy(() => import("./pages/EmployeeDetails"));
 const AdminCarryForward = lazy(() => import("./pages/AdminCarryForward"));
+const TeamManagement = lazy(() => import("./pages/TeamManagement"));
+const TeamPendingLeaves = lazy(() => import("./pages/TeamPendingLeaves"));
+const TeamLeaveBalances = lazy(() => import("./pages/TeamLeaveBalances"));
 
 function App() {
   return (
@@ -165,6 +168,10 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route path="/manager/team" element={<ProtectedRoute><MainLayout><TeamManagement /></MainLayout></ProtectedRoute>} />
+<Route path="/manager/pending-leaves" element={<ProtectedRoute><MainLayout><TeamPendingLeaves /></MainLayout></ProtectedRoute>} />
+<Route path="/manager/leave-balances" element={<ProtectedRoute><MainLayout><TeamLeaveBalances /></MainLayout></ProtectedRoute>} />
         </Routes>
       </Suspense>
     </BrowserRouter>

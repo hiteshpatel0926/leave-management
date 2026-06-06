@@ -44,6 +44,7 @@ app.use("/api/holidays", holidayRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/employees", employeeProfileRoutes);
 app.use('/api/admin', require('./routes/carryForwardRoutes'));
+app.use('/api/manager', require('./routes/managerRoutes'));
 // Make io accessible in routes/controllers
 app.set('io', io);
 

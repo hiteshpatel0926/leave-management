@@ -13,24 +13,26 @@ export default function EditEmployee() {
     designation: "",
     status: "ACTIVE",
     joining_date: "",
-    dob: "", // new
-    gender: "", // new
+    dob: "",
+    gender: "",
+    manager_id: "", // new field
   });
+
+  const [managers, setManagers] = useState([]); // list of potential managers
 
   useEffect(() => {
     loadEmployee();
+    loadManagers(); // fetch managers for dropdown
   }, []);
 
   const loadEmployee = async () => {
     try {
       const response = await api.get(`/employees/${id}`);
 
-      // Helper function to convert UTC date to local YYYY-MM-DD
       const formatLocalDate = (dateString) => {
         if (!dateString) return "";
         const date = new Date(dateString);
-        // Return YYYY-MM-DD in local timezone
-        return date.toLocaleDateString("en-CA"); // 'en-CA' gives YYYY-MM-DD
+        return date.toLocaleDateString("en-CA");
       };
 
       setFormData({
@@ -42,9 +44,19 @@ export default function EditEmployee() {
         joining_date: formatLocalDate(response.data.joining_date),
         dob: formatLocalDate(response.data.dob),
         gender: response.data.gender || "",
+        manager_id: response.data.manager_id || "", // existing manager (if any)
       });
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const loadManagers = async () => {
+    try {
+      const res = await api.get("/employees/potential-managers");
+      setManagers(res.data);
+    } catch (err) {
+      console.error("Failed to load managers:", err);
     }
   };
 
@@ -58,7 +70,12 @@ export default function EditEmployee() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // 1. Update basic employee info
       await api.put(`/employees/${id}`, formData);
+      
+      // 2. Update manager assignment separately (or could be part of same API call, but separate is cleaner)
+      await api.put(`/employees/${id}/manager`, { managerId: formData.manager_id || null });
+      
       alert("Employee updated successfully");
       navigate("/employees");
     } catch (error) {
@@ -142,7 +159,6 @@ export default function EditEmployee() {
               />
             </div>
 
-            {/* NEW: Date of Birth */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Date of Birth
@@ -156,7 +172,6 @@ export default function EditEmployee() {
               />
             </div>
 
-            {/* NEW: Gender */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Gender
@@ -171,6 +186,26 @@ export default function EditEmployee() {
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
+              </select>
+            </div>
+
+            {/* NEW: Manager Dropdown */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Manager
+              </label>
+              <select
+                name="manager_id"
+                value={formData.manager_id}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">None</option>
+                {managers.map((mgr) => (
+                  <option key={mgr.id} value={mgr.id}>
+                    {mgr.first_name} {mgr.last_name} ({mgr.role})
+                  </option>
+                ))}
               </select>
             </div>
 

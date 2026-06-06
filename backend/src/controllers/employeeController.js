@@ -118,46 +118,37 @@ const createEmployee = async (req, res) => {
 const searchEmployees = async (req, res) => {
   try {
     const search = req.query.search || "";
-
     const status = req.query.status || "ALL";
 
     let query = `
-      SELECT *
-      FROM employees
-      WHERE
-      (
-        employee_code ILIKE $1
-        OR first_name ILIKE $1
-        OR last_name ILIKE $1
-        OR email ILIKE $1
-        OR department ILIKE $1
-        OR designation ILIKE $1
+      SELECT e.*, 
+             CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+      FROM employees e
+      LEFT JOIN employees m ON e.manager_id = m.id
+      WHERE (
+        e.employee_code ILIKE $1
+        OR e.first_name ILIKE $1
+        OR e.last_name ILIKE $1
+        OR e.email ILIKE $1
+        OR e.department ILIKE $1
+        OR e.designation ILIKE $1
       )
     `;
 
     let params = [`%${search}%`];
 
     if (status !== "ALL") {
-      query += `
-        AND status = $2
-      `;
-
+      query += ` AND e.status = $2`;
       params.push(status);
     }
 
-    query += `
-      ORDER BY id
-    `;
+    query += ` ORDER BY e.id`;
 
     const result = await pool.query(query, params);
-
     res.json(result.rows);
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      message: "Server Error",
-    });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
@@ -176,26 +167,21 @@ const getEmployees = async (req, res) => {
 };
 
 const getEmployeeById = async (req, res) => {
+  const { id } = req.params;
   try {
-    const { id } = req.params;
-
-    const result = await pool.query("SELECT * FROM employees WHERE id=$1", [
-      id,
-    ]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Employee not found",
-      });
-    }
-
+    const result = await pool.query(
+      `SELECT e.*, 
+              CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+       FROM employees e
+       LEFT JOIN employees m ON e.manager_id = m.id
+       WHERE e.id = $1`,
+      [id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ message: 'Employee not found' });
     res.json(result.rows[0]);
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      message: "Server Error",
-    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -282,6 +268,40 @@ const deleteEmployee = async (req, res) => {
   }
 };
 
+
+// Get list of potential managers (employees with role ADMIN or MANAGER)
+const getPotentialManagers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT e.id, e.first_name, e.last_name, u.role
+       FROM employees e
+       JOIN users u ON e.user_id = u.id
+       WHERE u.role IN ('ADMIN', 'MANAGER')
+       ORDER BY e.first_name`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Update manager_id for an employee (admin only)
+const updateEmployeeManager = async (req, res) => {
+  const { employeeId } = req.params;
+  const { managerId } = req.body; // can be null
+  try {
+    await pool.query(
+      `UPDATE employees SET manager_id = $1 WHERE id = $2`,
+      [managerId || null, employeeId]
+    );
+    res.json({ message: 'Manager updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   getEmployees,
   getEmployeeById,
@@ -289,4 +309,6 @@ module.exports = {
   updateEmployee,
   deleteEmployee,
   searchEmployees,
+  getPotentialManagers,
+  updateEmployeeManager
 };

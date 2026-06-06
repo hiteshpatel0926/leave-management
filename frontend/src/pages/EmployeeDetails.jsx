@@ -153,6 +153,10 @@ export default function EmployeeDetails() {
                   {employee.profile.designation}
                 </span>
                 <span className="flex items-center gap-1">
+                  <UserIcon className="h-4 w-4" />
+                  Manager: {employee.profile.manager_name || "None"}
+                </span>
+                <span className="flex items-center gap-1">
                   <CalendarIcon className="h-4 w-4" />
                   Joined: {formatDate(employee.profile.joining_date)}
                 </span>

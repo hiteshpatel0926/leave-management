@@ -110,6 +110,14 @@ export default function MyProfile() {
               {profile.email}
             </p>
           </div>
+            <div>
+            <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+              Manager
+            </label>
+            <p className="text-gray-900 dark:text-white font-medium">
+              {profile.manager_name}
+            </p>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
               Gender

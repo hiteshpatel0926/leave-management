@@ -4,9 +4,7 @@ const router = express.Router();
 
 const { authenticate, authorize } = require("../middleware/authMiddleware");
 
-const {
-  getEmployeeDetails,
-} = require("../controllers/employeeProfileController");
+const {getEmployeeDetails,} = require("../controllers/employeeProfileController");
 
 router.get(
   "/:id/details",

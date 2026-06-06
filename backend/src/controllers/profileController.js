@@ -2,7 +2,6 @@ const pool = require("../config/db");
 
 const getMyProfile = async (req, res) => {
   try {
-
     const result = await pool.query(
       `
       SELECT
@@ -18,10 +17,12 @@ const getMyProfile = async (req, res) => {
         e.designation,
         e.joining_date,
         e.status,
+        e.manager_id,
+        CONCAT(m.first_name, ' ', m.last_name) AS manager_name,
         u.role
       FROM employees e
-      JOIN users u
-        ON e.user_id = u.id
+      JOIN users u ON e.user_id = u.id
+      LEFT JOIN employees m ON e.manager_id = m.id
       WHERE u.id = $1
       `,
       [req.user.userId]
@@ -34,15 +35,11 @@ const getMyProfile = async (req, res) => {
     }
 
     res.json(result.rows[0]);
-
   } catch (error) {
-
     console.error(error);
-
     res.status(500).json({
       message: "Server Error"
     });
-
   }
 };
 

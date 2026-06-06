@@ -36,7 +36,7 @@ export default function Employees() {
     try {
       setLoading(true);
       const response = await api.get(
-        `/employees/search?search=${search}&status=${statusFilter}`
+        `/employees/search?search=${search}&status=${statusFilter}`,
       );
       setEmployees(response.data);
       // Reset image errors for new data
@@ -65,7 +65,7 @@ export default function Employees() {
 
   const deleteEmployee = async (id) => {
     const confirmDelete = window.confirm(
-      "Are you sure you want to deactivate this employee?"
+      "Are you sure you want to deactivate this employee?",
     );
     if (!confirmDelete) return;
     try {
@@ -91,7 +91,7 @@ export default function Employees() {
   };
 
   const handleImageError = (empId) => {
-    setImageErrors(prev => ({ ...prev, [empId]: true }));
+    setImageErrors((prev) => ({ ...prev, [empId]: true }));
   };
 
   if (loading) {
@@ -197,7 +197,7 @@ export default function Employees() {
                     Designation
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">
-                    DOB
+                    Manager
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Status
@@ -211,7 +211,10 @@ export default function Employees() {
                 {employees.map((emp) => {
                   const hasImageError = imageErrors[emp.id];
                   return (
-                    <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                    <tr
+                      key={emp.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+                    >
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           {emp.profile_picture && !hasImageError ? (
@@ -246,25 +249,45 @@ export default function Employees() {
                         {emp.designation}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden xl:table-cell">
-                        {formatDate(emp.dob)}
+                        {emp.manager_name || "-"}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${emp.status === "ACTIVE" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"}`}>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${emp.status === "ACTIVE" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"}`}
+                        >
                           {emp.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
                         <div className="flex justify-end gap-2">
-                          <button onClick={() => navigate(`/employees/${emp.id}`)} className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="View">
+                          <button
+                            onClick={() => navigate(`/employees/${emp.id}`)}
+                            className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                            title="View"
+                          >
                             <EyeIcon className="h-4 w-4" />
                           </button>
-                          <button onClick={() => navigate(`/employees/edit/${emp.id}`)} className="p-1.5 rounded-lg text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors" title="Edit">
+                          <button
+                            onClick={() =>
+                              navigate(`/employees/edit/${emp.id}`)
+                            }
+                            className="p-1.5 rounded-lg text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
+                            title="Edit"
+                          >
                             <PencilIcon className="h-4 w-4" />
                           </button>
-                          <button onClick={() => resetPassword(emp.user_id)} className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Reset Password">
+                          <button
+                            onClick={() => resetPassword(emp.user_id)}
+                            className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                            title="Reset Password"
+                          >
                             <KeyIcon className="h-4 w-4" />
                           </button>
-                          <button onClick={() => deleteEmployee(emp.id)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Deactivate">
+                          <button
+                            onClick={() => deleteEmployee(emp.id)}
+                            className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            title="Deactivate"
+                          >
                             <TrashIcon className="h-4 w-4" />
                           </button>
                         </div>
@@ -278,7 +301,9 @@ export default function Employees() {
           {employees.length === 0 && (
             <div className="text-center py-12">
               <UserCircleIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No employees found</p>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                No employees found
+              </p>
             </div>
           )}
         </div>
@@ -290,7 +315,10 @@ export default function Employees() {
           {employees.map((emp) => {
             const hasImageError = imageErrors[emp.id];
             return (
-              <div key={emp.id} className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-5 hover:shadow-md transition">
+              <div
+                key={emp.id}
+                className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-5 hover:shadow-md transition"
+              >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     {emp.profile_picture && !hasImageError ? (
@@ -306,24 +334,81 @@ export default function Employees() {
                       </div>
                     )}
                     <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{emp.first_name} {emp.last_name}</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{emp.employee_code}</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                        {emp.first_name} {emp.last_name}
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {emp.employee_code}
+                      </p>
                     </div>
                   </div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${emp.status === "ACTIVE" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"}`}>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${emp.status === "ACTIVE" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"}`}
+                  >
                     {emp.status}
                   </span>
                 </div>
                 <div className="mt-4 space-y-2 text-sm">
-                  <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Email:</span><span className="text-gray-700 dark:text-gray-300 truncate ml-2">{emp.email}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Department:</span><span className="text-gray-700 dark:text-gray-300">{emp.department}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Designation:</span><span className="text-gray-700 dark:text-gray-300">{emp.designation}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Joining:</span><span className="text-gray-700 dark:text-gray-300">{formatDate(emp.joining_date)}</span></p>
+                  <p className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Email:
+                    </span>
+                    <span className="text-gray-700 dark:text-gray-300 truncate ml-2">
+                      {emp.email}
+                    </span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Department:
+                    </span>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {emp.department}
+                    </span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Designation:
+                    </span>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {emp.designation}
+                    </span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Manager:
+                    </span>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {emp.manager_name || "-"}
+                    </span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Joining:
+                    </span>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {formatDate(emp.joining_date)}
+                    </span>
+                  </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 flex justify-between gap-2">
-                  <button onClick={() => navigate(`/employees/${emp.id}`)} className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 transition"><EyeIcon className="h-3.5 w-3.5" /> View</button>
-                  <button onClick={() => navigate(`/employees/edit/${emp.id}`)} className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-yellow-700 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 transition"><PencilIcon className="h-3.5 w-3.5" /> Edit</button>
-                  <button onClick={() => resetPassword(emp.user_id)} className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 transition"><KeyIcon className="h-3.5 w-3.5" /> Reset</button>
+                  <button
+                    onClick={() => navigate(`/employees/${emp.id}`)}
+                    className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 transition"
+                  >
+                    <EyeIcon className="h-3.5 w-3.5" /> View
+                  </button>
+                  <button
+                    onClick={() => navigate(`/employees/edit/${emp.id}`)}
+                    className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-yellow-700 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 transition"
+                  >
+                    <PencilIcon className="h-3.5 w-3.5" /> Edit
+                  </button>
+                  <button
+                    onClick={() => resetPassword(emp.user_id)}
+                    className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 transition"
+                  >
+                    <KeyIcon className="h-3.5 w-3.5" /> Reset
+                  </button>
                 </div>
               </div>
             );
@@ -331,7 +416,9 @@ export default function Employees() {
           {employees.length === 0 && (
             <div className="col-span-full text-center py-12">
               <UserCircleIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No employees found</p>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                No employees found
+              </p>
             </div>
           )}
         </div>

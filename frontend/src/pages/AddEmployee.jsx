@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
@@ -13,9 +13,25 @@ export default function AddEmployee() {
     department: "",
     designation: "",
     joining_date: "",
-    dob: "",          // new
-    gender: "",       // new
+    dob: "",
+    gender: "",
+    manager_id: "",
   });
+
+  const [managers, setManagers] = useState([]);
+
+  useEffect(() => {
+    loadManagers();
+  }, []);
+
+  const loadManagers = async () => {
+    try {
+      const res = await api.get("/employees/potential-managers");
+      setManagers(res.data);
+    } catch (err) {
+      console.error("Failed to load managers:", err);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -59,6 +75,7 @@ export default function AddEmployee() {
                 required
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Last Name
@@ -73,7 +90,9 @@ export default function AddEmployee() {
                 required
               />
             </div>
-            <div className="md:col-span-2">
+
+            {/* Email - now side by side with password */}
+            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Email
               </label>
@@ -87,7 +106,9 @@ export default function AddEmployee() {
                 required
               />
             </div>
-            <div className="md:col-span-2">
+
+            {/* Password - now side by side with email */}
+            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Password
               </label>
@@ -101,6 +122,7 @@ export default function AddEmployee() {
                 required
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Department
@@ -115,6 +137,7 @@ export default function AddEmployee() {
                 required
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Designation
@@ -129,7 +152,8 @@ export default function AddEmployee() {
                 required
               />
             </div>
-            <div className="md:col-span-2">
+
+            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Joining Date
               </label>
@@ -143,7 +167,6 @@ export default function AddEmployee() {
               />
             </div>
 
-            {/* NEW: Date of Birth */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Date of Birth
@@ -157,7 +180,6 @@ export default function AddEmployee() {
               />
             </div>
 
-            {/* NEW: Gender */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Gender
@@ -172,6 +194,25 @@ export default function AddEmployee() {
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Manager
+              </label>
+              <select
+                name="manager_id"
+                value={formData.manager_id}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">None</option>
+                {managers.map((mgr) => (
+                  <option key={mgr.id} value={mgr.id}>
+                    {mgr.first_name} {mgr.last_name} ({mgr.role})
+                  </option>
+                ))}
               </select>
             </div>
           </div>
