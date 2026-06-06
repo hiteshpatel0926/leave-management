@@ -5,14 +5,46 @@ const crypto = require("crypto"); // ← must be at the top
 const { sendResetEmail } = require("../config/email");
 
 const register = async (req, res) => {
-  // ... (unchanged)
+  try {
+    const { name, email, password, role, dob, gender } = req.body;
+
+    const existingUser = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email],
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({
+        message: "Email already exists",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(
+      `INSERT INTO users(name,email,password,role,dob,gender)
+       VALUES($1,$2,$3,$4,$5,$6)
+       RETURNING id,name,email,role,dob,gender`,
+      [name, email, hashedPassword, role, dob, gender],
+    );
+
+    res.status(201).json({
+      message: "User registered successfully",
+      user: result.rows[0],
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server Error",
+    });
+  }
 };
 
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Case-insensitive email lookup using LOWER()
     const result = await pool.query(
       `SELECT u.*, e.status AS employee_status
        FROM users u
@@ -21,28 +53,36 @@ const login = async (req, res) => {
       [email],
     );
 
+    // 1. Email not registered
     if (result.rows.length === 0) {
-      return res.status(401).json({
-        message: "Invalid email or password",
+      return res.status(404).json({
+        message:
+          "No account found with this email. Please check your email or contact your administrator to get registered.",
+        code: "USER_NOT_REGISTERED",
       });
     }
 
     const user = result.rows[0];
 
+    // 2. Check employee status (only if linked to an employee)
+    if (user.employee_status && user.employee_status !== "ACTIVE") {
+      return res.status(403).json({
+        message:
+          "Your account has been deactivated. Reach out to your administrator to restore access.",
+        code: "ACCOUNT_INACTIVE",
+      });
+    }
+
+    // 3. Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({
-        message: "Invalid email or password",
+        message: "Incorrect email or password. Please try again.",
+        code: "INVALID_CREDENTIALS",
       });
     }
 
-    if (user.employee_status && user.employee_status !== "ACTIVE") {
-      return res.status(403).json({
-        message: "Your account is inactive. Please contact your administrator.",
-        code: "INACTIVE_ACCOUNT",
-      });
-    }
-
+    // 4. Success - generate token
     const token = jwt.sign(
       {
         userId: user.id,
@@ -65,7 +105,12 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res
+      .status(500)
+      .json({
+        message:
+          "Something went wrong on our end. Please try again in a moment.",
+      });
   }
 };
 

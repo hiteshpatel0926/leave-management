@@ -20,13 +20,28 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(response.data.user));
       navigate("/dashboard");
     } catch (error) {
+      const status = error.response?.status;
+      const message = error.response?.data?.message;
       const code = error.response?.data?.code;
-      if (code === "INACTIVE_ACCOUNT") {
+
+      if (status === 404) {
         setError(
-          "⚠️ Your account is inactive. Please contact your administrator.",
+          message ||
+            "No account found with this email. Please check your email or contact your administrator to get registered.",
+        );
+      } else if (status === 403) {
+        setError(
+          message ||
+            "Your account has been deactivated. Reach out to your administrator to restore access.",
+        );
+      } else if (status === 401) {
+        setError("Incorrect email or password. Please try again.");
+      } else if (status >= 500) {
+        setError(
+          "Something went wrong on our end. Please try again in a moment.",
         );
       } else {
-        setError(error.response?.data?.message || "Login failed");
+        setError(message || "Unable to sign in. Please try again.");
       }
     } finally {
       setLoading(false);
