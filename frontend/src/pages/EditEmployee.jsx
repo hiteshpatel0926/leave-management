@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
 import { motion } from "framer-motion";
-import { UserCircleIcon, BriefcaseIcon, CalendarIcon, UserGroupIcon, CameraIcon } from "@heroicons/react/24/outline";
+import { UserCircleIcon, BriefcaseIcon, CalendarIcon, UserGroupIcon, CameraIcon, ExclamationCircleIcon } from "@heroicons/react/24/outline";
 import { getImageUrl } from "../utils/imageHelper";
 import ImageCropUpload from "../components/ImageCropUpload";
 
@@ -26,6 +26,8 @@ export default function EditEmployee() {
   const [profilePicture, setProfilePicture] = useState(null);
   const [imgError, setImgError] = useState(false);
   const [showCrop, setShowCrop] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   useEffect(() => {
     loadEmployee();
@@ -35,7 +37,6 @@ export default function EditEmployee() {
   const loadEmployee = async () => {
     try {
       const response = await api.get(`/employees/${id}`);
-
       const formatLocalDate = (dateString) => {
         if (!dateString) return "";
         const date = new Date(dateString);
@@ -75,14 +76,49 @@ export default function EditEmployee() {
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    if (errors[name]) setErrors({ ...errors, [name]: "" });
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched({ ...touched, [name]: true });
+    validateField(name, formData[name]);
+  };
+
+  const validateField = (name, value) => {
+    let error = "";
+    // All fields except manager_id and status are required for edit
+    const requiredFields = ["first_name", "last_name", "department", "designation", "joining_date", "dob", "gender"];
+    if (requiredFields.includes(name) && !value?.trim()) {
+      error = `${name.replace(/_/g, " ")} is required`;
+    }
+    setErrors(prev => ({ ...prev, [name]: error }));
+    return !error;
+  };
+
+  const validateForm = () => {
+    const requiredFields = ["first_name", "last_name", "department", "designation", "joining_date", "dob", "gender"];
+    const newErrors = {};
+    let isValid = true;
+    requiredFields.forEach(field => {
+      if (!formData[field]?.trim()) {
+        newErrors[field] = `${field.replace(/_/g, " ")} is required`;
+        isValid = false;
+      }
     });
+    setErrors(newErrors);
+    // Mark all fields as touched to show errors
+    const allTouched = {};
+    Object.keys(formData).forEach(field => { allTouched[field] = true; });
+    setTouched(allTouched);
+    return isValid;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
     try {
       await api.put(`/employees/${id}`, formData);
       await api.put(`/employees/${id}/manager`, { managerId: formData.manager_id || null });
@@ -95,8 +131,13 @@ export default function EditEmployee() {
   };
 
   const handleUploadSuccess = () => {
-    loadEmployee(); // Refresh to show new picture
+    loadEmployee();
     window.dispatchEvent(new Event("profile-updated"));
+  };
+
+  const getInputClassName = (fieldName) => {
+    const hasError = touched[fieldName] && errors[fieldName];
+    return `w-full px-4 py-2.5 rounded-xl border ${hasError ? "border-red-500 ring-1 ring-red-500" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 transition-all`;
   };
 
   return (
@@ -148,82 +189,120 @@ export default function EditEmployee() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">First Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                First Name <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 name="first_name"
                 value={formData.first_name}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                required
+                onBlur={handleBlur}
+                className={getInputClassName("first_name")}
               />
+              {touched.first_name && errors.first_name && (
+                <p className="mt-1 text-xs text-red-500 flex items-center gap-1"><ExclamationCircleIcon className="h-3 w-3" /> {errors.first_name}</p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Last Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Last Name <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 name="last_name"
                 value={formData.last_name}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                required
+                onBlur={handleBlur}
+                className={getInputClassName("last_name")}
               />
+              {touched.last_name && errors.last_name && (
+                <p className="mt-1 text-xs text-red-500 flex items-center gap-1"><ExclamationCircleIcon className="h-3 w-3" /> {errors.last_name}</p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Department</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Department <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 name="department"
                 value={formData.department}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                required
+                onBlur={handleBlur}
+                className={getInputClassName("department")}
               />
+              {touched.department && errors.department && (
+                <p className="mt-1 text-xs text-red-500 flex items-center gap-1"><ExclamationCircleIcon className="h-3 w-3" /> {errors.department}</p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Designation</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Designation <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 name="designation"
                 value={formData.designation}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                required
+                onBlur={handleBlur}
+                className={getInputClassName("designation")}
               />
+              {touched.designation && errors.designation && (
+                <p className="mt-1 text-xs text-red-500 flex items-center gap-1"><ExclamationCircleIcon className="h-3 w-3" /> {errors.designation}</p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date of Joining</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Date of Joining <span className="text-red-500">*</span>
+              </label>
               <input
                 type="date"
                 name="joining_date"
                 value={formData.joining_date}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                onBlur={handleBlur}
+                className={getInputClassName("joining_date")}
               />
+              {touched.joining_date && errors.joining_date && (
+                <p className="mt-1 text-xs text-red-500 flex items-center gap-1"><ExclamationCircleIcon className="h-3 w-3" /> {errors.joining_date}</p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date of Birth</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Date of Birth <span className="text-red-500">*</span>
+              </label>
               <input
                 type="date"
                 name="dob"
                 value={formData.dob}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                onBlur={handleBlur}
+                className={getInputClassName("dob")}
               />
+              {touched.dob && errors.dob && (
+                <p className="mt-1 text-xs text-red-500 flex items-center gap-1"><ExclamationCircleIcon className="h-3 w-3" /> {errors.dob}</p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Gender</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Gender <span className="text-red-500">*</span>
+              </label>
               <select
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                onBlur={handleBlur}
+                className={getInputClassName("gender")}
               >
-                <option value="">Select</option>
+                <option value="">Select Gender</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
               </select>
+              {touched.gender && errors.gender && (
+                <p className="mt-1 text-xs text-red-500 flex items-center gap-1"><ExclamationCircleIcon className="h-3 w-3" /> {errors.gender}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Manager</label>
@@ -231,13 +310,11 @@ export default function EditEmployee() {
                 name="manager_id"
                 value={formData.manager_id}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">None</option>
                 {managers.map((mgr) => (
-                  <option key={mgr.id} value={mgr.id}>
-                    {mgr.first_name} {mgr.last_name} ({mgr.role})
-                  </option>
+                  <option key={mgr.id} value={mgr.id}>{mgr.first_name} {mgr.last_name} ({mgr.role})</option>
                 ))}
               </select>
             </div>
@@ -247,7 +324,7 @@ export default function EditEmployee() {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="ACTIVE">ACTIVE</option>
                 <option value="INACTIVE">INACTIVE</option>
@@ -272,7 +349,6 @@ export default function EditEmployee() {
         </form>
       </div>
 
-      {/* Image Crop Modal */}
       {showCrop && (
         <ImageCropUpload
           employeeId={id}
