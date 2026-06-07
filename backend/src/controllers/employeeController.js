@@ -294,6 +294,162 @@ const updateEmployeeManager = async (req, res) => {
   }
 };
 
+// Import employees from CSV
+const importEmployees = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const employeesData = req.body.employees;
+    if (!employeesData || !Array.isArray(employeesData) || employeesData.length === 0) {
+      return res.status(400).json({ message: 'No valid employee data provided' });
+    }
+
+    const results = { success: [], errors: [], skipped: [] };
+    const currentYear = new Date().getFullYear();
+
+    for (const emp of employeesData) {
+      try {
+        // Validate required fields
+        const required = ['first_name', 'last_name', 'email', 'department', 'designation', 'joining_date', 'dob', 'gender'];
+        for (const field of required) {
+          if (!emp[field]) throw new Error(`${field} is required`);
+        }
+
+        // Check if email already exists
+        const existing = await client.query(`SELECT id FROM users WHERE email = $1`, [emp.email]);
+        if (existing.rows.length > 0) {
+          results.skipped.push({ email: emp.email, reason: 'Email already exists' });
+          continue; // Skip this record, continue with next
+        }
+
+        // Generate employee code
+        const lastEmp = await client.query(`SELECT employee_code FROM employees ORDER BY id DESC LIMIT 1`);
+        let employeeCode = "EMP001";
+        if (lastEmp.rows.length > 0) {
+          const lastCode = lastEmp.rows[0].employee_code;
+          const number = parseInt(lastCode.replace("EMP", ""));
+          employeeCode = `EMP${String(number + 1).padStart(3, "0")}`;
+        }
+
+        // Use provided password or default
+        const password = emp.password || "Temp@123";
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Insert user
+        const userRes = await client.query(
+          `INSERT INTO users (name, email, password, role, dob, gender)
+           VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+          [`${emp.first_name} ${emp.last_name}`, emp.email, hashedPassword, 'EMPLOYEE', emp.dob, emp.gender]
+        );
+        const userId = userRes.rows[0].id;
+
+        // Insert employee
+        const employeeRes = await client.query(
+          `INSERT INTO employees
+            (user_id, employee_code, first_name, last_name, email, department, designation, joining_date, status, dob, gender, manager_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
+          [userId, employeeCode, emp.first_name, emp.last_name, emp.email, emp.department, emp.designation,
+           emp.joining_date, 'ACTIVE', emp.dob, emp.gender, emp.manager_id || null]
+        );
+        const employeeId = employeeRes.rows[0].id;
+
+        // Fetch leave types
+        const leaveTypes = await client.query(`SELECT * FROM leave_types WHERE active = true`);
+        const filteredLeaveTypes = leaveTypes.rows.filter(lt => {
+          const nameLower = lt.name.toLowerCase();
+          if (nameLower.includes('paternity')) return emp.gender === 'Male';
+          if (nameLower.includes('maternity')) return emp.gender === 'Female';
+          return true;
+        });
+
+        for (const lt of filteredLeaveTypes) {
+          await client.query(
+            `INSERT INTO leave_balances (employee_id, leave_type_id, year, entitled_days, used_days, balance_days)
+             VALUES ($1,$2,$3,$4,$5,$6)`,
+            [employeeId, lt.id, currentYear, lt.annual_entitlement, 0, lt.annual_entitlement]
+          );
+        }
+
+        results.success.push({ email: emp.email, employeeCode });
+      } catch (err) {
+        results.errors.push({ email: emp.email, error: err.message });
+      }
+    }
+
+    await client.query('COMMIT');
+    res.status(200).json({
+      message: `Import completed: ${results.success.length} added, ${results.skipped.length} skipped (duplicate), ${results.errors.length} failed`,
+      results
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error(error);
+    res.status(500).json({ message: 'Server error during import' });
+  } finally {
+    client.release();
+  }
+};
+
+
+// Export employees to CSV
+const exportEmployees = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT e.id, e.employee_code, e.first_name, e.last_name, e.email,
+             e.department, e.designation, e.joining_date, e.status,
+             e.dob, e.gender, e.manager_id,
+             CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+      FROM employees e
+      LEFT JOIN employees m ON e.manager_id = m.id
+      ORDER BY e.id
+    `);
+
+    const employees = result.rows;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=employees.csv');
+
+    // Helper to format date as YYYY-MM-DD
+    const formatDate = (dateValue) => {
+      if (!dateValue) return '';
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) return '';
+      return date.toISOString().split('T')[0];
+    };
+
+    // Write CSV header
+    const headers = [
+      'ID', 'Employee Code', 'First Name', 'Last Name', 'Email',
+      'Department', 'Designation', 'Joining Date', 'Status',
+      'Date of Birth', 'Gender', 'Manager ID', 'Manager Name'
+    ];
+    res.write(headers.join(',') + '\n');
+
+    // Write rows
+    employees.forEach(emp => {
+      const row = [
+        emp.id,
+        emp.employee_code,
+        emp.first_name,
+        emp.last_name,
+        emp.email,
+        emp.department,
+        emp.designation,
+        formatDate(emp.joining_date),
+        emp.status,
+        formatDate(emp.dob),
+        emp.gender,
+        emp.manager_id || '',
+        emp.manager_name || ''
+      ].map(field => `"${String(field).replace(/"/g, '""')}"`);
+      res.write(row.join(',') + '\n');
+    });
+    res.end();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error during export' });
+  }
+};
+
 module.exports = {
   getEmployees,
   getEmployeeById,
@@ -302,5 +458,7 @@ module.exports = {
   deleteEmployee,
   searchEmployees,
   getPotentialManagers,
-  updateEmployeeManager
+  updateEmployeeManager,
+  importEmployees,
+  exportEmployees
 };

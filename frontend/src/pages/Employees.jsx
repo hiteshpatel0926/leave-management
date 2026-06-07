@@ -15,8 +15,11 @@ import {
   Squares2X2Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  DocumentArrowUpIcon,
+  DocumentArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
+import { useRef } from "react";
 
 export default function Employees() {
   const navigate = useNavigate();
@@ -30,6 +33,9 @@ export default function Employees() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const fileInputRef = useRef(null);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -104,6 +110,159 @@ export default function Employees() {
     setImageErrors((prev) => ({ ...prev, [empId]: true }));
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await api.get("/employees/export", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "employees.csv");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Failed to export employees");
+    }
+  };
+
+  const handleImport = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setImporting(true);
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      const text = e.target.result;
+      const lines = text.split(/\r?\n/);
+      if (lines.length < 2) {
+        alert("CSV file is empty");
+        setImporting(false);
+        fileInputRef.current.value = "";
+        return;
+      }
+
+      // Expect headers: ID, Employee Code, First Name, Last Name, Email, Department, Designation, Joining Date, Status, Date of Birth, Gender, Manager ID, Manager Name
+      const employees = [];
+
+      // Start from line 1 to skip header
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        // Simple CSV split (handles quoted fields)
+        const row = [];
+        let inQuote = false;
+        let current = "";
+        for (let ch of line) {
+          if (ch === '"') {
+            inQuote = !inQuote;
+          } else if (ch === "," && !inQuote) {
+            row.push(current.trim());
+            current = "";
+          } else {
+            current += ch;
+          }
+        }
+        row.push(current.trim());
+
+        // Remove quotes from each field
+        const cleanRow = row.map((field) => field.replace(/^"|"$/g, ""));
+
+        // Expected column indices (based on export header)
+        // 0:ID, 1:Employee Code, 2:First Name, 3:Last Name, 4:Email, 5:Department, 6:Designation,
+        // 7:Joining Date, 8:Status, 9:Date of Birth, 10:Gender, 11:Manager ID, 12:Manager Name
+        if (cleanRow.length < 11) continue; // need at least up to Gender
+
+        const employee = {
+          first_name: cleanRow[2],
+          last_name: cleanRow[3],
+          email: cleanRow[4],
+          department: cleanRow[5],
+          designation: cleanRow[6],
+          joining_date: cleanRow[7],
+          dob: cleanRow[9],
+          gender: cleanRow[10],
+          manager_id: cleanRow[11] || null,
+          password: "Temp@123", // default password
+        };
+
+        // Skip if missing required fields
+        if (
+          !employee.first_name ||
+          !employee.last_name ||
+          !employee.email ||
+          !employee.department ||
+          !employee.designation ||
+          !employee.joining_date ||
+          !employee.dob ||
+          !employee.gender
+        ) {
+          console.warn("Skipping row due to missing required fields", employee);
+          continue;
+        }
+
+        employees.push(employee);
+      }
+
+      if (employees.length === 0) {
+        alert(
+          "No valid employee data found in CSV. Please ensure headers match the exported format.",
+        );
+        setImporting(false);
+        fileInputRef.current.value = "";
+        return;
+      }
+
+      try {
+        const response = await api.post("/employees/import", { employees });
+        const { message, results } = response.data;
+
+        // Build detailed alert message
+        let alertMsg = message + "\n\n";
+        if (results.success?.length) {
+          alertMsg += `✅ Successfully added: ${results.success.length} employees\n`;
+          alertMsg += `  (${results.success
+            .slice(0, 5)
+            .map((s) => s.email)
+            .join(", ")}${results.success.length > 5 ? "..." : ""})\n\n`;
+        }
+        if (results.skipped?.length) {
+          alertMsg += `⚠️ Skipped (duplicate email): ${results.skipped.length}\n`;
+          results.skipped.slice(0, 5).forEach((s) => {
+            alertMsg += `  - ${s.email}: ${s.reason}\n`;
+          });
+          if (results.skipped.length > 5)
+            alertMsg += `  ... and ${results.skipped.length - 5} more\n`;
+          alertMsg += "\n";
+        }
+        if (results.errors?.length) {
+          alertMsg += `❌ Failed: ${results.errors.length}\n`;
+          results.errors.slice(0, 5).forEach((e) => {
+            alertMsg += `  - ${e.email}: ${e.error}\n`;
+          });
+          if (results.errors.length > 5)
+            alertMsg += `  ... and ${results.errors.length - 5} more\n`;
+        }
+
+        alert(alertMsg);
+        getEmployees(); // refresh employee list
+      } catch (error) {
+        console.error(error);
+        alert(error.response?.data?.message || "Import failed");
+      } finally {
+        setImporting(false);
+        fileInputRef.current.value = "";
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
   // Pagination calculations
   const totalItems = employees.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -139,7 +298,9 @@ export default function Employees() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
             Employees
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage and monitor all employee records</p>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">
+            Manage and monitor all employee records
+          </p>
         </div>
         <div className="flex gap-3">
           <div className="flex rounded-xl border border-gray-200 dark:border-gray-700 p-1 bg-white dark:bg-gray-800 shadow-sm">
@@ -173,6 +334,28 @@ export default function Employees() {
             <PlusIcon className="h-5 w-5" />
             Add Employee
           </button>
+          <button
+            onClick={handleExport}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-xl transition shadow-md"
+          >
+            <DocumentArrowDownIcon className="h-5 w-5" />
+            Export CSV
+          </button>
+          <button
+            onClick={() => fileInputRef.current.click()}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-xl transition shadow-md"
+            disabled={importing}
+          >
+            <DocumentArrowUpIcon className="h-5 w-5" />
+            {importing ? "Importing..." : "Import CSV"}
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImport}
+            accept=".csv"
+            className="hidden"
+          />
         </div>
       </div>
 
@@ -210,20 +393,37 @@ export default function Employees() {
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50/80 dark:bg-gray-900/50">
                   <tr>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Employee</th>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">Code</th>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Dept</th>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Designation</th>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">Manager</th>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                    <th className="px-4 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Employee
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+                      Code
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">
+                      Dept
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">
+                      Designation
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">
+                      Manager
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {currentEmployees.map((emp) => {
                     const hasImageError = imageErrors[emp.id];
                     return (
-                      <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all duration-150">
+                      <tr
+                        key={emp.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all duration-150"
+                      >
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-3">
                             {emp.profile_picture && !hasImageError ? (
@@ -261,22 +461,42 @@ export default function Employees() {
                           {emp.manager_name || "-"}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${emp.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"}`}>
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${emp.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"}`}
+                          >
                             {emp.status}
                           </span>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-right">
                           <div className="flex justify-end gap-1.5">
-                            <button onClick={() => navigate(`/employees/${emp.id}`)} className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="View">
+                            <button
+                              onClick={() => navigate(`/employees/${emp.id}`)}
+                              className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                              title="View"
+                            >
                               <EyeIcon className="h-4 w-4" />
                             </button>
-                            <button onClick={() => navigate(`/employees/edit/${emp.id}`)} className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors" title="Edit">
+                            <button
+                              onClick={() =>
+                                navigate(`/employees/edit/${emp.id}`)
+                              }
+                              className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                              title="Edit"
+                            >
                               <PencilIcon className="h-4 w-4" />
                             </button>
-                            <button onClick={() => resetPassword(emp.user_id)} className="p-2 rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Reset Password">
+                            <button
+                              onClick={() => resetPassword(emp.user_id)}
+                              className="p-2 rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                              title="Reset Password"
+                            >
                               <KeyIcon className="h-4 w-4" />
                             </button>
-                            <button onClick={() => deleteEmployee(emp.id)} className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors" title="Deactivate">
+                            <button
+                              onClick={() => deleteEmployee(emp.id)}
+                              className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                              title="Deactivate"
+                            >
                               <TrashIcon className="h-4 w-4" />
                             </button>
                           </div>
@@ -290,7 +510,9 @@ export default function Employees() {
             {employees.length === 0 && (
               <div className="text-center py-16">
                 <UserCircleIcon className="mx-auto h-14 w-14 text-gray-300 dark:text-gray-600" />
-                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">No employees found</p>
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                  No employees found
+                </p>
               </div>
             )}
           </div>
@@ -302,10 +524,17 @@ export default function Employees() {
                 <span>Show</span>
                 <select
                   value={itemsPerPage}
-                  onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
                   className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
                 >
-                  {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                  {[5, 10, 20, 50].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
                 </select>
                 <span>entries</span>
                 <span className="ml-4">Total: {totalItems} employees</span>
@@ -319,17 +548,25 @@ export default function Employees() {
                   <ChevronLeftIcon className="h-5 w-5" />
                 </button>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Page</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Page
+                  </span>
                   <select
                     value={currentPage}
                     onChange={(e) => goToPage(Number(e.target.value))}
                     className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
                   >
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ),
+                    )}
                   </select>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">of {totalPages}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    of {totalPages}
+                  </span>
                 </div>
                 <button
                   onClick={() => goToPage(currentPage + 1)}
@@ -351,36 +588,103 @@ export default function Employees() {
             {currentEmployees.map((emp) => {
               const hasImageError = imageErrors[emp.id];
               return (
-                <div key={emp.id} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-5 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                <div
+                  key={emp.id}
+                  className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-5 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       {emp.profile_picture && !hasImageError ? (
-                        <img src={getImageUrl(emp.profile_picture)} alt={emp.first_name} className="h-14 w-14 rounded-xl object-cover shadow-sm" onError={() => handleImageError(emp.id)} />
+                        <img
+                          src={getImageUrl(emp.profile_picture)}
+                          alt={emp.first_name}
+                          className="h-14 w-14 rounded-xl object-cover shadow-sm"
+                          onError={() => handleImageError(emp.id)}
+                        />
                       ) : (
                         <div className="flex-shrink-0 h-14 w-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base font-bold shadow-sm">
                           {getInitials(emp.first_name, emp.last_name)}
                         </div>
                       )}
                       <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white">{emp.first_name} {emp.last_name}</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{emp.employee_code}</p>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                          {emp.first_name} {emp.last_name}
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                          {emp.employee_code}
+                        </p>
                       </div>
                     </div>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${emp.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"}`}>
+                    <span
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${emp.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"}`}
+                    >
                       {emp.status}
                     </span>
                   </div>
                   <div className="mt-4 space-y-2 text-sm">
-                    <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Email:</span><span className="text-gray-700 dark:text-gray-300 truncate ml-2">{emp.email}</span></p>
-                    <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Department:</span><span className="text-gray-700 dark:text-gray-300">{emp.department}</span></p>
-                    <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Designation:</span><span className="text-gray-700 dark:text-gray-300">{emp.designation}</span></p>
-                    <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Manager:</span><span className="text-gray-700 dark:text-gray-300">{emp.manager_name || "-"}</span></p>
-                    <p className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Joining:</span><span className="text-gray-700 dark:text-gray-300">{formatDate(emp.joining_date)}</span></p>
+                    <p className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">
+                        Email:
+                      </span>
+                      <span className="text-gray-700 dark:text-gray-300 truncate ml-2">
+                        {emp.email}
+                      </span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">
+                        Department:
+                      </span>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {emp.department}
+                      </span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">
+                        Designation:
+                      </span>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {emp.designation}
+                      </span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">
+                        Manager:
+                      </span>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {emp.manager_name || "-"}
+                      </span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">
+                        Joining:
+                      </span>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {formatDate(emp.joining_date)}
+                      </span>
+                    </p>
                   </div>
                   <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between gap-2">
-                    <button onClick={() => navigate(`/employees/${emp.id}`)} className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 transition"> <EyeIcon className="h-3.5 w-3.5" /> View </button>
-                    <button onClick={() => navigate(`/employees/edit/${emp.id}`)} className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 transition"> <PencilIcon className="h-3.5 w-3.5" /> Edit </button>
-                    <button onClick={() => resetPassword(emp.user_id)} className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 transition"> <KeyIcon className="h-3.5 w-3.5" /> Reset </button>
+                    <button
+                      onClick={() => navigate(`/employees/${emp.id}`)}
+                      className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 transition"
+                    >
+                      {" "}
+                      <EyeIcon className="h-3.5 w-3.5" /> View{" "}
+                    </button>
+                    <button
+                      onClick={() => navigate(`/employees/edit/${emp.id}`)}
+                      className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 transition"
+                    >
+                      {" "}
+                      <PencilIcon className="h-3.5 w-3.5" /> Edit{" "}
+                    </button>
+                    <button
+                      onClick={() => resetPassword(emp.user_id)}
+                      className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 transition"
+                    >
+                      {" "}
+                      <KeyIcon className="h-3.5 w-3.5" /> Reset{" "}
+                    </button>
                   </div>
                 </div>
               );
@@ -388,7 +692,9 @@ export default function Employees() {
             {employees.length === 0 && (
               <div className="col-span-full text-center py-16">
                 <UserCircleIcon className="mx-auto h-14 w-14 text-gray-300 dark:text-gray-600" />
-                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">No employees found</p>
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                  No employees found
+                </p>
               </div>
             )}
           </div>
@@ -400,10 +706,17 @@ export default function Employees() {
                 <span>Show</span>
                 <select
                   value={itemsPerPage}
-                  onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
                   className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
                 >
-                  {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                  {[5, 10, 20, 50].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
                 </select>
                 <span>entries</span>
                 <span className="ml-4">Total: {totalItems} employees</span>
@@ -417,17 +730,25 @@ export default function Employees() {
                   <ChevronLeftIcon className="h-5 w-5" />
                 </button>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Page</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Page
+                  </span>
                   <select
                     value={currentPage}
                     onChange={(e) => goToPage(Number(e.target.value))}
                     className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
                   >
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ),
+                    )}
                   </select>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">of {totalPages}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    of {totalPages}
+                  </span>
                 </div>
                 <button
                   onClick={() => goToPage(currentPage + 1)}

@@ -6,6 +6,7 @@ const { authenticate, authorize } = require("../middleware/authMiddleware");
 
 const upload = require('../middleware/upload');
 const { uploadProfilePicture } = require('../controllers/uploadController');
+const { importEmployees, exportEmployees } = require("../controllers/employeeController");
 
 const {
   createEmployee,
@@ -22,6 +23,8 @@ const {
 router.post("/", authenticate, authorize("ADMIN"), createEmployee);
 router.get("/search", authenticate, authorize("ADMIN"), searchEmployees);
 router.get("/potential-managers", authenticate, authorize("ADMIN"), getPotentialManagers);
+router.post("/import", authenticate, authorize("ADMIN"), importEmployees);
+router.get("/export", authenticate, authorize("ADMIN"), exportEmployees);
 
 // ✅ Routes with :id but with fixed suffixes
 router.put("/:id/profile-picture", upload.single('profilePicture'), uploadProfilePicture);
@@ -34,6 +37,7 @@ router.delete("/:id", authenticate, authorize("ADMIN"), deleteEmployee);
 
 // ✅ Get all employees – placed after all param routes
 router.get("/", authenticate, authorize("ADMIN", "MANAGER","EMPLOYEE"), getEmployees);
+
 
 
 module.exports = router;
