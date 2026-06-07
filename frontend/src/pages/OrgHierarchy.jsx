@@ -13,6 +13,7 @@ import {
 import { getImageUrl } from "../utils/imageHelper";
 import api from "../services/api";
 
+
 export default function OrgHierarchy() {
   const [employees, setEmployees] = useState([]);
   const [hierarchy, setHierarchy] = useState([]);
@@ -39,36 +40,57 @@ export default function OrgHierarchy() {
   };
 
   const buildHierarchy = (empList) => {
-    const empMap = new Map();
-    empList.forEach(emp => {
-      empMap.set(emp.id, { ...emp, children: [] });
-    });
+  // Step 1: Filter out Admin (id === 1 or email contains admin)
+  const filteredList = empList.filter(emp => emp.id !== 1 && emp.email !== 'admin@alopexcare.com');
+  
+  // Step 2: Find Jeffrey's id (assuming employee_code 'EMP016' or first_name/last_name)
+  const jeffrey = filteredList.find(emp => 
+    emp.employee_code === 'EMP016' || (emp.first_name === 'Jeffrey' && emp.last_name === 'Topfer')
+  );
+  
+  const empMap = new Map();
+  filteredList.forEach((emp) => {
+    empMap.set(emp.id, { ...emp, children: [] });
+  });
 
-    const roots = [];
-    empList.forEach(emp => {
-      const managerId = emp.manager_id;
-      if (managerId && empMap.has(managerId) && managerId !== emp.id) {
-        empMap.get(managerId).children.push(empMap.get(emp.id));
-      } else {
-        roots.push(empMap.get(emp.id));
-      }
-    });
+  const roots = [];
+  filteredList.forEach((emp) => {
+    let managerId = emp.manager_id;
+    
+    // Step 3: If manager was Admin (id 1) and we have Jeffrey, reassign to Jeffrey
+    if (managerId === 1 && jeffrey) {
+      managerId = jeffrey.id;
+    }
+    
+    if (managerId && empMap.has(managerId) && managerId !== emp.id) {
+      empMap.get(managerId).children.push(empMap.get(emp.id));
+    } else {
+      roots.push(empMap.get(emp.id));
+    }
+  });
 
-    setHierarchy(roots);
-    const defaultExpanded = {};
-    const expandLevels = (nodes, level = 0) => {
-      if (level >= 2) return;
-      nodes.forEach(node => {
-        defaultExpanded[node.id] = true;
-        if (node.children?.length) expandLevels(node.children, level + 1);
-      });
-    };
-    expandLevels(roots);
-    setExpandedNodes(defaultExpanded);
+  // Step 4: If Jeffrey is not already a root, make him one
+  // (This handles the case where Jeffrey's manager_id was null or got filtered)
+  if (jeffrey && !roots.includes(empMap.get(jeffrey.id))) {
+    roots.push(empMap.get(jeffrey.id));
+  }
+
+  setHierarchy(roots);
+  
+  const defaultExpanded = {};
+  const expandLevels = (nodes, level = 0) => {
+    if (level >= 2) return;
+    nodes.forEach((node) => {
+      defaultExpanded[node.id] = true;
+      if (node.children?.length) expandLevels(node.children, level + 1);
+    });
   };
+  expandLevels(roots);
+  setExpandedNodes(defaultExpanded);
+};
 
   const toggleNode = (nodeId) => {
-    setExpandedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
+    setExpandedNodes((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
 
   const filterTree = (node, term) => {
@@ -79,21 +101,25 @@ export default function OrgHierarchy() {
       node.designation?.toLowerCase().includes(term.toLowerCase()) ||
       node.department?.toLowerCase().includes(term.toLowerCase());
     if (matches) return true;
-    if (node.children?.some(child => filterTree(child, term))) return true;
+    if (node.children?.some((child) => filterTree(child, term))) return true;
     return false;
   };
 
   const handleImageError = (empId) => {
-    setImageErrors(prev => ({ ...prev, [empId]: true }));
+    setImageErrors((prev) => ({ ...prev, [empId]: true }));
   };
 
   // ======================= TREE VIEW (vertical collapsible) =======================
   const TreeNode = ({ node, level = 0 }) => {
     const hasChildren = node.children && node.children.length > 0;
     const isExpanded = expandedNodes[node.id];
-    const matchesSearch = searchTerm.trim() === "" || filterTree(node, searchTerm);
+    const matchesSearch =
+      searchTerm.trim() === "" || filterTree(node, searchTerm);
     const hasImageError = imageErrors[node.id];
-    const profilePic = node.profile_picture && !hasImageError ? getImageUrl(node.profile_picture) : null;
+    const profilePic =
+      node.profile_picture && !hasImageError
+        ? getImageUrl(node.profile_picture)
+        : null;
 
     if (!matchesSearch) return null;
 
@@ -101,14 +127,20 @@ export default function OrgHierarchy() {
       <div className="select-none">
         <div
           className={`flex items-center gap-3 py-3 px-3 rounded-xl cursor-pointer transition-all duration-200 group ${
-            hasChildren ? "hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20" : "hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
+            hasChildren
+              ? "hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20"
+              : "hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
           }`}
           style={{ paddingLeft: `${level * 1.75 + 0.75}rem` }}
           onClick={() => hasChildren && toggleNode(node.id)}
         >
           {hasChildren && (
             <div className="flex-shrink-0 w-5 text-gray-400 group-hover:text-indigo-500 transition-colors">
-              {isExpanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+              {isExpanded ? (
+                <ChevronDownIcon className="h-4 w-4" />
+              ) : (
+                <ChevronRightIcon className="h-4 w-4" />
+              )}
             </div>
           )}
           {!hasChildren && <div className="w-5 flex-shrink-0" />}
@@ -134,7 +166,9 @@ export default function OrgHierarchy() {
                 {node.first_name} {node.last_name}
               </span>
               {node.employee_code && (
-                <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">{node.employee_code}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                  {node.employee_code}
+                </span>
               )}
               {node.designation && (
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium">
@@ -163,7 +197,9 @@ export default function OrgHierarchy() {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
             >
-              {node.children.map(child => <TreeNode key={child.id} node={child} level={level + 1} />)}
+              {node.children.map((child) => (
+                <TreeNode key={child.id} node={child} level={level + 1} />
+              ))}
             </motion.div>
           )}
         </AnimatePresence>
@@ -176,13 +212,16 @@ export default function OrgHierarchy() {
     const hasChildren = node.children && node.children.length > 0;
     const isExpanded = expandedNodes[node.id] ?? true; // Default expanded for chart
     const hasImageError = imageErrors[node.id];
-    const profilePic = node.profile_picture && !hasImageError ? getImageUrl(node.profile_picture) : null;
+    const profilePic =
+      node.profile_picture && !hasImageError
+        ? getImageUrl(node.profile_picture)
+        : null;
 
     return (
       <div className="flex items-start gap-8 relative">
         {/* Parent Card */}
         <div className="flex flex-col items-center relative z-10">
-          <div 
+          <div
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 w-72 group cursor-pointer"
             onClick={() => hasChildren && toggleNode(node.id)}
           >
@@ -198,7 +237,8 @@ export default function OrgHierarchy() {
                     />
                   ) : (
                     <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600 flex items-center justify-center text-white font-semibold text-2xl shadow-md ring-4 ring-white dark:ring-gray-700">
-                      {node.first_name?.charAt(0)}{node.last_name?.charAt(0)}
+                      {node.first_name?.charAt(0)}
+                      {node.last_name?.charAt(0)}
                     </div>
                   )}
                   {hasChildren && (
@@ -207,7 +247,7 @@ export default function OrgHierarchy() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-gray-900 dark:text-white text-base leading-tight">
@@ -215,7 +255,11 @@ export default function OrgHierarchy() {
                     </p>
                     {hasChildren && (
                       <div className="text-gray-400 group-hover:text-indigo-500 transition-colors">
-                        {isExpanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+                        {isExpanded ? (
+                          <ChevronDownIcon className="h-4 w-4" />
+                        ) : (
+                          <ChevronRightIcon className="h-4 w-4" />
+                        )}
                       </div>
                     )}
                   </div>
@@ -233,13 +277,15 @@ export default function OrgHierarchy() {
                       <div className="truncate font-mono">{node.email}</div>
                     )}
                     {node.employee_code && (
-                      <div className="font-mono text-gray-400">#{node.employee_code}</div>
+                      <div className="font-mono text-gray-400">
+                        #{node.employee_code}
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
             </div>
-            
+
             {/* Bottom accent */}
             <div className="h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-500 rounded-b-2xl"></div>
           </div>
@@ -257,7 +303,7 @@ export default function OrgHierarchy() {
             >
               {/* Main horizontal connector from parent */}
               <div className="absolute top-8 left-0 w-8 h-px bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-500"></div>
-              
+
               {/* Vertical connector line */}
               <div className="absolute top-8 left-8 bottom-0 w-px bg-gradient-to-b from-gray-300 via-gray-400 to-transparent dark:from-gray-600 dark:via-gray-500"></div>
 
@@ -279,7 +325,7 @@ export default function OrgHierarchy() {
 
   const renderHorizontalOrgChart = () => {
     const filteredRoots = searchTerm.trim()
-      ? hierarchy.filter(root => filterTree(root, searchTerm))
+      ? hierarchy.filter((root) => filterTree(root, searchTerm))
       : hierarchy;
 
     if (filteredRoots.length === 0) {
@@ -287,16 +333,18 @@ export default function OrgHierarchy() {
         <div className="text-center py-16">
           <BuildingOfficeIcon className="mx-auto h-14 w-14 text-gray-300 dark:text-gray-600 mb-3" />
           <p className="text-gray-500 dark:text-gray-400">
-            {searchTerm ? "No matching employees found." : "No hierarchy data available."}
+            {searchTerm
+              ? "No matching employees found."
+              : "No hierarchy data available."}
           </p>
         </div>
       );
     }
 
     return (
-      <div className="overflow-x-auto overflow-y-auto p-8 bg-gray-50/70 dark:bg-gray-900/50 min-h-[600px] rounded-2xl">
+      <div className="overflow-x-scroll overflow-y-auto p-8 bg-gray-50/70 dark:bg-gray-900/50 min-h-[600px] rounded-2xl">
         <div className="inline-flex flex-col gap-16">
-          {filteredRoots.map(root => (
+          {filteredRoots.map((root) => (
             <div key={root.id} className="relative">
               <HorizontalOrgNode node={root} />
             </div>
@@ -321,6 +369,7 @@ export default function OrgHierarchy() {
   }
 
   return (
+    
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -391,11 +440,14 @@ export default function OrgHierarchy() {
                 <div className="text-center py-16">
                   <BuildingOfficeIcon className="mx-auto h-14 w-14 text-gray-300 dark:text-gray-600 mb-3" />
                   <p className="text-gray-500 dark:text-gray-400">
-                    No hierarchy data available. Please assign managers to employees.
+                    No hierarchy data available. Please assign managers to
+                    employees.
                   </p>
                 </div>
               ) : (
-                hierarchy.map(root => <TreeNode key={root.id} node={root} level={0} />)
+                hierarchy.map((root) => (
+                  <TreeNode key={root.id} node={root} level={0} />
+                ))
               )}
 
               {/* Expand/Collapse All for Tree View */}
@@ -404,8 +456,11 @@ export default function OrgHierarchy() {
                   <button
                     onClick={() => {
                       const expandAll = (nodes) => {
-                        nodes.forEach(node => {
-                          setExpandedNodes(prev => ({ ...prev, [node.id]: true }));
+                        nodes.forEach((node) => {
+                          setExpandedNodes((prev) => ({
+                            ...prev,
+                            [node.id]: true,
+                          }));
                           if (node.children?.length) expandAll(node.children);
                         });
                       };
@@ -418,8 +473,11 @@ export default function OrgHierarchy() {
                   <button
                     onClick={() => {
                       const collapseAll = (nodes) => {
-                        nodes.forEach(node => {
-                          setExpandedNodes(prev => ({ ...prev, [node.id]: false }));
+                        nodes.forEach((node) => {
+                          setExpandedNodes((prev) => ({
+                            ...prev,
+                            [node.id]: false,
+                          }));
                           if (node.children?.length) collapseAll(node.children);
                         });
                       };
