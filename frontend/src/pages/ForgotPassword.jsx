@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import api from "../services/api";
 import { KeyIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { useEffect } from "react";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -10,6 +11,10 @@ export default function ForgotPassword() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Forgot Password | MBOS LMS";
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

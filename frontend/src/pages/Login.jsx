@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import api from "../services/api";
+import { useEffect } from "react";
 import { KeyIcon, EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 
 export default function Login() {
@@ -10,6 +11,10 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    document.title = "Login | MBOS LMS";
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
