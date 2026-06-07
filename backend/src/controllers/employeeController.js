@@ -14,6 +14,7 @@ const createEmployee = async (req, res) => {
       joining_date,
       dob,
       gender,
+      manager_id,
     } = req.body;
 
     const existingUser = await pool.query(

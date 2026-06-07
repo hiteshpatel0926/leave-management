@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
 import { motion } from "framer-motion";
-import { UserCircleIcon, BriefcaseIcon, CalendarIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { UserCircleIcon, BriefcaseIcon, CalendarIcon, UserGroupIcon, CameraIcon } from "@heroicons/react/24/outline";
+import { getImageUrl } from "../utils/imageHelper";
+import ImageCropUpload from "../components/ImageCropUpload";
 
 export default function EditEmployee() {
   const { id } = useParams();
@@ -21,11 +23,14 @@ export default function EditEmployee() {
   });
 
   const [managers, setManagers] = useState([]);
+  const [profilePicture, setProfilePicture] = useState(null);
+  const [imgError, setImgError] = useState(false);
+  const [showCrop, setShowCrop] = useState(false);
 
   useEffect(() => {
     loadEmployee();
     loadManagers();
-  }, []);
+  }, [id]);
 
   const loadEmployee = async () => {
     try {
@@ -48,6 +53,13 @@ export default function EditEmployee() {
         gender: response.data.gender || "",
         manager_id: response.data.manager_id || "",
       });
+
+      if (response.data.profile_picture) {
+        setProfilePicture(getImageUrl(response.data.profile_picture));
+        setImgError(false);
+      } else {
+        setProfilePicture(null);
+      }
     } catch (error) {
       console.error(error);
     }
@@ -82,6 +94,11 @@ export default function EditEmployee() {
     }
   };
 
+  const handleUploadSuccess = () => {
+    loadEmployee(); // Refresh to show new picture
+    window.dispatchEvent(new Event("profile-updated"));
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -94,11 +111,40 @@ export default function EditEmployee() {
         </div>
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Edit Employee</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Update employee information and reporting structure</p>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Update employee information, reporting structure, and profile picture</p>
         </div>
       </div>
 
       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 md:p-8">
+        {/* Profile Picture Section */}
+        <div className="flex items-center gap-6 mb-8 pb-6 border-b border-gray-100 dark:border-gray-700">
+          <div className="relative">
+            {!imgError && profilePicture ? (
+              <img
+                src={profilePicture}
+                alt="Profile"
+                className="h-20 w-20 rounded-2xl object-cover ring-4 ring-white dark:ring-gray-800 shadow-md"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/40 dark:to-indigo-800/40 flex items-center justify-center shadow-sm">
+                <UserCircleIcon className="h-10 w-10 text-indigo-500" />
+              </div>
+            )}
+            <button
+              onClick={() => setShowCrop(true)}
+              className="absolute -bottom-2 -right-2 bg-white dark:bg-gray-800 rounded-full p-1.5 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              title="Change photo"
+            >
+              <CameraIcon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+            </button>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Profile Picture</p>
+            <p className="text-xs text-gray-400 mt-0.5">Click the camera icon to upload a new photo</p>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -225,6 +271,15 @@ export default function EditEmployee() {
           </div>
         </form>
       </div>
+
+      {/* Image Crop Modal */}
+      {showCrop && (
+        <ImageCropUpload
+          employeeId={id}
+          onUploadSuccess={handleUploadSuccess}
+          onClose={() => setShowCrop(false)}
+        />
+      )}
     </motion.div>
   );
 }
