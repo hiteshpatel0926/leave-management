@@ -54,24 +54,13 @@ const createEmployee = async (req, res) => {
     const userId = userResult.rows[0].id;
 
     const employeeResult = await pool.query(
-      `INSERT INTO employees
-        (user_id, employee_code, first_name, last_name, email,
-         department, designation, joining_date, status, dob, gender)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [
-        userId,
-        employeeCode,
-        first_name,
-        last_name,
-        email,
-        department,
-        designation,
-        joining_date,
-        "ACTIVE",
-        dob,
-        gender,
-      ],
-    );
+  `INSERT INTO employees
+    (user_id, employee_code, first_name, last_name, email,
+     department, designation, joining_date, status, dob, gender, manager_id)
+   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+  [userId, employeeCode, first_name, last_name, email,
+   department, designation, joining_date, "ACTIVE", dob, gender, manager_id || null]
+);
     const employeeId = employeeResult.rows[0].id;
     const currentYear = new Date().getFullYear();
 
@@ -154,15 +143,17 @@ const searchEmployees = async (req, res) => {
 
 const getEmployees = async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM employees ORDER BY id");
-
+    const result = await pool.query(`
+      SELECT e.*, 
+             CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+      FROM employees e
+      LEFT JOIN employees m ON e.manager_id = m.id
+      ORDER BY e.id
+    `);
     res.json(result.rows);
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      message: "Server Error",
-    });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 

@@ -26,6 +26,8 @@ const AdminCarryForward = lazy(() => import("./pages/AdminCarryForward"));
 const TeamManagement = lazy(() => import("./pages/TeamManagement"));
 const TeamPendingLeaves = lazy(() => import("./pages/TeamPendingLeaves"));
 const TeamLeaveBalances = lazy(() => import("./pages/TeamLeaveBalances"));
+const OrgHierarchy = lazy(() => import("./pages/OrgHierarchy"));
+
 
 function App() {
   return (
@@ -172,6 +174,8 @@ function App() {
           <Route path="/manager/team" element={<ProtectedRoute><MainLayout><TeamManagement /></MainLayout></ProtectedRoute>} />
 <Route path="/manager/pending-leaves" element={<ProtectedRoute><MainLayout><TeamPendingLeaves /></MainLayout></ProtectedRoute>} />
 <Route path="/manager/leave-balances" element={<ProtectedRoute><MainLayout><TeamLeaveBalances /></MainLayout></ProtectedRoute>} />
+
+<Route path="/org-hierarchy" element={<ProtectedRoute><MainLayout><OrgHierarchy /></MainLayout></ProtectedRoute>} />
         </Routes>
       </Suspense>
     </BrowserRouter>

@@ -33,7 +33,7 @@ router.put("/:id", authenticate, authorize("ADMIN"), updateEmployee);
 router.delete("/:id", authenticate, authorize("ADMIN"), deleteEmployee);
 
 // ✅ Get all employees – placed after all param routes
-router.get("/", authenticate, authorize("ADMIN", "EMPLOYEE"), getEmployees);
+router.get("/", authenticate, authorize("ADMIN", "MANAGER","EMPLOYEE"), getEmployees);
 
 
 module.exports = router;

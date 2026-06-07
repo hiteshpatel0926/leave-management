@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+
 import {
   HomeIcon,
   KeyIcon,
@@ -15,6 +16,7 @@ import {
   UserCircleIcon,
   Cog6ToothIcon,
   ChartBarSquareIcon,
+  RectangleGroupIcon
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
 import { getImageUrl } from "../utils/imageHelper";
@@ -54,6 +56,7 @@ export default function Sidebar() {
     { path: "/apply-leave", label: "Apply Leave", icon: CalendarIcon },
     { path: "/my-leaves", label: "My Leaves", icon: DocumentTextIcon },
     { path: "/leave-balance", label: "Leave Balance", icon: ClipboardDocumentListIcon },
+    { path: "/org-hierarchy", label: "Org Hierarchy", icon: RectangleGroupIcon },
     { path: "/change-password", label: "Change Password", icon: KeyIcon },
   ];
 
