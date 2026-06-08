@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { getImageUrl } from "../utils/imageHelper";
@@ -19,10 +19,12 @@ import {
   DocumentArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
-import { useRef } from "react";
+import { useToast } from "../context/ToastContext";
 
 export default function Employees() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
+
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -67,15 +69,18 @@ export default function Employees() {
   const resetPassword = async (userId) => {
     const newPassword = prompt("Enter new password (min 6 characters)");
     if (!newPassword || newPassword.length < 6) {
-      alert("Password must be at least 6 characters");
+      showToast("Password must be at least 6 characters", "error");
       return;
     }
     try {
       await api.put(`/users/${userId}/reset-password`, { newPassword });
-      alert("Password reset successfully");
+      showToast("Password reset successfully", "success");
     } catch (error) {
       console.error(error);
-      alert(error.response?.data?.message || "Failed to reset password");
+      showToast(
+        error.response?.data?.message || "Failed to reset password",
+        "error",
+      );
     }
   };
 
@@ -86,10 +91,14 @@ export default function Employees() {
     if (!confirmDelete) return;
     try {
       await api.delete(`/employees/${id}`);
+      showToast("Employee deactivated successfully", "success");
       getEmployees();
     } catch (error) {
       console.error(error);
-      alert(error.response?.data?.message || "Failed to deactivate employee");
+      showToast(
+        error.response?.data?.message || "Failed to deactivate employee",
+        "error",
+      );
     }
   };
 
@@ -123,9 +132,10 @@ export default function Employees() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      showToast("Employees exported successfully", "success");
     } catch (error) {
       console.error("Export failed:", error);
-      alert("Failed to export employees");
+      showToast("Failed to export employees", "error");
     }
   };
 
@@ -140,24 +150,92 @@ export default function Employees() {
       const text = e.target.result;
       const lines = text.split(/\r?\n/);
       if (lines.length < 2) {
-        alert("CSV file is empty");
+        showToast("CSV file is empty", "error");
         setImporting(false);
         fileInputRef.current.value = "";
         return;
       }
 
-      // Expect headers: ID, Employee Code, First Name, Last Name, Email, Department, Designation, Joining Date, Status, Date of Birth, Gender, Manager ID, Manager Name
+      // Parse header row to get column indices
+      const headerLine = lines[0].trim();
+      const headerRow = [];
+      let inQuote = false;
+      let current = "";
+      for (let ch of headerLine) {
+        if (ch === '"') {
+          inQuote = !inQuote;
+        } else if (ch === "," && !inQuote) {
+          headerRow.push(current.trim());
+          current = "";
+        } else {
+          current += ch;
+        }
+      }
+      headerRow.push(current.trim());
+      const cleanHeaders = headerRow.map((h) => h.replace(/^"|"$/g, ""));
+
+      // Define expected column names
+      const columnMap = {
+        first_name: "First Name",
+        last_name: "Last Name",
+        email: "Email",
+        department: "Department",
+        designation: "Designation",
+        joining_date: "Joining Date",
+        dob: "Date of Birth",
+        gender: "Gender",
+        manager_id: "Manager ID",
+        address: "Address",
+        city: "City",
+        state: "State",
+        country: "Country",
+        zip: "Zip",
+        phone_country_code: "Phone Country Code",
+        phone_number: "Phone Number",
+      };
+
+      // Find indices
+      const indices = {};
+      for (const [field, headerName] of Object.entries(columnMap)) {
+        const idx = cleanHeaders.findIndex((h) => h === headerName);
+        if (
+          idx === -1 &&
+          [
+            "manager_id",
+            "address",
+            "city",
+            "state",
+            "country",
+            "zip",
+            "phone_country_code",
+            "phone_number",
+          ].includes(field)
+        ) {
+          // Optional fields – not required
+          indices[field] = -1;
+        } else if (idx === -1) {
+          showToast(
+            `Required header "${headerName}" not found in CSV`,
+            "error",
+          );
+          setImporting(false);
+          fileInputRef.current.value = "";
+          return;
+        } else {
+          indices[field] = idx;
+        }
+      }
+
       const employees = [];
 
-      // Start from line 1 to skip header
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
 
-        // Simple CSV split (handles quoted fields)
+        // Parse row
         const row = [];
-        let inQuote = false;
-        let current = "";
+        inQuote = false;
+        current = "";
         for (let ch of line) {
           if (ch === '"') {
             inQuote = !inQuote;
@@ -170,25 +248,37 @@ export default function Employees() {
         }
         row.push(current.trim());
 
-        // Remove quotes from each field
         const cleanRow = row.map((field) => field.replace(/^"|"$/g, ""));
 
-        // Expected column indices (based on export header)
-        // 0:ID, 1:Employee Code, 2:First Name, 3:Last Name, 4:Email, 5:Department, 6:Designation,
-        // 7:Joining Date, 8:Status, 9:Date of Birth, 10:Gender, 11:Manager ID, 12:Manager Name
-        if (cleanRow.length < 11) continue; // need at least up to Gender
-
+        // Build employee object using mapped indices
         const employee = {
-          first_name: cleanRow[2],
-          last_name: cleanRow[3],
-          email: cleanRow[4],
-          department: cleanRow[5],
-          designation: cleanRow[6],
-          joining_date: cleanRow[7],
-          dob: cleanRow[9],
-          gender: cleanRow[10],
-          manager_id: cleanRow[11] || null,
-          password: "Temp@123", // default password
+          first_name:
+            indices.first_name !== -1 ? cleanRow[indices.first_name] : "",
+          last_name:
+            indices.last_name !== -1 ? cleanRow[indices.last_name] : "",
+          email: indices.email !== -1 ? cleanRow[indices.email] : "",
+          department:
+            indices.department !== -1 ? cleanRow[indices.department] : "",
+          designation:
+            indices.designation !== -1 ? cleanRow[indices.designation] : "",
+          joining_date:
+            indices.joining_date !== -1 ? cleanRow[indices.joining_date] : "",
+          dob: indices.dob !== -1 ? cleanRow[indices.dob] : "",
+          gender: indices.gender !== -1 ? cleanRow[indices.gender] : "",
+          manager_id:
+            indices.manager_id !== -1 ? cleanRow[indices.manager_id] : null,
+          password: "Temp@123",
+          address: indices.address !== -1 ? cleanRow[indices.address] : "",
+          city: indices.city !== -1 ? cleanRow[indices.city] : "",
+          state: indices.state !== -1 ? cleanRow[indices.state] : "",
+          country: indices.country !== -1 ? cleanRow[indices.country] : "",
+          zip: indices.zip !== -1 ? cleanRow[indices.zip] : "",
+          phone_country_code:
+            indices.phone_country_code !== -1
+              ? cleanRow[indices.phone_country_code]
+              : "",
+          phone_number:
+            indices.phone_number !== -1 ? cleanRow[indices.phone_number] : "",
         };
 
         // Skip if missing required fields
@@ -210,8 +300,9 @@ export default function Employees() {
       }
 
       if (employees.length === 0) {
-        alert(
-          "No valid employee data found in CSV. Please ensure headers match the exported format.",
+        showToast(
+          "No valid employee data found in CSV. Please ensure headers match the expected format.",
+          "error",
         );
         setImporting(false);
         fileInputRef.current.value = "";
@@ -222,7 +313,7 @@ export default function Employees() {
         const response = await api.post("/employees/import", { employees });
         const { message, results } = response.data;
 
-        // Build detailed alert message
+        // Build detailed alert message (keep as alert because it's a long summary)
         let alertMsg = message + "\n\n";
         if (results.success?.length) {
           alertMsg += `✅ Successfully added: ${results.success.length} employees\n`;
@@ -248,12 +339,19 @@ export default function Employees() {
           if (results.errors.length > 5)
             alertMsg += `  ... and ${results.errors.length - 5} more\n`;
         }
-
         alert(alertMsg);
+        showToast(
+          `Import completed: ${results.success.length} added, ${results.skipped.length} skipped, ${results.errors.length} failed`,
+          results.errors.length > 0
+            ? "error"
+            : results.skipped.length > 0
+              ? "info"
+              : "success",
+        );
         getEmployees(); // refresh employee list
       } catch (error) {
         console.error(error);
-        alert(error.response?.data?.message || "Import failed");
+        showToast(error.response?.data?.message || "Import failed", "error");
       } finally {
         setImporting(false);
         fileInputRef.current.value = "";

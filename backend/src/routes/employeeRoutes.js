@@ -6,38 +6,49 @@ const { authenticate, authorize } = require("../middleware/authMiddleware");
 
 const upload = require('../middleware/upload');
 const { uploadProfilePicture } = require('../controllers/uploadController');
-const { importEmployees, exportEmployees } = require("../controllers/employeeController");
 
 const {
   createEmployee,
   getEmployees,
   getEmployeeById,
+  getEmployeeDetails,      // ✅ new function
   updateEmployee,
   deleteEmployee,
   searchEmployees,
   getPotentialManagers,
-  updateEmployeeManager
+  updateEmployeeManager,
+  importEmployees,
+  exportEmployees,
+  getCountries,
+  getStates,
+  getCities
 } = require("../controllers/employeeController");
 
-// ✅ Specific routes (no dynamic :id)
+// ========== Location endpoints ==========
+router.get("/locations/countries", authenticate, getCountries);
+router.get("/locations/states/:countryId", authenticate, getStates);
+router.get("/locations/cities/:stateId", authenticate, getCities);
+
+// ========== Specific routes (no dynamic :id) ==========
 router.post("/", authenticate, authorize("ADMIN"), createEmployee);
 router.get("/search", authenticate, authorize("ADMIN"), searchEmployees);
 router.get("/potential-managers", authenticate, authorize("ADMIN"), getPotentialManagers);
 router.post("/import", authenticate, authorize("ADMIN"), importEmployees);
 router.get("/export", authenticate, authorize("ADMIN"), exportEmployees);
 
-// ✅ Routes with :id but with fixed suffixes
+// ========== Routes with :id but with fixed suffixes ==========
 router.put("/:id/profile-picture", upload.single('profilePicture'), uploadProfilePicture);
 router.put("/:employeeId/manager", authenticate, authorize("ADMIN"), updateEmployeeManager);
 
-// ✅ Generic single‑employee routes (by id)
+// ========== DETAILS route (must come before generic /:id) ==========
+router.get("/:id/details", authenticate, authorize("ADMIN", "EMPLOYEE", "MANAGER"), getEmployeeDetails);
+
+// ========== Generic single‑employee routes (by id) ==========
 router.get("/:id", authenticate, authorize("ADMIN", "EMPLOYEE", "MANAGER"), getEmployeeById);
 router.put("/:id", authenticate, authorize("ADMIN"), updateEmployee);
 router.delete("/:id", authenticate, authorize("ADMIN"), deleteEmployee);
 
-// ✅ Get all employees – placed after all param routes
-router.get("/", authenticate, authorize("ADMIN", "MANAGER","EMPLOYEE"), getEmployees);
-
-
+// ========== Get all employees – placed after all param routes ==========
+router.get("/", authenticate, authorize("ADMIN", "MANAGER", "EMPLOYEE"), getEmployees);
 
 module.exports = router;

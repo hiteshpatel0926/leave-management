@@ -13,12 +13,15 @@ import "./index.css";
 import App from "./App";
 
 import { AuthProvider } from "./context/AuthContext";
-import { SocketProvider } from "./context/SocketContext"; // ✅ import
+import { SocketProvider } from "./context/SocketContext";
+import { ToastProvider } from "./context/ToastContext";  // ✅ import ToastProvider
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <AuthProvider>
-    <SocketProvider>    {/* ✅ wrap App with SocketProvider */}
-      <App />
+    <SocketProvider>
+      <ToastProvider>   {/* ✅ wrap App with ToastProvider */}
+        <App />
+      </ToastProvider>
     </SocketProvider>
   </AuthProvider>,
 );

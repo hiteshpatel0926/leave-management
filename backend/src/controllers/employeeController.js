@@ -1,5 +1,48 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
+
+// ======================= LOCATION API ENDPOINTS =======================
+const getCountries = async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, name, code, phone_code FROM countries ORDER BY name",
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getStates = async (req, res) => {
+  const { countryId } = req.params;
+  try {
+    const result = await pool.query(
+      "SELECT id, name, code FROM states WHERE country_id = $1 ORDER BY name",
+      [countryId],
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getCities = async (req, res) => {
+  const { stateId } = req.params;
+  try {
+    const result = await pool.query(
+      "SELECT id, name FROM cities WHERE state_id = $1 ORDER BY name",
+      [stateId],
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ======================= EMPLOYEE CRUD =======================
 const createEmployee = async (req, res) => {
   try {
     await pool.query("BEGIN");
@@ -15,6 +58,13 @@ const createEmployee = async (req, res) => {
       dob,
       gender,
       manager_id,
+      address,
+      country_id,
+      state_id,
+      city_id,
+      zip,
+      phone_country_code,
+      phone_number,
     } = req.body;
 
     const existingUser = await pool.query(
@@ -56,9 +106,11 @@ const createEmployee = async (req, res) => {
 
     const employeeResult = await pool.query(
       `INSERT INTO employees
-    (user_id, employee_code, first_name, last_name, email,
-     department, designation, joining_date, status, dob, gender, manager_id)
-   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+        (user_id, employee_code, first_name, last_name, email,
+         department, designation, joining_date, status, dob, gender, manager_id,
+         address, country_id, state_id, city_id, zip, phone_country_code, phone_number)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+               $13,$14,$15,$16,$17,$18,$19) RETURNING *`,
       [
         userId,
         employeeCode,
@@ -72,6 +124,13 @@ const createEmployee = async (req, res) => {
         dob,
         gender,
         manager_id || null,
+        address || null,
+        country_id || null,
+        state_id || null,
+        city_id || null,
+        zip || null,
+        phone_country_code || null,
+        phone_number || null,
       ],
     );
     const employeeId = employeeResult.rows[0].id;
@@ -80,13 +139,11 @@ const createEmployee = async (req, res) => {
     const leaveTypes = await pool.query(
       `SELECT * FROM leave_types WHERE active = true`,
     );
-
-    // ✅ Gender‑based filtering using .includes()
     const filteredLeaveTypes = leaveTypes.rows.filter((leaveType) => {
       const nameLower = leaveType.name.toLowerCase();
       if (nameLower.includes("paternity")) return gender === "Male";
       if (nameLower.includes("maternity")) return gender === "Female";
-      return true; // All other leave types (e.g., annual, sick, comp off)
+      return true;
     });
 
     for (const leaveType of filteredLeaveTypes) {
@@ -124,9 +181,15 @@ const searchEmployees = async (req, res) => {
 
     let query = `
       SELECT e.*, 
-             CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+             CONCAT(m.first_name, ' ', m.last_name) AS manager_name,
+             c.name AS country_name,
+             s.name AS state_name,
+             ct.name AS city_name
       FROM employees e
       LEFT JOIN employees m ON e.manager_id = m.id
+      LEFT JOIN countries c ON e.country_id = c.id
+      LEFT JOIN states s ON e.state_id = s.id
+      LEFT JOIN cities ct ON e.city_id = ct.id
       WHERE (
         e.employee_code ILIKE $1
         OR e.first_name ILIKE $1
@@ -158,9 +221,15 @@ const getEmployees = async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT e.*, 
-             CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+             CONCAT(m.first_name, ' ', m.last_name) AS manager_name,
+             c.name AS country_name,
+             s.name AS state_name,
+             ct.name AS city_name
       FROM employees e
       LEFT JOIN employees m ON e.manager_id = m.id
+      LEFT JOIN countries c ON e.country_id = c.id
+      LEFT JOIN states s ON e.state_id = s.id
+      LEFT JOIN cities ct ON e.city_id = ct.id
       ORDER BY e.id
     `);
     res.json(result.rows);
@@ -173,21 +242,26 @@ const getEmployees = async (req, res) => {
 const getEmployeeById = async (req, res) => {
   const { id } = req.params;
   const userRole = req.user.role;
-  const userId = req.user.id; // assuming user id from token
+  const userId = req.user.userId;
+  console.log('req.user:', req.user); 
 
   try {
     let query = `
       SELECT e.*, 
-             CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+             CONCAT(m.first_name, ' ', m.last_name) AS manager_name,
+             c.name AS country_name,
+             s.name AS state_name,
+             ct.name AS city_name
       FROM employees e
       LEFT JOIN employees m ON e.manager_id = m.id
+      LEFT JOIN countries c ON e.country_id = c.id
+      LEFT JOIN states s ON e.state_id = s.id
+      LEFT JOIN cities ct ON e.city_id = ct.id
       WHERE e.id = $1
     `;
     const params = [id];
 
-    // If role is MANAGER, allow only if employee's manager_id equals the manager's employee id
     if (userRole === "MANAGER") {
-      // Get the logged-in manager's employee record
       const managerEmp = await pool.query(
         `SELECT id FROM employees WHERE user_id = $1`,
         [userId],
@@ -210,10 +284,86 @@ const getEmployeeById = async (req, res) => {
   }
 };
 
+// NEW: getEmployeeDetails – returns nested profile, balances, leaves (used by frontend /employees/:id/details)
+const getEmployeeDetails = async (req, res) => {
+  const { id } = req.params;
+  const userRole = req.user.role;
+  const userId = req.user.userId;
+
+  try {
+    // 1. Fetch employee basic info (including location names)
+    let employeeQuery = `
+      SELECT e.*, 
+             CONCAT(m.first_name, ' ', m.last_name) AS manager_name,
+             u.role,
+             c.name AS country_name,
+             s.name AS state_name,
+             ct.name AS city_name
+      FROM employees e
+      LEFT JOIN employees m ON e.manager_id = m.id
+      LEFT JOIN users u ON e.user_id = u.id
+      LEFT JOIN countries c ON e.country_id = c.id
+      LEFT JOIN states s ON e.state_id = s.id
+      LEFT JOIN cities ct ON e.city_id = ct.id
+      WHERE e.id = $1
+    `;
+    const params = [id];
+
+    if (userRole === "MANAGER") {
+      const managerEmp = await pool.query(
+        `SELECT id FROM employees WHERE user_id = $1`,
+        [userId],
+      );
+      if (managerEmp.rows.length === 0) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const managerEmployeeId = managerEmp.rows[0].id;
+      employeeQuery += ` AND (e.manager_id = $2 OR e.id = $2)`;
+      params.push(managerEmployeeId);
+    }
+
+    const employeeResult = await pool.query(employeeQuery, params);
+    if (employeeResult.rows.length === 0) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+    const employee = employeeResult.rows[0];
+
+    // 2. Fetch leave balances
+    const balancesResult = await pool.query(
+      `SELECT lt.code, lt.name, lb.entitled_days, lb.used_days, lb.balance_days
+       FROM leave_balances lb
+       JOIN leave_types lt ON lb.leave_type_id = lt.id
+       WHERE lb.employee_id = $1`,
+      [id],
+    );
+
+    // 3. Fetch leave requests – corrected join
+    const leavesResult = await pool.query(
+      `SELECT lr.id, lt.name AS leave_type, lr.start_date, lr.end_date, lr.total_days, lr.status, lr.reason
+       FROM leave_requests lr
+       JOIN leave_types lt ON lr.leave_type_id = lt.id
+       WHERE lr.employee_id = $1
+       ORDER BY lr.start_date DESC`,
+      [id],
+    );
+
+    // 4. Build response
+    const response = {
+      profile: employee,
+      balances: balancesResult.rows,
+      leaves: leavesResult.rows,
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 const updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-
     const {
       first_name,
       last_name,
@@ -223,6 +373,13 @@ const updateEmployee = async (req, res) => {
       joining_date,
       dob,
       gender,
+      address,
+      country_id,
+      state_id,
+      city_id,
+      zip,
+      phone_country_code,
+      phone_number,
     } = req.body;
 
     const result = await pool.query(
@@ -236,10 +393,17 @@ const updateEmployee = async (req, res) => {
           status = $5,
           joining_date = $6,
           dob = $7,
-          gender = $8
-        WHERE id = $9
+          gender = $8,
+          address = $9,
+          country_id = $10,
+          state_id = $11,
+          city_id = $12,
+          zip = $13,
+          phone_country_code = $14,
+          phone_number = $15
+        WHERE id = $16
         RETURNING *
-        `,
+      `,
       [
         first_name,
         last_name,
@@ -249,14 +413,19 @@ const updateEmployee = async (req, res) => {
         joining_date,
         dob,
         gender,
+        address || null,
+        country_id || null,
+        state_id || null,
+        city_id || null,
+        zip || null,
+        phone_country_code || null,
+        phone_number || null,
         id,
       ],
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Employee not found",
-      });
+      return res.status(404).json({ message: "Employee not found" });
     }
 
     res.json({
@@ -265,45 +434,26 @@ const updateEmployee = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      message: "Server Error",
-    });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
 const deleteEmployee = async (req, res) => {
   try {
     const result = await pool.query(
-      `
-        UPDATE employees
-        SET status='INACTIVE'
-        WHERE id=$1
-        AND status='ACTIVE'
-        RETURNING *
-    `,
+      `UPDATE employees SET status='INACTIVE' WHERE id=$1 AND status='ACTIVE' RETURNING *`,
       [req.params.id],
     );
-
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Employee not found",
-      });
+      return res.status(404).json({ message: "Employee not found" });
     }
-
-    res.json({
-      message: "Employee marked inactive",
-    });
+    res.json({ message: "Employee marked inactive" });
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      message: "Server Error",
-    });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
-// Get list of potential managers (employees with role ADMIN or MANAGER)
 const getPotentialManagers = async (req, res) => {
   try {
     const result = await pool.query(
@@ -320,10 +470,9 @@ const getPotentialManagers = async (req, res) => {
   }
 };
 
-// Update manager_id for an employee (admin only)
 const updateEmployeeManager = async (req, res) => {
   const { employeeId } = req.params;
-  const { managerId } = req.body; // can be null
+  const { managerId } = req.body;
   try {
     await pool.query(`UPDATE employees SET manager_id = $1 WHERE id = $2`, [
       managerId || null,
@@ -336,7 +485,7 @@ const updateEmployeeManager = async (req, res) => {
   }
 };
 
-// Import employees from CSV
+// ======================= IMPORT / EXPORT =======================
 const importEmployees = async (req, res) => {
   const client = await pool.connect();
   try {
@@ -382,7 +531,7 @@ const importEmployees = async (req, res) => {
             email: emp.email,
             reason: "Email already exists",
           });
-          continue; // Skip this record, continue with next
+          continue;
         }
 
         // Generate employee code
@@ -415,11 +564,44 @@ const importEmployees = async (req, res) => {
         );
         const userId = userRes.rows[0].id;
 
+        // ------------------------------------------------------------------
+        // Resolve country, state, city names to IDs (optional fields)
+        // ------------------------------------------------------------------
+        let countryId = null;
+        let stateId = null;
+        let cityId = null;
+
+        if (emp.country) {
+          const countryRes = await client.query(
+            `SELECT id FROM countries WHERE name ILIKE $1 OR code ILIKE $1`,
+            [emp.country],
+          );
+          if (countryRes.rows.length > 0) countryId = countryRes.rows[0].id;
+        }
+
+        if (emp.state && countryId) {
+          const stateRes = await client.query(
+            `SELECT id FROM states WHERE name ILIKE $1 AND country_id = $2`,
+            [emp.state, countryId],
+          );
+          if (stateRes.rows.length > 0) stateId = stateRes.rows[0].id;
+        }
+
+        if (emp.city && stateId) {
+          const cityRes = await client.query(
+            `SELECT id FROM cities WHERE name ILIKE $1 AND state_id = $2`,
+            [emp.city, stateId],
+          );
+          if (cityRes.rows.length > 0) cityId = cityRes.rows[0].id;
+        }
+
         // Insert employee
         const employeeRes = await client.query(
           `INSERT INTO employees
-            (user_id, employee_code, first_name, last_name, email, department, designation, joining_date, status, dob, gender, manager_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
+            (user_id, employee_code, first_name, last_name, email, department, designation, joining_date, status, dob, gender, manager_id,
+             address, country_id, state_id, city_id, zip, phone_country_code, phone_number)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+                   $13,$14,$15,$16,$17,$18,$19) RETURNING id`,
           [
             userId,
             employeeCode,
@@ -433,6 +615,13 @@ const importEmployees = async (req, res) => {
             emp.dob,
             emp.gender,
             emp.manager_id || null,
+            emp.address || null,
+            countryId,
+            stateId,
+            cityId,
+            emp.zip || null,
+            emp.phone_country_code || null,
+            emp.phone_number || null,
           ],
         );
         const employeeId = employeeRes.rows[0].id;
@@ -483,16 +672,22 @@ const importEmployees = async (req, res) => {
   }
 };
 
-// Export employees to CSV
 const exportEmployees = async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT e.id, e.employee_code, e.first_name, e.last_name, e.email,
              e.department, e.designation, e.joining_date, e.status,
-             e.dob, e.gender, e.manager_id,
+             e.dob, e.gender, e.manager_id, e.address, e.zip,
+             e.phone_country_code, e.phone_number,
+             c.name AS country_name,
+             s.name AS state_name,
+             ct.name AS city_name,
              CONCAT(m.first_name, ' ', m.last_name) AS manager_name
       FROM employees e
       LEFT JOIN employees m ON e.manager_id = m.id
+      LEFT JOIN countries c ON e.country_id = c.id
+      LEFT JOIN states s ON e.state_id = s.id
+      LEFT JOIN cities ct ON e.city_id = ct.id
       ORDER BY e.id
     `);
 
@@ -500,7 +695,6 @@ const exportEmployees = async (req, res) => {
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", "attachment; filename=employees.csv");
 
-    // Helper to format date as YYYY-MM-DD
     const formatDate = (dateValue) => {
       if (!dateValue) return "";
       const date = new Date(dateValue);
@@ -508,7 +702,6 @@ const exportEmployees = async (req, res) => {
       return date.toISOString().split("T")[0];
     };
 
-    // Write CSV header
     const headers = [
       "ID",
       "Employee Code",
@@ -523,10 +716,16 @@ const exportEmployees = async (req, res) => {
       "Gender",
       "Manager ID",
       "Manager Name",
+      "Address",
+      "City",
+      "State",
+      "Country",
+      "Zip",
+      "Phone Country Code",
+      "Phone Number",
     ];
     res.write(headers.join(",") + "\n");
 
-    // Write rows
     employees.forEach((emp) => {
       const row = [
         emp.id,
@@ -542,6 +741,13 @@ const exportEmployees = async (req, res) => {
         emp.gender,
         emp.manager_id || "",
         emp.manager_name || "",
+        emp.address || "",
+        emp.city_name || "",
+        emp.state_name || "",
+        emp.country_name || "",
+        emp.zip || "",
+        emp.phone_country_code || "",
+        emp.phone_number || "",
       ].map((field) => `"${String(field).replace(/"/g, '""')}"`);
       res.write(row.join(",") + "\n");
     });
@@ -555,6 +761,7 @@ const exportEmployees = async (req, res) => {
 module.exports = {
   getEmployees,
   getEmployeeById,
+  getEmployeeDetails,
   createEmployee,
   updateEmployee,
   deleteEmployee,
@@ -563,4 +770,7 @@ module.exports = {
   updateEmployeeManager,
   importEmployees,
   exportEmployees,
+  getCountries,
+  getStates,
+  getCities,
 };
