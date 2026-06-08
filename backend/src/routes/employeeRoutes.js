@@ -31,7 +31,7 @@ router.put("/:id/profile-picture", upload.single('profilePicture'), uploadProfil
 router.put("/:employeeId/manager", authenticate, authorize("ADMIN"), updateEmployeeManager);
 
 // ✅ Generic single‑employee routes (by id)
-router.get("/:id", authenticate, authorize("ADMIN", "EMPLOYEE"), getEmployeeById);
+router.get("/:id", authenticate, authorize("ADMIN", "EMPLOYEE", "MANAGER"), getEmployeeById);
 router.put("/:id", authenticate, authorize("ADMIN"), updateEmployee);
 router.delete("/:id", authenticate, authorize("ADMIN"), deleteEmployee);
 

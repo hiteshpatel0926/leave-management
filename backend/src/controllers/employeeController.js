@@ -55,13 +55,25 @@ const createEmployee = async (req, res) => {
     const userId = userResult.rows[0].id;
 
     const employeeResult = await pool.query(
-  `INSERT INTO employees
+      `INSERT INTO employees
     (user_id, employee_code, first_name, last_name, email,
      department, designation, joining_date, status, dob, gender, manager_id)
    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
-  [userId, employeeCode, first_name, last_name, email,
-   department, designation, joining_date, "ACTIVE", dob, gender, manager_id || null]
-);
+      [
+        userId,
+        employeeCode,
+        first_name,
+        last_name,
+        email,
+        department,
+        designation,
+        joining_date,
+        "ACTIVE",
+        dob,
+        gender,
+        manager_id || null,
+      ],
+    );
     const employeeId = employeeResult.rows[0].id;
     const currentYear = new Date().getFullYear();
 
@@ -160,20 +172,41 @@ const getEmployees = async (req, res) => {
 
 const getEmployeeById = async (req, res) => {
   const { id } = req.params;
+  const userRole = req.user.role;
+  const userId = req.user.id; // assuming user id from token
+
   try {
-    const result = await pool.query(
-      `SELECT e.*, 
-              CONCAT(m.first_name, ' ', m.last_name) AS manager_name
-       FROM employees e
-       LEFT JOIN employees m ON e.manager_id = m.id
-       WHERE e.id = $1`,
-      [id]
-    );
-    if (result.rows.length === 0) return res.status(404).json({ message: 'Employee not found' });
+    let query = `
+      SELECT e.*, 
+             CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+      FROM employees e
+      LEFT JOIN employees m ON e.manager_id = m.id
+      WHERE e.id = $1
+    `;
+    const params = [id];
+
+    // If role is MANAGER, allow only if employee's manager_id equals the manager's employee id
+    if (userRole === "MANAGER") {
+      // Get the logged-in manager's employee record
+      const managerEmp = await pool.query(
+        `SELECT id FROM employees WHERE user_id = $1`,
+        [userId],
+      );
+      if (managerEmp.rows.length === 0) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const managerEmployeeId = managerEmp.rows[0].id;
+      query += ` AND (e.manager_id = $2 OR e.id = $2)`;
+      params.push(managerEmployeeId);
+    }
+
+    const result = await pool.query(query, params);
+    if (result.rows.length === 0)
+      return res.status(404).json({ message: "Employee not found" });
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -207,7 +240,17 @@ const updateEmployee = async (req, res) => {
         WHERE id = $9
         RETURNING *
         `,
-      [first_name, last_name, department, designation, status, joining_date, dob, gender, id],
+      [
+        first_name,
+        last_name,
+        department,
+        designation,
+        status,
+        joining_date,
+        dob,
+        gender,
+        id,
+      ],
     );
 
     if (result.rows.length === 0) {
@@ -260,7 +303,6 @@ const deleteEmployee = async (req, res) => {
   }
 };
 
-
 // Get list of potential managers (employees with role ADMIN or MANAGER)
 const getPotentialManagers = async (req, res) => {
   try {
@@ -269,12 +311,12 @@ const getPotentialManagers = async (req, res) => {
        FROM employees e
        JOIN users u ON e.user_id = u.id
        WHERE u.role IN ('ADMIN', 'MANAGER')
-       ORDER BY e.first_name`
+       ORDER BY e.first_name`,
     );
     res.json(result.rows);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -283,14 +325,14 @@ const updateEmployeeManager = async (req, res) => {
   const { employeeId } = req.params;
   const { managerId } = req.body; // can be null
   try {
-    await pool.query(
-      `UPDATE employees SET manager_id = $1 WHERE id = $2`,
-      [managerId || null, employeeId]
-    );
-    res.json({ message: 'Manager updated successfully' });
+    await pool.query(`UPDATE employees SET manager_id = $1 WHERE id = $2`, [
+      managerId || null,
+      employeeId,
+    ]);
+    res.json({ message: "Manager updated successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -298,10 +340,16 @@ const updateEmployeeManager = async (req, res) => {
 const importEmployees = async (req, res) => {
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
     const employeesData = req.body.employees;
-    if (!employeesData || !Array.isArray(employeesData) || employeesData.length === 0) {
-      return res.status(400).json({ message: 'No valid employee data provided' });
+    if (
+      !employeesData ||
+      !Array.isArray(employeesData) ||
+      employeesData.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({ message: "No valid employee data provided" });
     }
 
     const results = { success: [], errors: [], skipped: [] };
@@ -310,20 +358,37 @@ const importEmployees = async (req, res) => {
     for (const emp of employeesData) {
       try {
         // Validate required fields
-        const required = ['first_name', 'last_name', 'email', 'department', 'designation', 'joining_date', 'dob', 'gender'];
+        const required = [
+          "first_name",
+          "last_name",
+          "email",
+          "department",
+          "designation",
+          "joining_date",
+          "dob",
+          "gender",
+        ];
         for (const field of required) {
           if (!emp[field]) throw new Error(`${field} is required`);
         }
 
         // Check if email already exists
-        const existing = await client.query(`SELECT id FROM users WHERE email = $1`, [emp.email]);
+        const existing = await client.query(
+          `SELECT id FROM users WHERE email = $1`,
+          [emp.email],
+        );
         if (existing.rows.length > 0) {
-          results.skipped.push({ email: emp.email, reason: 'Email already exists' });
+          results.skipped.push({
+            email: emp.email,
+            reason: "Email already exists",
+          });
           continue; // Skip this record, continue with next
         }
 
         // Generate employee code
-        const lastEmp = await client.query(`SELECT employee_code FROM employees ORDER BY id DESC LIMIT 1`);
+        const lastEmp = await client.query(
+          `SELECT employee_code FROM employees ORDER BY id DESC LIMIT 1`,
+        );
         let employeeCode = "EMP001";
         if (lastEmp.rows.length > 0) {
           const lastCode = lastEmp.rows[0].employee_code;
@@ -339,7 +404,14 @@ const importEmployees = async (req, res) => {
         const userRes = await client.query(
           `INSERT INTO users (name, email, password, role, dob, gender)
            VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-          [`${emp.first_name} ${emp.last_name}`, emp.email, hashedPassword, 'EMPLOYEE', emp.dob, emp.gender]
+          [
+            `${emp.first_name} ${emp.last_name}`,
+            emp.email,
+            hashedPassword,
+            "EMPLOYEE",
+            emp.dob,
+            emp.gender,
+          ],
         );
         const userId = userRes.rows[0].id;
 
@@ -348,17 +420,31 @@ const importEmployees = async (req, res) => {
           `INSERT INTO employees
             (user_id, employee_code, first_name, last_name, email, department, designation, joining_date, status, dob, gender, manager_id)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
-          [userId, employeeCode, emp.first_name, emp.last_name, emp.email, emp.department, emp.designation,
-           emp.joining_date, 'ACTIVE', emp.dob, emp.gender, emp.manager_id || null]
+          [
+            userId,
+            employeeCode,
+            emp.first_name,
+            emp.last_name,
+            emp.email,
+            emp.department,
+            emp.designation,
+            emp.joining_date,
+            "ACTIVE",
+            emp.dob,
+            emp.gender,
+            emp.manager_id || null,
+          ],
         );
         const employeeId = employeeRes.rows[0].id;
 
         // Fetch leave types
-        const leaveTypes = await client.query(`SELECT * FROM leave_types WHERE active = true`);
-        const filteredLeaveTypes = leaveTypes.rows.filter(lt => {
+        const leaveTypes = await client.query(
+          `SELECT * FROM leave_types WHERE active = true`,
+        );
+        const filteredLeaveTypes = leaveTypes.rows.filter((lt) => {
           const nameLower = lt.name.toLowerCase();
-          if (nameLower.includes('paternity')) return emp.gender === 'Male';
-          if (nameLower.includes('maternity')) return emp.gender === 'Female';
+          if (nameLower.includes("paternity")) return emp.gender === "Male";
+          if (nameLower.includes("maternity")) return emp.gender === "Female";
           return true;
         });
 
@@ -366,7 +452,14 @@ const importEmployees = async (req, res) => {
           await client.query(
             `INSERT INTO leave_balances (employee_id, leave_type_id, year, entitled_days, used_days, balance_days)
              VALUES ($1,$2,$3,$4,$5,$6)`,
-            [employeeId, lt.id, currentYear, lt.annual_entitlement, 0, lt.annual_entitlement]
+            [
+              employeeId,
+              lt.id,
+              currentYear,
+              lt.annual_entitlement,
+              0,
+              lt.annual_entitlement,
+            ],
           );
         }
 
@@ -376,20 +469,19 @@ const importEmployees = async (req, res) => {
       }
     }
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
     res.status(200).json({
       message: `Import completed: ${results.success.length} added, ${results.skipped.length} skipped (duplicate), ${results.errors.length} failed`,
-      results
+      results,
     });
   } catch (error) {
-    await client.query('ROLLBACK');
+    await client.query("ROLLBACK");
     console.error(error);
-    res.status(500).json({ message: 'Server error during import' });
+    res.status(500).json({ message: "Server error during import" });
   } finally {
     client.release();
   }
 };
-
 
 // Export employees to CSV
 const exportEmployees = async (req, res) => {
@@ -405,27 +497,37 @@ const exportEmployees = async (req, res) => {
     `);
 
     const employees = result.rows;
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=employees.csv');
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", "attachment; filename=employees.csv");
 
     // Helper to format date as YYYY-MM-DD
     const formatDate = (dateValue) => {
-      if (!dateValue) return '';
+      if (!dateValue) return "";
       const date = new Date(dateValue);
-      if (isNaN(date.getTime())) return '';
-      return date.toISOString().split('T')[0];
+      if (isNaN(date.getTime())) return "";
+      return date.toISOString().split("T")[0];
     };
 
     // Write CSV header
     const headers = [
-      'ID', 'Employee Code', 'First Name', 'Last Name', 'Email',
-      'Department', 'Designation', 'Joining Date', 'Status',
-      'Date of Birth', 'Gender', 'Manager ID', 'Manager Name'
+      "ID",
+      "Employee Code",
+      "First Name",
+      "Last Name",
+      "Email",
+      "Department",
+      "Designation",
+      "Joining Date",
+      "Status",
+      "Date of Birth",
+      "Gender",
+      "Manager ID",
+      "Manager Name",
     ];
-    res.write(headers.join(',') + '\n');
+    res.write(headers.join(",") + "\n");
 
     // Write rows
-    employees.forEach(emp => {
+    employees.forEach((emp) => {
       const row = [
         emp.id,
         emp.employee_code,
@@ -438,15 +540,15 @@ const exportEmployees = async (req, res) => {
         emp.status,
         formatDate(emp.dob),
         emp.gender,
-        emp.manager_id || '',
-        emp.manager_name || ''
-      ].map(field => `"${String(field).replace(/"/g, '""')}"`);
-      res.write(row.join(',') + '\n');
+        emp.manager_id || "",
+        emp.manager_name || "",
+      ].map((field) => `"${String(field).replace(/"/g, '""')}"`);
+      res.write(row.join(",") + "\n");
     });
     res.end();
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error during export' });
+    res.status(500).json({ message: "Server error during export" });
   }
 };
 
@@ -460,5 +562,5 @@ module.exports = {
   getPotentialManagers,
   updateEmployeeManager,
   importEmployees,
-  exportEmployees
+  exportEmployees,
 };
