@@ -758,6 +758,53 @@ const exportEmployees = async (req, res) => {
   }
 };
 
+const awardCompOff = async (req, res) => {
+  const { employeeId, days, reason } = req.body;
+  const awardedBy = req.user.userId;
+  const currentYear = new Date().getFullYear();
+
+  if (!employeeId || !days || days <= 0) {
+    return res.status(400).json({ message: "Invalid request" });
+  }
+
+  try {
+    await pool.query("BEGIN");
+
+    // Get the CO leave type ID
+    const coTypeRes = await pool.query("SELECT id FROM leave_types WHERE code = 'CO'");
+    if (coTypeRes.rows.length === 0) {
+      return res.status(400).json({ message: "Comp Off leave type not found" });
+    }
+    const coTypeId = coTypeRes.rows[0].id;
+
+    // Update or insert leave_balances for current year
+    const balanceRes = await pool.query(
+      `INSERT INTO leave_balances (employee_id, leave_type_id, year, entitled_days, used_days, balance_days)
+       VALUES ($1, $2, $3, $4, 0, $4)
+       ON CONFLICT (employee_id, leave_type_id, year)
+       DO UPDATE SET entitled_days = leave_balances.entitled_days + EXCLUDED.entitled_days,
+                     balance_days = leave_balances.balance_days + EXCLUDED.entitled_days
+       RETURNING *`,
+      [employeeId, coTypeId, currentYear, days]
+    );
+
+    // Log the award
+    await pool.query(
+      `INSERT INTO comp_off_awards (employee_id, awarded_by, days, reason)
+       VALUES ($1, $2, $3, $4)`,
+      [employeeId, awardedBy, days, reason || "Awarded by manager/admin"]
+    );
+
+    await pool.query("COMMIT");
+
+    res.json({ message: `Awarded ${days} Comp Off day(s) successfully`, balance: balanceRes.rows[0] });
+  } catch (error) {
+    await pool.query("ROLLBACK");
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   getEmployees,
   getEmployeeById,
@@ -773,4 +820,5 @@ module.exports = {
   getCountries,
   getStates,
   getCities,
+  awardCompOff,
 };

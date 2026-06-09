@@ -179,17 +179,17 @@ const getDashboardStats = async (req, res) => {
     );
     const availableYears = yearsRes.rows.map((r) => r.year);
 
-    const roundToInt = (val) => Math.round(val);
+    
 
     res.json({
       role: userRole,
-      totalEntitlement: roundToInt(totalEntitlement),
-      usedLeaveDays: roundToInt(usedLeaveDays),
-      remainingBalance: roundToInt(remainingBalance),
-      lopDaysTaken: roundToInt(lopDaysTaken),
-      pendingLeaves: roundToInt(pendingLeaves),
-      approvedLeaves: roundToInt(approvedLeaves),
-      rejectedLeaves: roundToInt(rejectedLeaves),
+      totalEntitlement: totalEntitlement,
+      usedLeaveDays: usedLeaveDays,
+      remainingBalance: remainingBalance,
+      lopDaysTaken: lopDaysTaken,
+      pendingLeaves: pendingLeaves,
+      approvedLeaves: approvedLeaves,
+      rejectedLeaves: rejectedLeaves,
       availableYears,
       upcomingHolidays: upcomingHolidaysRes.rows,
     });

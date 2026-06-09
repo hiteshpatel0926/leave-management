@@ -21,13 +21,17 @@ const {
   exportEmployees,
   getCountries,
   getStates,
-  getCities
+  getCities,
+  awardCompOff
 } = require("../controllers/employeeController");
 
 // ========== Location endpoints ==========
 router.get("/locations/countries", authenticate, getCountries);
 router.get("/locations/states/:countryId", authenticate, getStates);
 router.get("/locations/cities/:stateId", authenticate, getCities);
+
+// Award Comp Off to an employee
+router.post("/award-comp-off", authenticate, authorize("ADMIN", "MANAGER"), awardCompOff);
 
 // ========== Specific routes (no dynamic :id) ==========
 router.post("/", authenticate, authorize("ADMIN"), createEmployee);
@@ -50,5 +54,7 @@ router.delete("/:id", authenticate, authorize("ADMIN"), deleteEmployee);
 
 // ========== Get all employees – placed after all param routes ==========
 router.get("/", authenticate, authorize("ADMIN", "MANAGER", "EMPLOYEE"), getEmployees);
+
+
 
 module.exports = router;

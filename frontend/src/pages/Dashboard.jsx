@@ -213,7 +213,7 @@ export default function Dashboard() {
               <div onClick={() => navigate("/leave-balance")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
                 <DashboardCard
                   title="Total Allocated"
-                  value={stats.totalEntitlement}
+                  value={stats.totalEntitlement?.toFixed(1)}
                   color="blue"
                   icon={<CalendarIcon className="h-6 w-6" />}
                   subtitle={`(PL + CO) (${selectedYear})`}
@@ -224,7 +224,7 @@ export default function Dashboard() {
               <div onClick={() => navigate("/my-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
                 <DashboardCard
                   title="Used Days"
-                  value={stats.usedLeaveDays}
+                  value={stats.usedLeaveDays?.toFixed(1)}
                   color="indigo"
                   icon={<ChartBarIcon className="h-6 w-6" />}
                   subtitle={`Approved days (${selectedYear})`}
@@ -235,7 +235,7 @@ export default function Dashboard() {
               <div onClick={() => navigate("/leave-balance")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
                 <DashboardCard
                   title="Remaining Balance"
-                  value={stats.remainingBalance}
+                  value={stats.remainingBalance?.toFixed(1)}
                   color="green"
                   icon={<CalendarIcon className="h-6 w-6" />}
                   subtitle={`Days left (${selectedYear})`}
