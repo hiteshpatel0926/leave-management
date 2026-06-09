@@ -87,29 +87,37 @@ export default function EmployeeDetails() {
     return phoneCode || phoneNumber;
   };
 
-  const totalAllocated =
-    employee.balances?.reduce((sum, b) => {
-      const val = Number(b.entitled_days);
-      return sum + (isNaN(val) ? 0 : val);
-    }, 0) || 0;
+  // Only PL and CO count toward the active balance
+  const activeBalanceCodes = ["PL", "CO"];
+  const activeBalances =
+    employee.balances?.filter((b) => activeBalanceCodes.includes(b.code)) || [];
 
-  const totalUsed =
-    employee.balances?.reduce((sum, b) => {
-      const val = Number(b.used_days);
-      return sum + (isNaN(val) ? 0 : val);
-    }, 0) || 0;
+  const totalAllocated = activeBalances.reduce(
+    (sum, b) => sum + (Number(b.entitled_days) || 0),
+    0,
+  );
+  const totalUsed = activeBalances.reduce(
+    (sum, b) => sum + (Number(b.used_days) || 0),
+    0,
+  );
+  const totalBalance = activeBalances.reduce(
+    (sum, b) => sum + (Number(b.balance_days) || 0),
+    0,
+  );
 
-  const totalBalance =
-    employee.balances?.reduce((sum, b) => {
-      const val = Number(b.balance_days);
-      return sum + (isNaN(val) ? 0 : val);
-    }, 0) || 0;
+  // Non‑recurring leaves (ML, PTL, BL, etc.) – display separately
+  const additionalLeaveCodes = ["ML", "PTL", "BL"];
+  const additionalLeaves =
+    employee.balances?.filter((b) => additionalLeaveCodes.includes(b.code)) ||
+    [];
 
   const leaves = employee.leaves || [];
   const requestStats = {
-    approved: leaves.filter((l) => l.status?.toLowerCase() === "approved").length,
+    approved: leaves.filter((l) => l.status?.toLowerCase() === "approved")
+      .length,
     pending: leaves.filter((l) => l.status?.toLowerCase() === "pending").length,
-    rejected: leaves.filter((l) => l.status?.toLowerCase() === "rejected").length,
+    rejected: leaves.filter((l) => l.status?.toLowerCase() === "rejected")
+      .length,
   };
 
   const statusBadge = (status) => {
@@ -192,7 +200,8 @@ export default function EmployeeDetails() {
             </div>
             <div className="flex-1 text-white">
               <h1 className="text-3xl font-bold">
-                {employee.profile?.first_name || employee.first_name} {employee.profile?.last_name || employee.last_name}
+                {employee.profile?.first_name || employee.first_name}{" "}
+                {employee.profile?.last_name || employee.last_name}
               </h1>
               <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-white/90">
                 <span className="flex items-center gap-1.5">
@@ -205,11 +214,17 @@ export default function EmployeeDetails() {
                 </span>
                 <span className="flex items-center gap-1.5">
                   <UserIcon className="h-4 w-4" />
-                  Manager: {employee.profile?.manager_name || employee.manager_name || "None"}
+                  Manager:{" "}
+                  {employee.profile?.manager_name ||
+                    employee.manager_name ||
+                    "None"}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <CalendarIcon className="h-4 w-4" />
-                  Joined: {formatDate(employee.profile?.joining_date || employee.joining_date)}
+                  Joined:{" "}
+                  {formatDate(
+                    employee.profile?.joining_date || employee.joining_date,
+                  )}
                 </span>
                 <span>
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-white/20 text-white backdrop-blur-sm">
@@ -222,14 +237,18 @@ export default function EmployeeDetails() {
         </div>
       </div>
 
-      {/* Summary Stats Cards */}
+      {/* Summary Stats Cards (PL + CO only) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-5 hover:shadow-lg transition-all duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Allocated</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{totalAllocated}</p>
-              <p className="text-xs text-gray-400 mt-1">days (all leave types)</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                Total Allocated
+              </p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+                {totalAllocated.toFixed(1)}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">(PL + CO)</p>
             </div>
             <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
               <ChartBarIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -239,9 +258,13 @@ export default function EmployeeDetails() {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-5 hover:shadow-lg transition-all duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Used Days</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{totalUsed}</p>
-              <p className="text-xs text-gray-400 mt-1">taken so far</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                Used Days
+              </p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+                {totalUsed.toFixed(1)}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">(PL + CO)</p>
             </div>
             <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl">
               <ClockIcon className="h-6 w-6 text-orange-600 dark:text-orange-400" />
@@ -251,9 +274,13 @@ export default function EmployeeDetails() {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-5 hover:shadow-lg transition-all duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Remaining Balance</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{totalBalance}</p>
-              <p className="text-xs text-gray-400 mt-1">available to take</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                Remaining Balance
+              </p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+                {totalBalance.toFixed(1)}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">(PL + CO)</p>
             </div>
             <div className="bg-emerald-100 dark:bg-emerald-900/30 p-3 rounded-xl">
               <CheckCircleIcon className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
@@ -263,11 +290,19 @@ export default function EmployeeDetails() {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-5 hover:shadow-lg transition-all duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Leave Requests</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{leaves.length}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                Leave Requests
+              </p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+                {leaves.length}
+              </p>
               <div className="flex gap-3 mt-1 text-xs font-medium">
-                <span className="text-emerald-600">✓ {requestStats.approved}</span>
-                <span className="text-amber-600">⏳ {requestStats.pending}</span>
+                <span className="text-emerald-600">
+                  ✓ {requestStats.approved}
+                </span>
+                <span className="text-amber-600">
+                  ⏳ {requestStats.pending}
+                </span>
                 <span className="text-rose-600">✗ {requestStats.rejected}</span>
               </div>
             </div>
@@ -291,36 +326,52 @@ export default function EmployeeDetails() {
             <div className="flex items-start gap-3">
               <EnvelopeIcon className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</p>
-                <p className="text-gray-900 dark:text-gray-100 font-medium">{employee.profile?.email || employee.email}</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Email
+                </p>
+                <p className="text-gray-900 dark:text-gray-100 font-medium">
+                  {employee.profile?.email || employee.email}
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <UsersIcon className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gender</p>
-                <p className="text-gray-900 dark:text-gray-100 font-medium">{employee.profile?.gender || employee.gender}</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Gender
+                </p>
+                <p className="text-gray-900 dark:text-gray-100 font-medium">
+                  {employee.profile?.gender || employee.gender}
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <CalendarIcon className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date of Birth</p>
-                <p className="text-gray-900 dark:text-gray-100 font-medium">{formatDate(employee.profile?.dob || employee.dob)}</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Date of Birth
+                </p>
+                <p className="text-gray-900 dark:text-gray-100 font-medium">
+                  {formatDate(employee.profile?.dob || employee.dob)}
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <BuildingOfficeIcon className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Department</p>
-                <p className="text-gray-900 dark:text-gray-100 font-medium">{employee.profile?.department || employee.department}</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Department
+                </p>
+                <p className="text-gray-900 dark:text-gray-100 font-medium">
+                  {employee.profile?.department || employee.department}
+                </p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Contact Information Card – using helper to get fields from root or profile */}
+      {/* Contact Information Card */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -334,93 +385,137 @@ export default function EmployeeDetails() {
               <div className="flex items-start gap-3">
                 <HomeIcon className="h-5 w-5 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Address</p>
-                  <p className="text-gray-900 dark:text-gray-100 font-medium">{address}</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Address
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100 font-medium">
+                    {address}
+                  </p>
                 </div>
               </div>
             )}
-
             {city && (
               <div className="flex items-start gap-3">
                 <MapPinIcon className="h-5 w-5 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">City</p>
-                  <p className="text-gray-900 dark:text-gray-100 font-medium">{city}</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    City
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100 font-medium">
+                    {city}
+                  </p>
                 </div>
               </div>
             )}
-
             {state && (
               <div className="flex items-start gap-3">
                 <MapPinIcon className="h-5 w-5 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">State</p>
-                  <p className="text-gray-900 dark:text-gray-100 font-medium">{state}</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    State
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100 font-medium">
+                    {state}
+                  </p>
                 </div>
               </div>
             )}
-
             {country && (
               <div className="flex items-start gap-3">
                 <MapPinIcon className="h-5 w-5 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Country</p>
-                  <p className="text-gray-900 dark:text-gray-100 font-medium">{country}</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Country
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100 font-medium">
+                    {country}
+                  </p>
                 </div>
               </div>
             )}
-
             {zip && (
               <div className="flex items-start gap-3">
                 <MapPinIcon className="h-5 w-5 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">ZIP / Postal Code</p>
-                  <p className="text-gray-900 dark:text-gray-100 font-medium">{zip}</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    ZIP / Postal Code
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100 font-medium">
+                    {zip}
+                  </p>
                 </div>
               </div>
             )}
-
             {formatPhone() && (
               <div className="flex items-start gap-3">
                 <PhoneIcon className="h-5 w-5 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone Number</p>
-                  <p className="text-gray-900 dark:text-gray-100 font-medium">{formatPhone()}</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Phone Number
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100 font-medium">
+                    {formatPhone()}
+                  </p>
                 </div>
               </div>
             )}
-
-            {!address && !city && !state && !country && !zip && !formatPhone() && (
-              <div className="col-span-2 text-center text-gray-500 dark:text-gray-400 py-4">
-                No contact information available
-              </div>
-            )}
+            {!address &&
+              !city &&
+              !state &&
+              !country &&
+              !zip &&
+              !formatPhone() && (
+                <div className="col-span-2 text-center text-gray-500 dark:text-gray-400 py-4">
+                  No contact information available
+                </div>
+              )}
           </div>
         </div>
       </div>
 
-      {/* Leave Balances Table */}
+      {/* Leave Balances Table (all leave types) */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Leave Balances</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Leave Balances
+          </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-800/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Leave Type</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Allocated</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Used</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Balance</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Leave Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Allocated
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Used
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Balance
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {employee.balances?.map((balance, idx) => (
-                <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{balance.code} - {balance.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{Number(balance.entitled_days).toFixed(1)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{Number(balance.used_days).toFixed(1)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-indigo-600 dark:text-indigo-400">{Number(balance.balance_days).toFixed(1)}</td>
+                <tr
+                  key={idx}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {balance.code} - {balance.name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {Number(balance.entitled_days).toFixed(1)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {Number(balance.used_days).toFixed(1)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                    {Number(balance.balance_days).toFixed(1)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -428,37 +523,107 @@ export default function EmployeeDetails() {
         </div>
       </div>
 
+      {/* Other Leave Entitlements (ML, PTL, BL, etc.) */}
+      {additionalLeaves.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5 text-indigo-500" />
+              Other Leave Entitlements
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              One‑time or event‑based leaves – not included in your active
+              balance
+            </p>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {additionalLeaves.map((leave) => (
+                <div
+                  key={leave.code}
+                  className="border-l-4 border-indigo-400 pl-4 py-2"
+                >
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    {leave.name} ({leave.code})
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    {leave.entitled_days} days
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {leave.used_days > 0
+                      ? `${leave.used_days} used`
+                      : "Not used yet"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Leave History Table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Leave History</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Leave History
+          </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-800/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Leave Type</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Start Date</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">End Date</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Days</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Leave Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Start Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  End Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Days
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Status
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {currentLeaves.map((leave) => (
-                <tr key={leave.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{leave.leave_type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{formatDate(leave.start_date)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{formatDate(leave.end_date)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{Number(leave.total_days).toFixed(1)}</td>
+                <tr
+                  key={leave.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {leave.leave_type}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {formatDate(leave.start_date)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {formatDate(leave.end_date)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {Number(leave.total_days).toFixed(1)}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBadge(leave.status)}`}>{leave.status}</span>
+                    <span
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBadge(leave.status)}`}
+                    >
+                      {leave.status}
+                    </span>
                   </td>
                 </tr>
               ))}
               {currentLeaves.length === 0 && (
                 <tr>
-                  <td colSpan="5" className="px-6 py-10 text-center text-sm text-gray-500">No leave requests found.</td>
+                  <td
+                    colSpan="5"
+                    className="px-6 py-10 text-center text-sm text-gray-500"
+                  >
+                    No leave requests found.
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -478,7 +643,11 @@ export default function EmployeeDetails() {
                 }}
                 className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
               >
-                {[5, 10, 20, 50].map((n) => <option key={n} value={n}>{n}</option>)}
+                {[5, 10, 20, 50].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
               </select>
               <span>entries</span>
               <span className="ml-4">Total: {totalLeaves} requests</span>
@@ -492,17 +661,25 @@ export default function EmployeeDetails() {
                 <ChevronLeftIcon className="h-5 w-5" />
               </button>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Page</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Page
+                </span>
                 <select
                   value={currentLeavePage}
                   onChange={(e) => goToLeavePage(Number(e.target.value))}
                   className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
                 >
-                  {Array.from({ length: totalLeavePages }, (_, i) => i + 1).map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
+                  {Array.from({ length: totalLeavePages }, (_, i) => i + 1).map(
+                    (p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ),
+                  )}
                 </select>
-                <span className="text-sm text-gray-600 dark:text-gray-400">of {totalLeavePages}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  of {totalLeavePages}
+                </span>
               </div>
               <button
                 onClick={() => goToLeavePage(currentLeavePage + 1)}

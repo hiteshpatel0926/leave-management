@@ -11,7 +11,9 @@ const getLeaveTypes = async (
   SELECT
     id,
     code,
-    name
+    name,
+    annual_entitlement,
+    show_in_balance
   FROM leave_types
   WHERE active = true
   ORDER BY name
