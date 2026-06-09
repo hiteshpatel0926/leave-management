@@ -35,13 +35,20 @@ const applyLeave = async (req, res) => {
 
     const employeeId = employee.rows[0].id;
     const employeeName = `${employee.rows[0].first_name} ${employee.rows[0].last_name}`;
-    const { leave_type_id, start_date, end_date, reason } = req.body;
+    const {
+      leave_type_id,
+      start_date,
+      end_date,
+      reason,
+      total_days: customTotalDays,
+    } = req.body;
+
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
-    const leaveYear = startDate.getFullYear(); // ✅ leave's year
+    const leaveYear = startDate.getFullYear();
     const leaveTypeIdNum = Number(leave_type_id);
 
-    // Overlap check
+    // Overlap check (unchanged)
     const overlapCheck = await pool.query(
       `SELECT id, start_date, end_date, status
        FROM leave_requests
@@ -61,7 +68,7 @@ const applyLeave = async (req, res) => {
       });
     }
 
-    // ✅ Get holidays for the leave's year (not currentYear)
+    // Get holidays for the leave's year
     const holidayResult = await pool.query(
       `SELECT holiday_date FROM holidays
        WHERE EXTRACT(YEAR FROM holiday_date) = $1`,
@@ -94,16 +101,43 @@ const applyLeave = async (req, res) => {
       return res.status(404).json({ message: "Invalid leave type" });
     }
 
-    const totalDays = calculateWorkingDays(startDate, endDate, holidays);
-    if (totalDays <= 0) {
-      return res
-        .status(400)
-        .json({ message: "Selected dates contain no working days" });
+    let totalDays;
+    // If a custom total_days is provided (e.g., 0.5 for half‑day), use it after validation
+    if (customTotalDays !== undefined && customTotalDays > 0) {
+      // Ensure it's a valid decimal (0.5, 0.25, etc.) – we'll allow 0.5 only for simplicity
+      if (customTotalDays !== 0.5) {
+        return res.status(400).json({
+          message: "Custom total days can only be 0.5 for half‑day leave",
+        });
+      }
+      // Validate that start and end are the same day
+      if (startDate.toDateString() !== endDate.toDateString()) {
+        return res
+          .status(400)
+          .json({ message: "Half‑day leave must be on a single day" });
+      }
+      // Check that the day is not a weekend or holiday
+      const dayOfWeek = startDate.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const isHoliday = holidays.includes(start_date);
+      if (isWeekend || isHoliday) {
+        return res.status(400).json({
+          message: "Half‑day leave cannot be applied on a weekend or holiday",
+        });
+      }
+      totalDays = customTotalDays;
+    } else {
+      // Default: calculate working days
+      totalDays = calculateWorkingDays(startDate, endDate, holidays);
+      if (totalDays <= 0) {
+        return res
+          .status(400)
+          .json({ message: "Selected dates contain no working days" });
+      }
     }
 
     // Skip balance check for Leave Without Pay (id = 6)
     if (leaveTypeIdNum !== 6) {
-      // ✅ Use leaveYear instead of currentYear
       const balanceResult = await pool.query(
         `SELECT * FROM leave_balances
          WHERE employee_id = $1
@@ -134,8 +168,6 @@ const applyLeave = async (req, res) => {
     );
 
     const newLeaveId = result.rows[0].id;
-
-    // ✅ Notify all admins (req is passed correctly)
     await notifyAdminsNewLeave(req, newLeaveId, employeeName);
 
     res.status(201).json({
