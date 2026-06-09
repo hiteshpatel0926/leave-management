@@ -212,18 +212,18 @@ export default function Dashboard() {
             <motion.div variants={item}>
               <div onClick={() => navigate("/leave-balance")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
                 <DashboardCard
-                  title="Total Entitlement"
+                  title="Total Allocated"
                   value={stats.totalEntitlement}
                   color="blue"
                   icon={<CalendarIcon className="h-6 w-6" />}
-                  subtitle={`All leave types (${selectedYear})`}
+                  subtitle={`(PL + CO) (${selectedYear})`}
                 />
               </div>
             </motion.div>
             <motion.div variants={item}>
               <div onClick={() => navigate("/my-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
                 <DashboardCard
-                  title="Used Leave Days"
+                  title="Used Days"
                   value={stats.usedLeaveDays}
                   color="indigo"
                   icon={<ChartBarIcon className="h-6 w-6" />}
