@@ -3,16 +3,16 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { motion } from "framer-motion";
 import { KeyIcon, LockClosedIcon, CheckCircleIcon, ExclamationTriangleIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { useToast } from "../context/ToastContext";
 
 export default function ChangePassword() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -29,13 +29,11 @@ export default function ChangePassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage("");
-    setError("");
 
     try {
       const response = await api.put("/auth/change-password", formData);
       const { message, needsRelogin } = response.data;
-      setMessage(message);
+      showToast(message, "success");
 
       if (needsRelogin) {
         localStorage.removeItem("token");
@@ -48,7 +46,7 @@ export default function ChangePassword() {
         setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" });
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong");
+      showToast(err.response?.data?.message || "Something went wrong", "error");
     } finally {
       setLoading(false);
     }
@@ -56,8 +54,6 @@ export default function ChangePassword() {
 
   const handleReset = () => {
     setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    setMessage("");
-    setError("");
   };
 
   return (
@@ -77,17 +73,6 @@ export default function ChangePassword() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 md:p-8">
-        {message && (
-          <div className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 text-sm">
-            <CheckCircleIcon className="h-5 w-5" /> {message}
-          </div>
-        )}
-        {error && (
-          <div className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 flex items-center gap-2 text-rose-700 dark:text-rose-400 text-sm">
-            <ExclamationTriangleIcon className="h-5 w-5" /> {error}
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Current Password</label>

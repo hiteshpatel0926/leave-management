@@ -25,8 +25,10 @@ import {
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
 import ImageCropUpload from "../components/ImageCropUpload";
+import { useToast } from "../context/ToastContext";
 
 export default function EmployeeDetails() {
+  const { showToast } = useToast();
   const { id } = useParams();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
@@ -68,29 +70,29 @@ export default function EmployeeDetails() {
   const currentUserRole = currentUser?.role || "";
 
   const awardCompOff = async () => {
-    if (!awardDays || parseFloat(awardDays) <= 0) {
-      alert("Please enter a valid number of days");
-      return;
-    }
-    setAwardLoading(true);
-    try {
-      await api.post("/employees/award-comp-off", {
-        employeeId: id,
-        days: parseFloat(awardDays),
-        reason: awardReason || "Awarded by manager/admin",
-      });
-      alert(`Successfully awarded ${awardDays} Comp Off day(s)`);
-      loadEmployee();
-      setShowAwardModal(false);
-      setAwardDays("");
-      setAwardReason("");
-    } catch (error) {
-      console.error(error);
-      alert(error.response?.data?.message || "Failed to award Comp Off");
-    } finally {
-      setAwardLoading(false);
-    }
-  };
+  if (!awardDays || parseFloat(awardDays) <= 0) {
+    showToast("Please enter a valid number of days", "error");
+    return;
+  }
+  setAwardLoading(true);
+  try {
+    await api.post("/employees/award-comp-off", {
+      employeeId: id,
+      days: parseFloat(awardDays),
+      reason: awardReason || "Awarded by manager/admin",
+    });
+    showToast(`Successfully awarded ${awardDays} Comp Off day(s)`, "success");
+    loadEmployee();
+    setShowAwardModal(false);
+    setAwardDays("");
+    setAwardReason("");
+  } catch (error) {
+    console.error(error);
+    showToast(error.response?.data?.message || "Failed to award Comp Off", "error");
+  } finally {
+    setAwardLoading(false);
+  }
+};
 
   if (!employee) {
     return (

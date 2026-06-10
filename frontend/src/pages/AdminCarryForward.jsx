@@ -2,22 +2,20 @@ import { useState } from "react";
 import api from "../services/api";
 import { Cog6ToothIcon, ArrowPathIcon, CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
+import { useToast } from "../context/ToastContext";
 
 export default function AdminCarryForward() {
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [error, setError] = useState(null);
+  const { showToast } = useToast();
 
   const handleCarryForward = async () => {
     if (!window.confirm("⚠️ This will carry forward unused leave balances to the next year. This action cannot be undone. Are you sure?")) return;
     setLoading(true);
-    setMessage(null);
-    setError(null);
     try {
       const response = await api.post("/admin/carry-forward");
-      setMessage(response.data.message);
+      showToast(response.data.message, "success");
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to process carry-forward");
+      showToast(err.response?.data?.message || "Failed to process carry-forward", "error");
     } finally {
       setLoading(false);
     }

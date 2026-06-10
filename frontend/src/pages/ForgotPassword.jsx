@@ -4,11 +4,11 @@ import { motion } from "framer-motion";
 import api from "../services/api";
 import { KeyIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useEffect } from "react";
+import { useToast } from "../context/ToastContext";
 
 export default function ForgotPassword() {
+  const { showToast } = useToast();
   const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -19,22 +19,30 @@ export default function ForgotPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage("");
-    setError("");
+
     try {
       const response = await api.post("/auth/forgot-password", { email });
-      setMessage(response.data.message);
+      showToast(response.data.message, "success");
       setEmail("");
     } catch (err) {
       const status = err.response?.status;
       const serverMessage = err.response?.data?.message;
-      
+
       if (status === 404) {
-        setError("❌ You are not an authorized user. No account found with this email.");
+        showToast(
+          "You are not an authorized user. No account found with this email.",
+          "error",
+        );
       } else if (status === 403) {
-        setError("⚠️ Your account is inactive. Please contact your administrator.");
+        showToast(
+          "Your account is inactive. Please contact your administrator.",
+          "error",
+        );
       } else {
-        setError(serverMessage || "Something went wrong. Please try again later.");
+        showToast(
+          serverMessage || "Something went wrong. Please try again later.",
+          "error",
+        );
       }
     } finally {
       setLoading(false);
@@ -54,24 +62,19 @@ export default function ForgotPassword() {
             <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
               <KeyIcon className="h-8 w-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Forgot Password?</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">Enter your email to receive a reset link</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Forgot Password?
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-2">
+              Enter your email to receive a reset link
+            </p>
           </div>
 
-          {message && (
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-sm">
-              {message}
-            </motion.div>
-          )}
-          {error && (
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 text-sm">
-              {error}
-            </motion.div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Email Address
+              </label>
               <input
                 type="email"
                 placeholder="your@email.com"

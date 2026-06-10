@@ -8,11 +8,11 @@ import {
   ArrowPathIcon,
   CheckCircleIcon,
 } from "@heroicons/react/24/outline";
+import { useToast } from "../context/ToastContext";
 
 export default function ApplyLeave() {
+  const { showToast } = useToast();
   const [leaveTypes, setLeaveTypes] = useState([]);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [totalDays, setTotalDays] = useState(0);
   const [form, setForm] = useState({
     leave_type_id: "",
@@ -96,8 +96,6 @@ export default function ApplyLeave() {
       ...form,
       [e.target.name]: e.target.value,
     });
-    setError("");
-    setMessage("");
   };
 
   const handleHalfDayChange = (value) => {
@@ -119,8 +117,6 @@ export default function ApplyLeave() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage("");
-    setError("");
 
     if (
       !form.leave_type_id ||
@@ -128,7 +124,7 @@ export default function ApplyLeave() {
       !form.end_date ||
       !form.reason
     ) {
-      setError("All fields are required");
+      showToast("All fields are required", "error");
       return;
     }
 
@@ -137,7 +133,10 @@ export default function ApplyLeave() {
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
       const isHoliday = holidays.includes(form.start_date);
       if (isWeekend || isHoliday) {
-        setError("Half‑day leave cannot be applied on a weekend or holiday.");
+        showToast(
+          "Half‑day leave cannot be applied on a weekend or holiday.",
+          "error",
+        );
         return;
       }
     }
@@ -149,7 +148,7 @@ export default function ApplyLeave() {
 
     try {
       const response = await api.post("/leaves/apply", finalPayload);
-      setMessage(response.data.message);
+      showToast(response.data.message, "success");
       setForm({
         leave_type_id: "",
         start_date: "",
@@ -160,7 +159,10 @@ export default function ApplyLeave() {
       setIsHalfDay(false);
       setHalfDayType("full");
     } catch (error) {
-      setError(error.response?.data?.message || "Failed to apply leave");
+      showToast(
+        error.response?.data?.message || "Failed to apply leave",
+        "error",
+      );
     }
   };
 
@@ -187,32 +189,6 @@ export default function ApplyLeave() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 md:p-8">
-        {message && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 flex items-start gap-3"
-          >
-            <CheckCircleIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-              {message}
-            </p>
-          </motion.div>
-        )}
-
-        {error && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 flex items-start gap-3"
-          >
-            <InformationCircleIcon className="h-5 w-5 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm font-medium text-rose-700 dark:text-rose-400">
-              {error}
-            </p>
-          </motion.div>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -386,8 +362,6 @@ export default function ApplyLeave() {
                   reason: "",
                 });
                 setTotalDays(0);
-                setMessage("");
-                setError("");
                 setIsHalfDay(false);
                 setHalfDayType("full");
               }}

@@ -10,6 +10,7 @@ import {
   CalendarDaysIcon,
   ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
+import { useToast } from "../context/ToastContext";
 
 // Stats Card Component
 const StatCard = ({ icon: Icon, label, value, colorClass }) => (
@@ -29,7 +30,9 @@ const StatCard = ({ icon: Icon, label, value, colorClass }) => (
         </p>
       </div>
       <div className={`rounded-btn p-2.5 bg-opacity-10 ${colorClass}`}>
-        <Icon className={`h-5 w-5 ${colorClass.replace("bg-opacity-10", "text-current")}`} />
+        <Icon
+          className={`h-5 w-5 ${colorClass.replace("bg-opacity-10", "text-current")}`}
+        />
       </div>
     </div>
     <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 to-primary-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -39,22 +42,32 @@ const StatCard = ({ icon: Icon, label, value, colorClass }) => (
 // Leave Type Badge
 const LeaveTypeBadge = ({ type }) => {
   const variants = {
-    "Paid Leave": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-    "Casual": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-    "Sick": "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800",
-    "Earned": "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800",
-    "Unpaid": "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-    "Comp Off": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800",
+    "Paid Leave":
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+    Casual:
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+    Sick: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800",
+    Earned:
+      "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800",
+    Unpaid:
+      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+    "Comp Off":
+      "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800",
   };
-  const color = variants[type] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700";
+  const color =
+    variants[type] ||
+    "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700";
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${color}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${color}`}
+    >
       {type}
     </span>
   );
 };
 
 export default function TeamPendingLeaves() {
+  const { showToast } = useToast();
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
@@ -73,47 +86,65 @@ export default function TeamPendingLeaves() {
       setImageErrors({});
     } catch (error) {
       console.error(error);
-      alert(error.response?.data?.message || "Failed to load pending leaves");
+      showToast(
+        error.response?.data?.message || "Failed to load pending leaves",
+        "error",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const approveLeave = async (id) => {
-    if (!window.confirm("Are you sure you want to approve this leave request?")) return;
+    if (!window.confirm("Are you sure you want to approve this leave request?"))
+      return;
     try {
       setActionLoading(id);
       await api.put(`/manager/team/leave/${id}`, { status: "APPROVED" });
+      showToast("Leave request approved successfully", "success");
       await loadLeaves();
     } catch (error) {
-      alert(error.response?.data?.message || "Error approving leave");
+      showToast(
+        error.response?.data?.message || "Error approving leave",
+        "error",
+      );
     } finally {
       setActionLoading(null);
     }
   };
 
   const rejectLeave = async (id) => {
-    if (!window.confirm("Are you sure you want to reject this leave request?")) return;
+    if (!window.confirm("Are you sure you want to reject this leave request?"))
+      return;
     try {
       setActionLoading(id);
       await api.put(`/manager/team/leave/${id}`, { status: "REJECTED" });
+      showToast("Leave request rejected", "success");
       await loadLeaves();
     } catch (error) {
-      alert(error.response?.data?.message || "Error rejecting leave");
+      showToast(
+        error.response?.data?.message || "Error rejecting leave",
+        "error",
+      );
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleImageError = (leaveId) => {
-    setImageErrors(prev => ({ ...prev, [leaveId]: true }));
+    setImageErrors((prev) => ({ ...prev, [leaveId]: true }));
   };
 
   // Compute statistics
   const stats = useMemo(() => {
     const totalRequests = leaves.length;
-    const totalDays = leaves.reduce((sum, leave) => sum + (parseFloat(leave.total_days) || 0), 0);
-    const uniqueEmployees = new Set(leaves.map(leave => leave.employee_id || leave.id)).size;
+    const totalDays = leaves.reduce(
+      (sum, leave) => sum + (parseFloat(leave.total_days) || 0),
+      0,
+    );
+    const uniqueEmployees = new Set(
+      leaves.map((leave) => leave.employee_id || leave.id),
+    ).size;
     return { totalRequests, totalDays, uniqueEmployees };
   }, [leaves]);
 
@@ -122,7 +153,11 @@ export default function TeamPendingLeaves() {
     const startDate = new Date(start);
     const endDate = new Date(end);
     if (startDate.toDateString() === endDate.toDateString()) {
-      return startDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+      return startDate.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
     }
     return `${startDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${endDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
   };
@@ -213,9 +248,12 @@ export default function TeamPendingLeaves() {
             <div className="h-16 w-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
               <CheckCircleIcon className="h-8 w-8 text-gray-400 dark:text-gray-500" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">All caught up!</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+              All caught up!
+            </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
-              No pending leave requests from your team at the moment. New requests will appear here.
+              No pending leave requests from your team at the moment. New
+              requests will appear here.
             </p>
           </div>
         ) : (
@@ -223,22 +261,40 @@ export default function TeamPendingLeaves() {
             <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-700">
               <thead className="bg-gray-50/80 dark:bg-gray-900/40">
                 <tr>
-                  <th scope="col" className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
                     Employee
                   </th>
-                  <th scope="col" className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
                     Leave Type
                   </th>
-                  <th scope="col" className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
                     Date Range
                   </th>
-                  <th scope="col" className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
                     Days
                   </th>
-                  <th scope="col" className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
                     Reason
                   </th>
-                  <th scope="col" className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
                     Actions
                   </th>
                 </tr>
@@ -247,9 +303,11 @@ export default function TeamPendingLeaves() {
                 <AnimatePresence>
                   {leaves.map((leave, idx) => {
                     const employeeCode = leave.employee_code || "—";
-                    const profilePicUrl = leave.profile_picture ? getImageUrl(leave.profile_picture) : null;
+                    const profilePicUrl = leave.profile_picture
+                      ? getImageUrl(leave.profile_picture)
+                      : null;
                     const hasImageError = imageErrors[leave.id];
-                    
+
                     return (
                       <motion.tr
                         key={leave.id}
@@ -271,7 +329,8 @@ export default function TeamPendingLeaves() {
                                 />
                               ) : (
                                 <span className="text-white text-sm font-medium">
-                                  {leave.first_name?.[0] || ""}{leave.last_name?.[0] || ""}
+                                  {leave.first_name?.[0] || ""}
+                                  {leave.last_name?.[0] || ""}
                                 </span>
                               )}
                             </div>
@@ -293,13 +352,19 @@ export default function TeamPendingLeaves() {
                         <td className="px-5 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
                             <CalendarDaysIcon className="h-3.5 w-3.5 text-gray-400" />
-                            <span>{formatDateRange(leave.start_date, leave.end_date)}</span>
+                            <span>
+                              {formatDateRange(
+                                leave.start_date,
+                                leave.end_date,
+                              )}
+                            </span>
                           </div>
                         </td>
                         {/* Days */}
                         <td className="px-5 py-4 whitespace-nowrap">
                           <span className="inline-flex items-center justify-center min-w-[4rem] px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                            {parseFloat(leave.total_days).toFixed(2)} day{parseFloat(leave.total_days) !== 1 ? "s" : ""}
+                            {parseFloat(leave.total_days).toFixed(2)} day
+                            {parseFloat(leave.total_days) !== 1 ? "s" : ""}
                           </span>
                         </td>
                         {/* Reason */}

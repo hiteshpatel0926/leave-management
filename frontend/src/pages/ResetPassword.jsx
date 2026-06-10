@@ -8,16 +8,15 @@ import {
   LockClosedIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
+import { useToast } from "../context/ToastContext";
 
 export default function ResetPassword() {
+  const { showToast } = useToast();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
   const navigate = useNavigate();
-
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -27,27 +26,31 @@ export default function ResetPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
+      showToast("Passwords do not match", "error");
       return;
     }
     if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters");
+      showToast("Password must be at least 6 characters", "error");
       return;
     }
 
     setLoading(true);
-    setMessage("");
-    setError("");
     try {
       await api.post("/auth/reset-password", {
         token,
         newPassword,
         confirmPassword,
       });
-      setMessage("Password reset successful! Redirecting to login...");
+      showToast(
+        "Password reset successful! Redirecting to login...",
+        "success",
+      );
       setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid or expired token");
+      showToast(
+        err.response?.data?.message || "Invalid or expired token",
+        "error",
+      );
     } finally {
       setLoading(false);
     }
@@ -92,17 +95,6 @@ export default function ResetPassword() {
               Enter your new password below
             </p>
           </div>
-
-          {message && (
-            <div className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-sm">
-              {message}
-            </div>
-          )}
-          {error && (
-            <div className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 text-sm">
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>

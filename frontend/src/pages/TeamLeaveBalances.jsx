@@ -12,8 +12,10 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import { getImageUrl } from '../utils/imageHelper';
+import { useToast } from "../context/ToastContext";
 
 export default function TeamLeaveBalances() {
+  const { showToast } = useToast();
   const [teamMembers, setTeamMembers] = useState([]);
   const [allBalances, setAllBalances] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,17 +25,21 @@ export default function TeamLeaveBalances() {
 
   useEffect(() => { loadData(); }, []);
 
-  const loadData = async () => {
-    try {
-      const [teamRes, balancesRes] = await Promise.all([
-        api.get('/manager/team'),
-        api.get('/manager/team/leave-balances'),
-      ]);
-      setTeamMembers(teamRes.data);
-      setAllBalances(balancesRes.data);
-    } catch (err) { console.error(err); } 
-    finally { setLoading(false); }
-  };
+const loadData = async () => {
+  try {
+    const [teamRes, balancesRes] = await Promise.all([
+      api.get('/manager/team'),
+      api.get('/manager/team/leave-balances'),
+    ]);
+    setTeamMembers(teamRes.data);
+    setAllBalances(balancesRes.data);
+  } catch (err) { 
+    console.error(err);
+    showToast("Failed to load team leave balances", "error");
+  } finally { 
+    setLoading(false); 
+  }
+};
 
   const years = useMemo(() => [...new Set(allBalances.map(b => b.year))].sort((a, b) => b - a), [allBalances]);
 

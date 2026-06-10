@@ -10,6 +10,7 @@ import {
   CalendarDaysIcon,
   ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
+import { useToast } from "../context/ToastContext";
 
 // Stats Card Component (same as before)
 const StatCard = ({ icon: Icon, label, value, colorClass }) => (
@@ -55,6 +56,7 @@ const LeaveTypeBadge = ({ type }) => {
 };
 
 export default function PendingLeaves() {
+  const { showToast } = useToast();
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
@@ -72,7 +74,7 @@ export default function PendingLeaves() {
       setLeaves(response.data);
     } catch (error) {
       console.error(error);
-      alert(error.response?.data?.message || "Failed to load pending leaves");
+      showToast(error.response?.data?.message || "Failed to load pending leaves", "error");
     } finally {
       setLoading(false);
     }
@@ -84,9 +86,11 @@ export default function PendingLeaves() {
       setActionLoading(id);
       // Use manager endpoint with proper payload
       await api.put(`/manager/team/leave/${id}`, { status: "APPROVED" });
+      showToast("Leave request approved successfully", "success");
       await loadLeaves();
     } catch (error) {
-      alert(error.response?.data?.message || "Error approving leave");
+      console.error(error);
+      showToast(error.response?.data?.message || "Error approving leave", "error");
     } finally {
       setActionLoading(null);
     }
@@ -97,9 +101,11 @@ export default function PendingLeaves() {
     try {
       setActionLoading(id);
       await api.put(`/manager/team/leave/${id}`, { status: "REJECTED" });
+      showToast("Leave request rejected", "success")
       await loadLeaves();
     } catch (error) {
-      alert(error.response?.data?.message || "Error rejecting leave");
+      console.error(error);
+      showToast(error.response?.data?.message || "Error rejecting leave", "error")
     } finally {
       setActionLoading(null);
     }

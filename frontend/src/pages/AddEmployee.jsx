@@ -595,7 +595,10 @@ export default function AddEmployee() {
             </button>
             <button
               type="button"
-              onClick={() => navigate("/employees")}
+              onClick={() => {
+                showToast("Employee creation cancelled", "info");
+                navigate("/employees");
+              }}
               className="inline-flex justify-center items-center gap-2 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg transition-all w-full sm:w-auto"
             >
               <XMarkIcon className="h-5 w-5" /> Cancel
