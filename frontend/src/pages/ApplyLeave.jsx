@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import { motion } from "framer-motion";
-import { CalendarDaysIcon, InformationCircleIcon, DocumentTextIcon, ArrowPathIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
+import {
+  CalendarDaysIcon,
+  InformationCircleIcon,
+  DocumentTextIcon,
+  ArrowPathIcon,
+  CheckCircleIcon,
+} from "@heroicons/react/24/outline";
 
 export default function ApplyLeave() {
   const [leaveTypes, setLeaveTypes] = useState([]);
@@ -15,8 +21,8 @@ export default function ApplyLeave() {
     reason: "",
   });
   const [holidays, setHolidays] = useState([]);
-  const [isHalfDay, setIsHalfDay] = useState(false);        // false = full day, 'firstHalf' or 'secondHalf'
-  const [halfDayType, setHalfDayType] = useState("full");   // "full", "firstHalf", "secondHalf"
+  const [isHalfDay, setIsHalfDay] = useState(false); // false = full day, 'firstHalf' or 'secondHalf'
+  const [halfDayType, setHalfDayType] = useState("full"); // "full", "firstHalf", "secondHalf"
 
   useEffect(() => {
     loadLeaveTypes();
@@ -27,7 +33,7 @@ export default function ApplyLeave() {
     try {
       const response = await api.get("/holidays");
       const holidayDates = response.data.map((holiday) =>
-        new Date(holiday.holiday_date).toLocaleDateString('en-CA')
+        new Date(holiday.holiday_date).toLocaleDateString("en-CA"),
       );
       setHolidays(holidayDates);
     } catch (error) {
@@ -41,7 +47,7 @@ export default function ApplyLeave() {
     const end = new Date(endDate);
     while (current <= end) {
       const day = current.getDay();
-      const currentDate = current.toLocaleDateString('en-CA');
+      const currentDate = current.toLocaleDateString("en-CA");
       const isHoliday = holidays.includes(currentDate);
       if (day !== 0 && day !== 6 && !isHoliday) {
         count++;
@@ -58,7 +64,7 @@ export default function ApplyLeave() {
       const end = new Date(form.end_date);
       if (start.toDateString() !== end.toDateString()) {
         // Force end_date = start_date
-        setForm(prev => ({ ...prev, end_date: form.start_date }));
+        setForm((prev) => ({ ...prev, end_date: form.start_date }));
       }
     }
   }, [isHalfDay, form.start_date]);
@@ -68,7 +74,11 @@ export default function ApplyLeave() {
       if (isHalfDay) {
         setTotalDays(0.5);
       } else {
-        const days = calculateWorkingDays(form.start_date, form.end_date, holidays);
+        const days = calculateWorkingDays(
+          form.start_date,
+          form.end_date,
+          holidays,
+        );
         setTotalDays(days > 0 ? days : 0);
       }
     }
@@ -104,7 +114,7 @@ export default function ApplyLeave() {
         const start = new Date(form.start_date);
         const end = new Date(form.end_date);
         if (start.toDateString() !== end.toDateString()) {
-          setForm(prev => ({ ...prev, end_date: form.start_date }));
+          setForm((prev) => ({ ...prev, end_date: form.start_date }));
         }
       }
     }
@@ -115,7 +125,12 @@ export default function ApplyLeave() {
     setMessage("");
     setError("");
 
-    if (!form.leave_type_id || !form.start_date || !form.end_date || !form.reason) {
+    if (
+      !form.leave_type_id ||
+      !form.start_date ||
+      !form.end_date ||
+      !form.reason
+    ) {
       setError("All fields are required");
       return;
     }
@@ -150,10 +165,10 @@ export default function ApplyLeave() {
     // However, for this exercise, I'll provide the frontend with a new field `total_days` that overrides the backend calculation.
 
     // Option: add `total_days` to the request body
-    const finalPayload = {
-      ...payload,
-      total_days: isHalfDay ? 0.5 : totalDays,
-    };
+    const finalPayload = { ...payload };
+    if (isHalfDay) {
+      finalPayload.total_days = 0.5;
+    }
 
     try {
       const response = await api.post("/leaves/apply", finalPayload);
@@ -185,29 +200,47 @@ export default function ApplyLeave() {
           <DocumentTextIcon className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">Apply Leave</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Submit a new time-off request for approval</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            Apply Leave
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">
+            Submit a new time-off request for approval
+          </p>
         </div>
       </div>
 
       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 md:p-8">
         {message && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 flex items-start gap-3">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 flex items-start gap-3"
+          >
             <CheckCircleIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">{message}</p>
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+              {message}
+            </p>
           </motion.div>
         )}
 
         {error && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 flex items-start gap-3">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 flex items-start gap-3"
+          >
             <InformationCircleIcon className="h-5 w-5 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm font-medium text-rose-700 dark:text-rose-400">{error}</p>
+            <p className="text-sm font-medium text-rose-700 dark:text-rose-400">
+              {error}
+            </p>
           </motion.div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Leave Type</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Leave Type
+            </label>
             <div className="relative">
               <DocumentTextIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <select
@@ -219,22 +252,33 @@ export default function ApplyLeave() {
               >
                 <option value="">Select Leave Type</option>
                 {leaveTypes.map((type) => (
-                  <option key={type.id} value={type.id}>{type.code} - {type.name}</option>
+                  <option key={type.id} value={type.id}>
+                    {type.code} - {type.name}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
 
           {isLeaveWithoutPay && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 text-sm flex items-start gap-3">
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 text-sm flex items-start gap-3"
+            >
               <InformationCircleIcon className="h-5 w-5 flex-shrink-0" />
-              <p><strong>Leave Without Pay (LOP)</strong> does not deduct from your leave balance. No balance check will be applied.</p>
+              <p>
+                <strong>Leave Without Pay (LOP)</strong> does not deduct from
+                your leave balance. No balance check will be applied.
+              </p>
             </motion.div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Start Date
+              </label>
               <div className="relative">
                 <CalendarDaysIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -248,7 +292,9 @@ export default function ApplyLeave() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">End Date</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                End Date
+              </label>
               <div className="relative">
                 <CalendarDaysIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -257,7 +303,7 @@ export default function ApplyLeave() {
                   value={form.end_date}
                   onChange={handleChange}
                   disabled={isHalfDay}
-                  className={`w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${isHalfDay ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : ''}`}
+                  className={`w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${isHalfDay ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : ""}`}
                   required
                 />
               </div>
@@ -266,7 +312,9 @@ export default function ApplyLeave() {
 
           {/* Half‑day radio buttons */}
           <div className="mt-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/30">
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Leave Duration</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Leave Duration
+            </label>
             <div className="flex flex-wrap gap-4">
               <label className="flex items-center gap-2">
                 <input
@@ -277,7 +325,9 @@ export default function ApplyLeave() {
                   onChange={() => handleHalfDayChange("full")}
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Full day</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Full day
+                </span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -288,7 +338,9 @@ export default function ApplyLeave() {
                   onChange={() => handleHalfDayChange("firstHalf")}
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">First half (AM)</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  First half (AM)
+                </span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -299,18 +351,23 @@ export default function ApplyLeave() {
                   onChange={() => handleHalfDayChange("secondHalf")}
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Second half (PM)</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Second half (PM)
+                </span>
               </label>
             </div>
             {isHalfDay && (
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                ⚠️ Half‑day leave will consume 0.5 days and must be on a single working day (not a weekend or holiday).
+                ⚠️ Half‑day leave will consume 0.5 days and must be on a single
+                working day (not a weekend or holiday).
               </p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Total Working Days</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Total Working Days
+            </label>
             <input
               type="text"
               value={totalDays}
@@ -320,7 +377,9 @@ export default function ApplyLeave() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Reason</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Reason
+            </label>
             <textarea
               name="reason"
               rows="4"
@@ -343,7 +402,12 @@ export default function ApplyLeave() {
             <button
               type="button"
               onClick={() => {
-                setForm({ leave_type_id: "", start_date: "", end_date: "", reason: "" });
+                setForm({
+                  leave_type_id: "",
+                  start_date: "",
+                  end_date: "",
+                  reason: "",
+                });
                 setTotalDays(0);
                 setMessage("");
                 setError("");

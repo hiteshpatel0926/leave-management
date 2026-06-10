@@ -72,7 +72,7 @@ const getTeamPendingLeaves = async (req, res) => {
   }
 };
 
-// Manager approves or rejects a team member's leave
+// Manager approves or rejects a team member's leave (with balance deduction)
 const updateTeamLeaveStatus = async (req, res) => {
   const { leaveId } = req.params;
   const { status } = req.body; // 'APPROVED' or 'REJECTED'
@@ -80,31 +80,72 @@ const updateTeamLeaveStatus = async (req, res) => {
     return res.status(400).json({ message: 'Invalid status' });
   }
 
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
+
     const managerEmployeeId = await getEmployeeIdFromUserId(req.user.userId);
-    if (!managerEmployeeId) return res.status(404).json({ message: 'Employee record not found' });
+    if (!managerEmployeeId) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Employee record not found' });
+    }
 
     // Verify the leave belongs to one of manager's direct reports
-    const leaveCheck = await pool.query(
-      `SELECT lr.id FROM leave_requests lr
+    const leaveCheck = await client.query(
+      `SELECT lr.id, lr.employee_id, lr.total_days, lr.leave_type_id, 
+              lt.code AS leave_type_code, lr.start_date
+       FROM leave_requests lr
        JOIN employees e ON lr.employee_id = e.id
+       JOIN leave_types lt ON lr.leave_type_id = lt.id
        WHERE lr.id = $1 AND e.manager_id = $2`,
       [leaveId, managerEmployeeId]
     );
     if (leaveCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(403).json({ message: 'Not authorized to update this leave' });
     }
+    const leave = leaveCheck.rows[0];
 
-    await pool.query(
+    // If approving, deduct balance (unless LOP)
+    if (status === 'APPROVED' && leave.leave_type_code !== 'LOP') {
+      const leaveYear = new Date(leave.start_date).getFullYear();
+      const daysToDeduct = parseFloat(leave.total_days);
+      if (isNaN(daysToDeduct) || daysToDeduct <= 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ message: 'Invalid total days' });
+      }
+
+      const updateResult = await client.query(
+        `UPDATE leave_balances
+         SET used_days = used_days + $1,
+             balance_days = balance_days - $1
+         WHERE employee_id = $2
+           AND leave_type_id = $3
+           AND year = $4
+         RETURNING *`,
+        [daysToDeduct, leave.employee_id, leave.leave_type_id, leaveYear]
+      );
+
+      if (updateResult.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ message: 'Leave balance not found for deduction' });
+      }
+    }
+
+    // Update leave request status
+    await client.query(
       `UPDATE leave_requests SET status = $1, approved_by = $2, approved_at = NOW() WHERE id = $3`,
       [status, req.user.userId, leaveId]
     );
 
-    // Optional: send notification to employee (already exists in leaveController, but you can also call here)
+    await client.query('COMMIT');
     res.json({ message: `Leave ${status.toLowerCase()}` });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error(error);
     res.status(500).json({ message: 'Server error' });
+  } finally {
+    client.release();
   }
 };
 
