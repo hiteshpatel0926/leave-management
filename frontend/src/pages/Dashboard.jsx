@@ -76,8 +76,8 @@ export default function Dashboard() {
     const percentage = total > 0 ? (used / total) * 100 : 0;
     const color = percentage > 80 ? "red" : percentage > 60 ? "yellow" : "green";
     const colorMap = {
-      red: "bg-red-500",
-      yellow: "bg-yellow-500",
+      red: "bg-rose-500",
+      yellow: "bg-amber-500",
       green: "bg-emerald-500",
     };
     return (
@@ -86,9 +86,9 @@ export default function Dashboard() {
           <span>Used: {used} days</span>
           <span>Remaining: {total - used} days</span>
         </div>
-        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
           <div
-            className={`h-3 rounded-full transition-all duration-700 ${colorMap[color]} shadow-inner`}
+            className={`h-2.5 rounded-full transition-all duration-700 ${colorMap[color]} shadow-inner`}
             style={{ width: `${Math.min(percentage, 100)}%` }}
           ></div>
         </div>
@@ -106,8 +106,8 @@ export default function Dashboard() {
       animate={{ opacity: 1 }}
       className="space-y-8 px-2 md:px-4"
     >
-      {/* Header with glass effect */}
-      <div className="flex flex-wrap justify-between items-center gap-4 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm p-5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+      {/* Header */}
+      <div className="flex flex-wrap justify-between items-center gap-4 bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
             Dashboard
@@ -124,7 +124,7 @@ export default function Dashboard() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="pl-10 pr-8 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none cursor-pointer shadow-sm"
+              className="pl-10 pr-8 py-2.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none cursor-pointer shadow-sm"
             >
               {availableYears.map(year => (
                 <option key={year} value={year}>{year}</option>
@@ -133,7 +133,7 @@ export default function Dashboard() {
           </div>
           <button
             onClick={loadDashboard}
-            className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 active:scale-95"
+            className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 active:scale-95"
           >
             <RefreshIcon className="h-5 w-5 text-gray-500" />
           </button>
@@ -255,7 +255,7 @@ export default function Dashboard() {
             </motion.div>
           </div>
 
-          <motion.div variants={item} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
+          <motion.div variants={item} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <ChartBarIcon className="h-5 w-5 text-indigo-500" />
               Leave Utilization ({selectedYear})
@@ -311,7 +311,7 @@ export default function Dashboard() {
       )}
 
       {/* Upcoming Holidays Table */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
         <h2 className="text-xl font-semibold mb-5 text-gray-900 dark:text-white flex items-center gap-2">
           <CalendarIcon className="h-5 w-5 text-indigo-500" />
           Upcoming Holidays

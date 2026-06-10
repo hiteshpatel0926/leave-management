@@ -6,7 +6,7 @@ const getEmployeeIdFromUserId = async (userId) => {
   return result.rows[0]?.id;
 };
 
-// Get all direct reports (team)
+// Get all direct reports (team) - unchanged
 const getTeam = async (req, res) => {
   try {
     const managerEmployeeId = await getEmployeeIdFromUserId(req.user.userId);
@@ -26,14 +26,14 @@ const getTeam = async (req, res) => {
   }
 };
 
-// Get team leave balances (grouped by employee and leave type)
+// Get team leave balances - unchanged
 const getTeamLeaveBalances = async (req, res) => {
   try {
     const managerEmployeeId = await getEmployeeIdFromUserId(req.user.userId);
     if (!managerEmployeeId) return res.status(404).json({ message: 'Employee record not found' });
 
     const result = await pool.query(
-      `SELECT e.id, e.first_name, e.last_name,
+      `SELECT e.id, e.first_name, e.last_name, e.employee_code, e.profile_picture,
               lb.leave_type_id, lt.name AS leave_type, lb.year,
               lb.entitled_days, lb.used_days, lb.balance_days
        FROM employees e
@@ -50,14 +50,31 @@ const getTeamLeaveBalances = async (req, res) => {
   }
 };
 
-// Get pending leave requests for team
+// Get pending leave requests - ADMIN sees all, MANAGER sees only team
 const getTeamPendingLeaves = async (req, res) => {
   try {
-    const managerEmployeeId = await getEmployeeIdFromUserId(req.user.userId);
+    const userRole = req.user.role;
+    const userId = req.user.userId;
+
+    if (userRole === 'ADMIN') {
+      // Admin: fetch all pending leaves with employee details
+      const result = await pool.query(
+        `SELECT lr.*, e.first_name, e.last_name, e.employee_code, e.profile_picture, lt.name AS leave_type
+         FROM leave_requests lr
+         JOIN employees e ON lr.employee_id = e.id
+         JOIN leave_types lt ON lr.leave_type_id = lt.id
+         WHERE lr.status = 'PENDING'
+         ORDER BY lr.applied_at ASC`
+      );
+      return res.json(result.rows);
+    }
+
+    // Manager (or other roles) - original logic
+    const managerEmployeeId = await getEmployeeIdFromUserId(userId);
     if (!managerEmployeeId) return res.status(404).json({ message: 'Employee record not found' });
 
     const result = await pool.query(
-      `SELECT lr.*, e.first_name, e.last_name, lt.name AS leave_type
+      `SELECT lr.*, e.first_name, e.last_name, e.employee_code, e.profile_picture, lt.name AS leave_type
        FROM leave_requests lr
        JOIN employees e ON lr.employee_id = e.id
        JOIN leave_types lt ON lr.leave_type_id = lt.id
@@ -72,7 +89,7 @@ const getTeamPendingLeaves = async (req, res) => {
   }
 };
 
-// Manager approves or rejects a team member's leave (with balance deduction)
+// Manager/Admin approves or rejects a leave request (with balance deduction)
 const updateTeamLeaveStatus = async (req, res) => {
   const { leaveId } = req.params;
   const { status } = req.body; // 'APPROVED' or 'REJECTED'
@@ -84,27 +101,57 @@ const updateTeamLeaveStatus = async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const managerEmployeeId = await getEmployeeIdFromUserId(req.user.userId);
-    if (!managerEmployeeId) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ message: 'Employee record not found' });
+    const userRole = req.user.role;
+    const userId = req.user.userId;
+
+    let leave; // will hold the leave details
+    let isAuthorized = false;
+
+    if (userRole === 'ADMIN') {
+      // Admin: just fetch the leave (no manager check)
+      const leaveCheck = await client.query(
+        `SELECT lr.id, lr.employee_id, lr.total_days, lr.leave_type_id, 
+                lt.code AS leave_type_code, lr.start_date
+         FROM leave_requests lr
+         JOIN leave_types lt ON lr.leave_type_id = lt.id
+         WHERE lr.id = $1`,
+        [leaveId]
+      );
+      if (leaveCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ message: 'Leave request not found' });
+      }
+      leave = leaveCheck.rows[0];
+      isAuthorized = true;
+    } else {
+      // Manager: verify leave belongs to one of manager's direct reports
+      const managerEmployeeId = await getEmployeeIdFromUserId(userId);
+      if (!managerEmployeeId) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ message: 'Employee record not found' });
+      }
+
+      const leaveCheck = await client.query(
+        `SELECT lr.id, lr.employee_id, lr.total_days, lr.leave_type_id, 
+                lt.code AS leave_type_code, lr.start_date
+         FROM leave_requests lr
+         JOIN employees e ON lr.employee_id = e.id
+         JOIN leave_types lt ON lr.leave_type_id = lt.id
+         WHERE lr.id = $1 AND e.manager_id = $2`,
+        [leaveId, managerEmployeeId]
+      );
+      if (leaveCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ message: 'Not authorized to update this leave' });
+      }
+      leave = leaveCheck.rows[0];
+      isAuthorized = true;
     }
 
-    // Verify the leave belongs to one of manager's direct reports
-    const leaveCheck = await client.query(
-      `SELECT lr.id, lr.employee_id, lr.total_days, lr.leave_type_id, 
-              lt.code AS leave_type_code, lr.start_date
-       FROM leave_requests lr
-       JOIN employees e ON lr.employee_id = e.id
-       JOIN leave_types lt ON lr.leave_type_id = lt.id
-       WHERE lr.id = $1 AND e.manager_id = $2`,
-      [leaveId, managerEmployeeId]
-    );
-    if (leaveCheck.rows.length === 0) {
+    if (!isAuthorized) {
       await client.query('ROLLBACK');
-      return res.status(403).json({ message: 'Not authorized to update this leave' });
+      return res.status(403).json({ message: 'Unauthorized' });
     }
-    const leave = leaveCheck.rows[0];
 
     // If approving, deduct balance (unless LOP)
     if (status === 'APPROVED' && leave.leave_type_code !== 'LOP') {
@@ -135,7 +182,7 @@ const updateTeamLeaveStatus = async (req, res) => {
     // Update leave request status
     await client.query(
       `UPDATE leave_requests SET status = $1, approved_by = $2, approved_at = NOW() WHERE id = $3`,
-      [status, req.user.userId, leaveId]
+      [status, userId, leaveId]
     );
 
     await client.query('COMMIT');

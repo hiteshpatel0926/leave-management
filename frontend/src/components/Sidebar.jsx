@@ -18,7 +18,7 @@ import {
   UserCircleIcon,
   Cog6ToothIcon,
   ChartBarSquareIcon,
-  RectangleGroupIcon
+  RectangleGroupIcon,
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
 import { getImageUrl } from "../utils/imageHelper";
@@ -29,7 +29,6 @@ export default function Sidebar() {
   const [profilePicture, setProfilePicture] = useState(null);
   const location = useLocation();
 
-  // Section expand/collapse state (only used when sidebar is expanded)
   const [expandedSections, setExpandedSections] = useState({
     main: true,
     manager: true,
@@ -84,7 +83,7 @@ export default function Sidebar() {
 
   const toggleSidebar = () => setCollapsed(!collapsed);
   const toggleSection = (section) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
   const MenuItem = ({ item }) => {
@@ -99,8 +98,8 @@ export default function Sidebar() {
           className={`
             relative flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200
             ${collapsed ? "justify-center" : "justify-start"}
-            ${active 
-              ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30" 
+            ${active
+              ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30"
               : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
             }
             cursor-pointer group
@@ -129,7 +128,6 @@ export default function Sidebar() {
 
   const SectionHeader = ({ title, sectionKey }) => {
     if (collapsed) {
-      // When collapsed, just show a thin line as divider
       return (
         <div className="flex justify-center my-3">
           <div className="w-6 h-px bg-gray-300 dark:bg-gray-700"></div>
@@ -179,7 +177,6 @@ export default function Sidebar() {
           </AnimatePresence>
         )}
         {collapsed && (
-          // When sidebar collapsed, show icons without sections (already handled via MenuItem's tooltip)
           <div className="space-y-1 px-2">
             {menuItems.map((item) => (
               <MenuItem key={item.path} item={item} />
@@ -197,7 +194,7 @@ export default function Sidebar() {
     <motion.aside
       initial={false}
       animate={{ width: collapsed ? 80 : 280 }}
-      className="relative h-screen bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-r border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300 z-20 shadow-xl"
+      className="relative h-screen bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-r border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300 z-20 shadow-xl"
     >
       {/* Logo + Collapse Toggle */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
@@ -236,15 +233,10 @@ export default function Sidebar() {
       {/* Navigation Menu */}
       <div className="flex-1 overflow-y-auto py-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
         <div className="space-y-4">
-          {/* MAIN Section */}
           <CollapsibleSection title="MAIN" sectionKey="main" menuItems={mainMenu} />
-
-          {/* MANAGER Section (if applicable) */}
           {(user?.role === "MANAGER" || user?.role === "ADMIN") && (
             <CollapsibleSection title="MANAGER" sectionKey="manager" menuItems={managerMenu} />
           )}
-
-          {/* ADMIN Section (if admin) */}
           {isAdmin && (
             <CollapsibleSection title="ADMIN" sectionKey="admin" menuItems={adminMenu} />
           )}
@@ -258,7 +250,7 @@ export default function Sidebar() {
             <img
               src={profilePicture}
               alt="Profile"
-              className="flex-shrink-0 w-10 h-10 rounded-full object-cover ring-2 ring-indigo-300 dark:ring-indigo-700 shadow-md"
+              className="flex-shrink-0 w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-md"
               onError={() => setProfilePicture(null)}
             />
           ) : (

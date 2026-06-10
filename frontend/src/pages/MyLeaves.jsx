@@ -92,7 +92,7 @@ export default function MyLeaves() {
         </div>
         <div className="relative">
           <FunnelIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="pl-11 pr-8 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none shadow-sm cursor-pointer">
+          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="pl-11 pr-8 py-2.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none shadow-sm cursor-pointer">
             <option value="all">All Statuses</option>
             <option value="PENDING">Pending Approval</option>
             <option value="APPROVED">Approved</option>
@@ -103,13 +103,13 @@ export default function MyLeaves() {
       </div>
 
       {filteredLeaves.length === 0 ? (
-        <div className="text-center py-16 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
+        <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
           <CalendarIcon className="mx-auto h-14 w-14 text-gray-300 dark:text-gray-600 mb-3" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">No requests found</h3>
           <p className="mt-1 text-gray-500 dark:text-gray-400">You don't have any leave requests matching this filter.</p>
         </div>
       ) : (
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
           <DataTable columns={columns} data={data} />
         </div>
       )}

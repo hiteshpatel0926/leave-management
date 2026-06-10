@@ -46,7 +46,6 @@ export default function Employees() {
     return () => clearTimeout(timeout);
   }, [search, statusFilter]);
 
-  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [search, statusFilter]);
@@ -174,7 +173,6 @@ export default function Employees() {
       headerRow.push(current.trim());
       const cleanHeaders = headerRow.map((h) => h.replace(/^"|"$/g, ""));
 
-      // Define expected column names
       const columnMap = {
         first_name: "First Name",
         last_name: "Last Name",
@@ -194,7 +192,6 @@ export default function Employees() {
         phone_number: "Phone Number",
       };
 
-      // Find indices
       const indices = {};
       for (const [field, headerName] of Object.entries(columnMap)) {
         const idx = cleanHeaders.findIndex((h) => h === headerName);
@@ -211,7 +208,6 @@ export default function Employees() {
             "phone_number",
           ].includes(field)
         ) {
-          // Optional fields – not required
           indices[field] = -1;
         } else if (idx === -1) {
           showToast(
@@ -232,7 +228,6 @@ export default function Employees() {
         const line = lines[i].trim();
         if (!line) continue;
 
-        // Parse row
         const row = [];
         inQuote = false;
         current = "";
@@ -250,7 +245,6 @@ export default function Employees() {
 
         const cleanRow = row.map((field) => field.replace(/^"|"$/g, ""));
 
-        // Build employee object using mapped indices
         const employee = {
           first_name:
             indices.first_name !== -1 ? cleanRow[indices.first_name] : "",
@@ -281,7 +275,6 @@ export default function Employees() {
             indices.phone_number !== -1 ? cleanRow[indices.phone_number] : "",
         };
 
-        // Skip if missing required fields
         if (
           !employee.first_name ||
           !employee.last_name ||
@@ -292,7 +285,6 @@ export default function Employees() {
           !employee.dob ||
           !employee.gender
         ) {
-          console.warn("Skipping row due to missing required fields", employee);
           continue;
         }
 
@@ -313,7 +305,6 @@ export default function Employees() {
         const response = await api.post("/employees/import", { employees });
         const { message, results } = response.data;
 
-        // Build detailed alert message (keep as alert because it's a long summary)
         let alertMsg = message + "\n\n";
         if (results.success?.length) {
           alertMsg += `✅ Successfully added: ${results.success.length} employees\n`;
@@ -348,7 +339,7 @@ export default function Employees() {
               ? "info"
               : "success",
         );
-        getEmployees(); // refresh employee list
+        getEmployees();
       } catch (error) {
         console.error(error);
         showToast(error.response?.data?.message || "Import failed", "error");
@@ -361,7 +352,6 @@ export default function Employees() {
     reader.readAsText(file);
   };
 
-  // Pagination calculations
   const totalItems = employees.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -401,10 +391,10 @@ export default function Employees() {
           </p>
         </div>
         <div className="flex gap-3">
-          <div className="flex rounded-xl border border-gray-200 dark:border-gray-700 p-1 bg-white dark:bg-gray-800 shadow-sm">
+          <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 p-1 bg-white dark:bg-gray-800 shadow-sm">
             <button
               onClick={() => setViewMode("table")}
-              className={`px-4 py-2 text-sm rounded-lg transition-all duration-200 flex items-center gap-2 ${
+              className={`px-4 py-2 text-sm rounded-md transition-all duration-200 flex items-center gap-2 ${
                 viewMode === "table"
                   ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400 shadow-sm"
                   : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
@@ -415,7 +405,7 @@ export default function Employees() {
             </button>
             <button
               onClick={() => setViewMode("cards")}
-              className={`px-4 py-2 text-sm rounded-lg transition-all duration-200 flex items-center gap-2 ${
+              className={`px-4 py-2 text-sm rounded-md transition-all duration-200 flex items-center gap-2 ${
                 viewMode === "cards"
                   ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400 shadow-sm"
                   : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
@@ -427,21 +417,21 @@ export default function Employees() {
           </div>
           <button
             onClick={() => navigate("/employees/new")}
-            className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-sm font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02]"
+            className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
           >
             <PlusIcon className="h-5 w-5" />
             Add Employee
           </button>
           <button
             onClick={handleExport}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-xl transition shadow-md"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition shadow-md"
           >
             <DocumentArrowDownIcon className="h-5 w-5" />
             Export CSV
           </button>
           <button
             onClick={() => fileInputRef.current.click()}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-xl transition shadow-md"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition shadow-md"
             disabled={importing}
           >
             <DocumentArrowUpIcon className="h-5 w-5" />
@@ -457,7 +447,6 @@ export default function Employees() {
         </div>
       </div>
 
-      {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
           <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -466,7 +455,7 @@ export default function Employees() {
             placeholder="Search by name, email, or employee code..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm"
+            className="w-full pl-11 pr-4 py-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm"
           />
         </div>
         <div className="relative">
@@ -474,7 +463,7 @@ export default function Employees() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="pl-11 pr-8 py-3 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none cursor-pointer shadow-sm"
+            className="pl-11 pr-8 py-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none cursor-pointer shadow-sm"
           >
             <option value="ALL">All Status</option>
             <option value="ACTIVE">Active</option>
@@ -483,13 +472,12 @@ export default function Employees() {
         </div>
       </div>
 
-      {/* Table View */}
       {viewMode === "table" && (
         <>
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50/80 dark:bg-gray-900/50">
+                <thead className="bg-gray-50 dark:bg-gray-800/50">
                   <tr>
                     <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Employee
@@ -528,11 +516,11 @@ export default function Employees() {
                               <img
                                 src={getImageUrl(emp.profile_picture)}
                                 alt={emp.first_name}
-                                className="h-10 w-10 rounded-xl object-cover shadow-sm"
+                                className="h-10 w-10 rounded-lg object-cover shadow-sm"
                                 onError={() => handleImageError(emp.id)}
                               />
                             ) : (
-                              <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                              <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
                                 {getInitials(emp.first_name, emp.last_name)}
                               </div>
                             )}
@@ -615,7 +603,6 @@ export default function Employees() {
             )}
           </div>
 
-          {/* Pagination - dropdown style */}
           {totalItems > 0 && (
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4">
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -679,7 +666,6 @@ export default function Employees() {
         </>
       )}
 
-      {/* Cards View with same pagination */}
       {viewMode === "cards" && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -688,7 +674,7 @@ export default function Employees() {
               return (
                 <div
                   key={emp.id}
-                  className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-5 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-5 hover:shadow-xl transition-all duration-300"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -696,11 +682,11 @@ export default function Employees() {
                         <img
                           src={getImageUrl(emp.profile_picture)}
                           alt={emp.first_name}
-                          className="h-14 w-14 rounded-xl object-cover shadow-sm"
+                          className="h-14 w-14 rounded-lg object-cover shadow-sm"
                           onError={() => handleImageError(emp.id)}
                         />
                       ) : (
-                        <div className="flex-shrink-0 h-14 w-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base font-bold shadow-sm">
+                        <div className="flex-shrink-0 h-14 w-14 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base font-bold shadow-sm">
                           {getInitials(emp.first_name, emp.last_name)}
                         </div>
                       )}
@@ -764,24 +750,21 @@ export default function Employees() {
                   <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between gap-2">
                     <button
                       onClick={() => navigate(`/employees/${emp.id}`)}
-                      className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 transition"
+                      className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 transition"
                     >
-                      {" "}
-                      <EyeIcon className="h-3.5 w-3.5" /> View{" "}
+                      <EyeIcon className="h-3.5 w-3.5" /> View
                     </button>
                     <button
                       onClick={() => navigate(`/employees/edit/${emp.id}`)}
-                      className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 transition"
+                      className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 transition"
                     >
-                      {" "}
-                      <PencilIcon className="h-3.5 w-3.5" /> Edit{" "}
+                      <PencilIcon className="h-3.5 w-3.5" /> Edit
                     </button>
                     <button
                       onClick={() => resetPassword(emp.user_id)}
-                      className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 transition"
+                      className="flex-1 inline-flex justify-center items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 transition"
                     >
-                      {" "}
-                      <KeyIcon className="h-3.5 w-3.5" /> Reset{" "}
+                      <KeyIcon className="h-3.5 w-3.5" /> Reset
                     </button>
                   </div>
                 </div>
@@ -797,7 +780,6 @@ export default function Employees() {
             )}
           </div>
 
-          {/* Pagination - same dropdown style */}
           {totalItems > 0 && (
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4">
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">

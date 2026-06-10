@@ -30,7 +30,7 @@ export default function AdminCarryForward() {
       className="space-y-6 max-w-4xl mx-auto px-4"
     >
       <div className="flex items-center gap-4">
-        <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-2xl text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-800/50">
+        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50">
           <Cog6ToothIcon className="h-6 w-6" />
         </div>
         <div>
@@ -39,7 +39,7 @@ export default function AdminCarryForward() {
         </div>
       </div>
 
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 md:p-8">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 md:p-8">
         <div className="flex items-start gap-4">
           <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
             <ArrowPathIcon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
@@ -57,7 +57,7 @@ export default function AdminCarryForward() {
             <button
               onClick={handleCarryForward}
               disabled={loading}
-              className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
+              className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-lg transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
             >
               {loading ? (
                 <>

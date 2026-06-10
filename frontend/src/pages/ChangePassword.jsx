@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { motion } from "framer-motion";
@@ -14,6 +14,10 @@ export default function ChangePassword() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    document.title = "Change Password | MBOS LMS";
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -63,7 +67,7 @@ export default function ChangePassword() {
       className="space-y-6 max-w-2xl mx-auto px-4"
     >
       <div className="flex items-center gap-4">
-        <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-2xl text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/50">
+        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50">
           <KeyIcon className="h-6 w-6" />
         </div>
         <div>
@@ -72,7 +76,7 @@ export default function ChangePassword() {
         </div>
       </div>
 
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 md:p-8">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 md:p-8">
         {message && (
           <div className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 text-sm">
             <CheckCircleIcon className="h-5 w-5" /> {message}
@@ -89,7 +93,16 @@ export default function ChangePassword() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Current Password</label>
             <div className="relative">
               <LockClosedIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input type="password" name="currentPassword" placeholder="Enter current password" value={formData.currentPassword} onChange={handleChange} className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 transition-all" required disabled={loading} />
+              <input
+                type="password"
+                name="currentPassword"
+                placeholder="Enter current password"
+                value={formData.currentPassword}
+                onChange={handleChange}
+                className="w-full pl-11 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 transition-all"
+                required
+                disabled={loading}
+              />
             </div>
           </div>
 
@@ -97,7 +110,16 @@ export default function ChangePassword() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">New Password</label>
             <div className="relative">
               <KeyIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input type="password" name="newPassword" placeholder="Enter new password" value={formData.newPassword} onChange={handleChange} className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 transition-all" required disabled={loading} />
+              <input
+                type="password"
+                name="newPassword"
+                placeholder="Enter new password"
+                value={formData.newPassword}
+                onChange={handleChange}
+                className="w-full pl-11 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 transition-all"
+                required
+                disabled={loading}
+              />
             </div>
           </div>
 
@@ -105,15 +127,33 @@ export default function ChangePassword() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Confirm Password</label>
             <div className="relative">
               <LockClosedIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input type="password" name="confirmPassword" placeholder="Confirm new password" value={formData.confirmPassword} onChange={handleChange} className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 transition-all" required disabled={loading} />
+              <input
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirm new password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="w-full pl-11 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 transition-all"
+                required
+                disabled={loading}
+              />
             </div>
           </div>
 
           <div className="flex space-x-3 pt-4">
-            <button type="submit" disabled={loading} className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-lg transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
+            >
               {loading ? "Changing..." : "Change Password"}
             </button>
-            <button type="button" onClick={handleReset} disabled={loading} className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-xl transition-all">
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={loading}
+              className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg transition-all"
+            >
               <ArrowPathIcon className="h-5 w-5 inline mr-1" /> Reset
             </button>
           </div>

@@ -13,7 +13,6 @@ import {
 import { getImageUrl } from "../utils/imageHelper";
 import api from "../services/api";
 
-
 export default function OrgHierarchy() {
   const [employees, setEmployees] = useState([]);
   const [hierarchy, setHierarchy] = useState([]);
@@ -40,54 +39,45 @@ export default function OrgHierarchy() {
   };
 
   const buildHierarchy = (empList) => {
-  // Step 1: Filter out Admin (id === 1 or email contains admin)
-  const filteredList = empList.filter(emp => emp.id !== 1 && emp.email !== 'admin@alopexcare.com');
-  
-  // Step 2: Find Jeffrey's id (assuming employee_code 'EMP016' or first_name/last_name)
-  const jeffrey = filteredList.find(emp => 
-    emp.employee_code === 'EMP016' || (emp.first_name === 'Jeffrey' && emp.last_name === 'Topfer')
-  );
-  
-  const empMap = new Map();
-  filteredList.forEach((emp) => {
-    empMap.set(emp.id, { ...emp, children: [] });
-  });
-
-  const roots = [];
-  filteredList.forEach((emp) => {
-    let managerId = emp.manager_id;
-    
-    // Step 3: If manager was Admin (id 1) and we have Jeffrey, reassign to Jeffrey
-    if (managerId === 1 && jeffrey) {
-      managerId = jeffrey.id;
-    }
-    
-    if (managerId && empMap.has(managerId) && managerId !== emp.id) {
-      empMap.get(managerId).children.push(empMap.get(emp.id));
-    } else {
-      roots.push(empMap.get(emp.id));
-    }
-  });
-
-  // Step 4: If Jeffrey is not already a root, make him one
-  // (This handles the case where Jeffrey's manager_id was null or got filtered)
-  if (jeffrey && !roots.includes(empMap.get(jeffrey.id))) {
-    roots.push(empMap.get(jeffrey.id));
-  }
-
-  setHierarchy(roots);
-  
-  const defaultExpanded = {};
-  const expandLevels = (nodes, level = 0) => {
-    if (level >= 2) return;
-    nodes.forEach((node) => {
-      defaultExpanded[node.id] = true;
-      if (node.children?.length) expandLevels(node.children, level + 1);
+    const filteredList = empList.filter(
+      (emp) => emp.id !== 1 && emp.email !== "admin@alopexcare.com",
+    );
+    const jeffrey = filteredList.find(
+      (emp) =>
+        emp.employee_code === "EMP016" ||
+        (emp.first_name === "Jeffrey" && emp.last_name === "Topfer"),
+    );
+    const empMap = new Map();
+    filteredList.forEach((emp) => {
+      empMap.set(emp.id, { ...emp, children: [] });
     });
+    const roots = [];
+    filteredList.forEach((emp) => {
+      let managerId = emp.manager_id;
+      if (managerId === 1 && jeffrey) {
+        managerId = jeffrey.id;
+      }
+      if (managerId && empMap.has(managerId) && managerId !== emp.id) {
+        empMap.get(managerId).children.push(empMap.get(emp.id));
+      } else {
+        roots.push(empMap.get(emp.id));
+      }
+    });
+    if (jeffrey && !roots.includes(empMap.get(jeffrey.id))) {
+      roots.push(empMap.get(jeffrey.id));
+    }
+    setHierarchy(roots);
+    const defaultExpanded = {};
+    const expandLevels = (nodes, level = 0) => {
+      if (level >= 2) return;
+      nodes.forEach((node) => {
+        defaultExpanded[node.id] = true;
+        if (node.children?.length) expandLevels(node.children, level + 1);
+      });
+    };
+    expandLevels(roots);
+    setExpandedNodes(defaultExpanded);
   };
-  expandLevels(roots);
-  setExpandedNodes(defaultExpanded);
-};
 
   const toggleNode = (nodeId) => {
     setExpandedNodes((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
@@ -109,7 +99,6 @@ export default function OrgHierarchy() {
     setImageErrors((prev) => ({ ...prev, [empId]: true }));
   };
 
-  // ======================= TREE VIEW (vertical collapsible) =======================
   const TreeNode = ({ node, level = 0 }) => {
     const hasChildren = node.children && node.children.length > 0;
     const isExpanded = expandedNodes[node.id];
@@ -120,13 +109,11 @@ export default function OrgHierarchy() {
       node.profile_picture && !hasImageError
         ? getImageUrl(node.profile_picture)
         : null;
-
     if (!matchesSearch) return null;
-
     return (
       <div className="select-none">
         <div
-          className={`flex items-center gap-3 py-3 px-3 rounded-xl cursor-pointer transition-all duration-200 group ${
+          className={`flex items-center gap-3 py-3 px-3 rounded-lg cursor-pointer transition-all duration-200 group ${
             hasChildren
               ? "hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20"
               : "hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
@@ -144,22 +131,20 @@ export default function OrgHierarchy() {
             </div>
           )}
           {!hasChildren && <div className="w-5 flex-shrink-0" />}
-
           <div className="flex-shrink-0">
             {profilePic ? (
               <img
                 src={profilePic}
                 alt={`${node.first_name} ${node.last_name}`}
-                className="h-10 w-10 rounded-xl object-cover shadow-sm ring-2 ring-transparent group-hover:ring-indigo-200 dark:group-hover:ring-indigo-800 transition-all"
+                className="h-10 w-10 rounded-lg object-cover shadow-sm ring-2 ring-transparent group-hover:ring-indigo-200 dark:group-hover:ring-indigo-800 transition-all"
                 onError={() => handleImageError(node.id)}
               />
             ) : (
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/40 dark:to-indigo-800/40 flex items-center justify-center shadow-sm">
+              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/40 dark:to-indigo-800/40 flex items-center justify-center shadow-sm">
                 <UserIcon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
               </div>
             )}
           </div>
-
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
               <span className="font-semibold text-gray-900 dark:text-white">
@@ -180,15 +165,12 @@ export default function OrgHierarchy() {
               {node.department || "—"} · {node.email || ""}
             </p>
           </div>
-
           {hasChildren && (
             <div className="flex-shrink-0 flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300">
-              <UserGroupIcon className="h-3 w-3" />
-              {node.children.length}
+              <UserGroupIcon className="h-3 w-3" /> {node.children.length}
             </div>
           )}
         </div>
-
         <AnimatePresence initial={false}>
           {hasChildren && isExpanded && (
             <motion.div
@@ -207,19 +189,16 @@ export default function OrgHierarchy() {
     );
   };
 
-  // ======================= HORIZONTAL ORG CHART (with Expand/Collapse) =======================
   const HorizontalOrgNode = ({ node, level = 0 }) => {
     const hasChildren = node.children && node.children.length > 0;
-    const isExpanded = expandedNodes[node.id] ?? true; // Default expanded for chart
+    const isExpanded = expandedNodes[node.id] ?? true;
     const hasImageError = imageErrors[node.id];
     const profilePic =
       node.profile_picture && !hasImageError
         ? getImageUrl(node.profile_picture)
         : null;
-
     return (
       <div className="flex items-start gap-8 relative">
-        {/* Parent Card */}
         <div className="flex flex-col items-center relative z-10">
           <div
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 w-72 group cursor-pointer"
@@ -247,7 +226,6 @@ export default function OrgHierarchy() {
                     </div>
                   )}
                 </div>
-
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-gray-900 dark:text-white text-base leading-tight">
@@ -285,13 +263,9 @@ export default function OrgHierarchy() {
                 </div>
               </div>
             </div>
-
-            {/* Bottom accent */}
             <div className="h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-500 rounded-b-2xl"></div>
           </div>
         </div>
-
-        {/* Connector & Children with Expand/Collapse */}
         <AnimatePresence initial={false}>
           {hasChildren && isExpanded && (
             <motion.div
@@ -301,16 +275,11 @@ export default function OrgHierarchy() {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.25 }}
             >
-              {/* Main horizontal connector from parent */}
               <div className="absolute top-8 left-0 w-8 h-px bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-500"></div>
-
-              {/* Vertical connector line */}
               <div className="absolute top-8 left-8 bottom-0 w-px bg-gradient-to-b from-gray-300 via-gray-400 to-transparent dark:from-gray-600 dark:via-gray-500"></div>
-
               <div className="pl-16 flex flex-col gap-10">
                 {node.children.map((child) => (
                   <div key={child.id} className="relative">
-                    {/* Small horizontal connector to each child */}
                     <div className="absolute -left-8 top-8 w-8 h-px bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-500"></div>
                     <HorizontalOrgNode node={child} level={level + 1} />
                   </div>
@@ -327,7 +296,6 @@ export default function OrgHierarchy() {
     const filteredRoots = searchTerm.trim()
       ? hierarchy.filter((root) => filterTree(root, searchTerm))
       : hierarchy;
-
     if (filteredRoots.length === 0) {
       return (
         <div className="text-center py-16">
@@ -340,7 +308,6 @@ export default function OrgHierarchy() {
         </div>
       );
     }
-
     return (
       <div className="overflow-x-scroll overflow-y-auto p-8 bg-gray-50/70 dark:bg-gray-900/50 min-h-[600px] rounded-2xl">
         <div className="inline-flex flex-col gap-16">
@@ -354,7 +321,6 @@ export default function OrgHierarchy() {
     );
   };
 
-  // ======================= MAIN RENDER =======================
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -369,13 +335,11 @@ export default function OrgHierarchy() {
   }
 
   return (
-    
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6 max-w-full mx-auto px-4"
     >
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50">
@@ -390,35 +354,22 @@ export default function OrgHierarchy() {
             </p>
           </div>
         </div>
-
-        {/* Tabs */}
-        <div className="flex rounded-xl border border-gray-200 dark:border-gray-700 p-1 bg-white dark:bg-gray-800 shadow-sm self-start">
+        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 p-1 bg-white dark:bg-gray-800 shadow-sm self-start">
           <button
             onClick={() => setActiveTab("tree")}
-            className={`px-4 py-2 text-sm rounded-lg transition-all duration-200 flex items-center gap-2 ${
-              activeTab === "tree"
-                ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400 shadow-sm"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-            }`}
+            className={`px-4 py-2 text-sm rounded-md transition-all duration-200 flex items-center gap-2 ${activeTab === "tree" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400 shadow-sm" : "text-gray-500 hover:text-gray-700 dark:text-gray-400"}`}
           >
-            <Bars3Icon className="h-4 w-4" />
-            Tree View
+            <Bars3Icon className="h-4 w-4" /> Tree View
           </button>
           <button
             onClick={() => setActiveTab("flowchart")}
-            className={`px-4 py-2 text-sm rounded-lg transition-all duration-200 flex items-center gap-2 ${
-              activeTab === "flowchart"
-                ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400 shadow-sm"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-            }`}
+            className={`px-4 py-2 text-sm rounded-md transition-all duration-200 flex items-center gap-2 ${activeTab === "flowchart" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400 shadow-sm" : "text-gray-500 hover:text-gray-700 dark:text-gray-400"}`}
           >
-            <ChartBarIcon className="h-4 w-4" />
-            Org Chart
+            <ChartBarIcon className="h-4 w-4" /> Org Chart
           </button>
         </div>
       </div>
 
-      {/* Search Bar */}
       <div className="relative max-w-md">
         <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
         <input
@@ -426,15 +377,13 @@ export default function OrgHierarchy() {
           placeholder="Search by name, title, or department..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm"
+          className="w-full pl-11 pr-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
         />
       </div>
 
-      {/* Content Container */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="p-4">
           {activeTab === "tree" ? (
-            // Tree View
             <>
               {hierarchy.length === 0 ? (
                 <div className="text-center py-16">
@@ -449,8 +398,6 @@ export default function OrgHierarchy() {
                   <TreeNode key={root.id} node={root} level={0} />
                 ))
               )}
-
-              {/* Expand/Collapse All for Tree View */}
               {hierarchy.length > 0 && activeTab === "tree" && (
                 <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
                   <button
@@ -491,7 +438,6 @@ export default function OrgHierarchy() {
               )}
             </>
           ) : (
-            // Horizontal Org Chart
             renderHorizontalOrgChart()
           )}
         </div>

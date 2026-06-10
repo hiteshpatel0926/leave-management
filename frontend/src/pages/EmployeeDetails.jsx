@@ -80,9 +80,7 @@ export default function EmployeeDetails() {
         reason: awardReason || "Awarded by manager/admin",
       });
       alert(`Successfully awarded ${awardDays} Comp Off day(s)`);
-      // Refresh employee data to show updated balance
       loadEmployee();
-      // Close modal and reset fields
       setShowAwardModal(false);
       setAwardDays("");
       setAwardReason("");
@@ -203,7 +201,7 @@ export default function EmployeeDetails() {
             navigate("/employees");
           }
         }}
-        className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl text-gray-700 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow"
+        className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg text-gray-700 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm"
       >
         <ArrowLeftIcon className="h-4 w-4" />
         {new URLSearchParams(location.search).get("returnTo") === "team"
@@ -521,7 +519,7 @@ export default function EmployeeDetails() {
           {(currentUserRole === "ADMIN" || currentUserRole === "MANAGER") && (
             <button
               onClick={() => setShowAwardModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-colors"
             >
               <PlusCircleIcon className="h-4 w-4" />
               Award Comp Off
@@ -786,7 +784,7 @@ export default function EmployeeDetails() {
               <button
                 onClick={awardCompOff}
                 disabled={awardLoading}
-                className="px-4 py-2 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50"
               >
                 {awardLoading ? "Awarding..." : "Award"}
               </button>

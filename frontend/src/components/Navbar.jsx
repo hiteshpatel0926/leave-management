@@ -87,11 +87,11 @@ export default function Navbar() {
       animate={{ y: 0, opacity: 1 }}
       className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200/70 dark:border-gray-800/70 sticky top-0 z-50 shadow-sm"
     >
-      <div className="px-4 md:px-8 py-2 flex items-center justify-between">
+      <div className="px-4 md:px-8 py-2.5 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate("/dashboard")}>
           <div className="relative">
-            <img src={logo} alt="Alopexcare Logo" className="h-14 w-auto object-contain rounded-xl shadow-md transition-transform duration-300 group-hover:scale-105" />
+            <img src={logo} alt="Alopexcare Logo" className="h-12 w-auto object-contain rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-105" />
             <div className="absolute inset-0 rounded-xl ring-2 ring-transparent group-hover:ring-indigo-500/40 transition-all duration-300"></div>
           </div>
           <div className="hidden sm:block">
@@ -108,7 +108,6 @@ export default function Navbar() {
           <NotificationDropdown />
 
           <div className="relative" ref={dropdownRef}>
-            {/* Combined button: avatar on left, text in middle, chevron on right */}
             <button
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center gap-3 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
@@ -138,7 +137,6 @@ export default function Navbar() {
               />
             </button>
 
-            {/* Dropdown menu */}
             <AnimatePresence>
               {showDropdown && (
                 <motion.div
@@ -158,28 +156,19 @@ export default function Navbar() {
                   </div>
                   <div className="py-1">
                     <button
-                      onClick={() => {
-                        setShowDropdown(false);
-                        navigate("/dashboard");
-                      }}
+                      onClick={() => { setShowDropdown(false); navigate("/dashboard"); }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       <HomeIcon className="h-4 w-4" /> Dashboard
                     </button>
                     <button
-                      onClick={() => {
-                        setShowDropdown(false);
-                        navigate("/profile");
-                      }}
+                      onClick={() => { setShowDropdown(false); navigate("/profile"); }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       <UserIcon className="h-4 w-4" /> My Profile
                     </button>
                     <button
-                      onClick={() => {
-                        setShowDropdown(false);
-                        navigate("/change-password");
-                      }}
+                      onClick={() => { setShowDropdown(false); navigate("/change-password"); }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       <KeyIcon className="h-4 w-4" /> Change Password

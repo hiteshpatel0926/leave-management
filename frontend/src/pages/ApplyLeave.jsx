@@ -21,8 +21,8 @@ export default function ApplyLeave() {
     reason: "",
   });
   const [holidays, setHolidays] = useState([]);
-  const [isHalfDay, setIsHalfDay] = useState(false); // false = full day, 'firstHalf' or 'secondHalf'
-  const [halfDayType, setHalfDayType] = useState("full"); // "full", "firstHalf", "secondHalf"
+  const [isHalfDay, setIsHalfDay] = useState(false);
+  const [halfDayType, setHalfDayType] = useState("full");
 
   useEffect(() => {
     loadLeaveTypes();
@@ -57,13 +57,11 @@ export default function ApplyLeave() {
     return count;
   }
 
-  // Auto‑adjust end_date if half‑day is selected and dates differ
   useEffect(() => {
     if (isHalfDay && form.start_date && form.end_date) {
       const start = new Date(form.start_date);
       const end = new Date(form.end_date);
       if (start.toDateString() !== end.toDateString()) {
-        // Force end_date = start_date
         setForm((prev) => ({ ...prev, end_date: form.start_date }));
       }
     }
@@ -109,7 +107,6 @@ export default function ApplyLeave() {
     } else {
       setIsHalfDay(true);
       setHalfDayType(value);
-      // If half‑day selected and dates already set, ensure they are the same day
       if (form.start_date && form.end_date) {
         const start = new Date(form.start_date);
         const end = new Date(form.end_date);
@@ -135,7 +132,6 @@ export default function ApplyLeave() {
       return;
     }
 
-    // Validation for half‑day: ensure the selected day is a working day (not weekend/holiday)
     if (isHalfDay) {
       const dayOfWeek = new Date(form.start_date).getDay();
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
@@ -146,26 +142,7 @@ export default function ApplyLeave() {
       }
     }
 
-    // Prepare payload: totalDays will be sent as 0.5 for half‑day, otherwise the calculated days
-    const payload = {
-      leave_type_id: form.leave_type_id,
-      start_date: form.start_date,
-      end_date: form.end_date,
-      reason: form.reason,
-    };
-    // The backend will use totalDays from leave_requests? Actually the backend recalculates days.
-    // To be safe, we can add a field 'half_day_type' if needed, but your backend calculates days itself.
-    // However, to force half‑day, we can add a custom flag or rely on the frontend sending the correct total_days.
-    // Since your `applyLeave` calculates days using `calculateWorkingDays`, it will ignore our totalDays.
-    // To override, we need to modify the backend to accept a `half_day` flag or to use the provided total_days.
-    // For now, we rely on the fact that for half‑day, start_date == end_date, and we will also send `total_days: 0.5` in the request.
-    // But your `applyLeave` recalculates. So we must change the backend to use the frontend total_days if provided.
-    // I'll implement a simple solution: send an extra field `custom_total_days`. In the backend, if present, use it instead of recalculating.
-    // Let's assume you've modified the backend accordingly (or we can adapt this frontend).
-    // However, for this exercise, I'll provide the frontend with a new field `total_days` that overrides the backend calculation.
-
-    // Option: add `total_days` to the request body
-    const finalPayload = { ...payload };
+    const finalPayload = { ...form };
     if (isHalfDay) {
       finalPayload.total_days = 0.5;
     }
@@ -209,7 +186,7 @@ export default function ApplyLeave() {
         </div>
       </div>
 
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 md:p-8">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 md:p-8">
         {message && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -247,7 +224,7 @@ export default function ApplyLeave() {
                 name="leave_type_id"
                 value={form.leave_type_id}
                 onChange={handleChange}
-                className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none transition-all"
+                className="w-full pl-11 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none transition-all"
                 required
               >
                 <option value="">Select Leave Type</option>
@@ -286,7 +263,7 @@ export default function ApplyLeave() {
                   name="start_date"
                   value={form.start_date}
                   onChange={handleChange}
-                  className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full pl-11 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                   required
                 />
               </div>
@@ -303,7 +280,7 @@ export default function ApplyLeave() {
                   value={form.end_date}
                   onChange={handleChange}
                   disabled={isHalfDay}
-                  className={`w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${isHalfDay ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : ""}`}
+                  className={`w-full pl-11 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${isHalfDay ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : ""}`}
                   required
                 />
               </div>
@@ -311,7 +288,7 @@ export default function ApplyLeave() {
           </div>
 
           {/* Half‑day radio buttons */}
-          <div className="mt-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/30">
+          <div className="mt-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Leave Duration
             </label>
@@ -372,7 +349,7 @@ export default function ApplyLeave() {
               type="text"
               value={totalDays}
               readOnly
-              className="w-full px-4 py-2.5 font-medium text-sm rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 cursor-not-allowed"
+              className="w-full px-4 py-2.5 font-medium text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 cursor-not-allowed"
             />
           </div>
 
@@ -386,7 +363,7 @@ export default function ApplyLeave() {
               value={form.reason}
               onChange={handleChange}
               placeholder="Provide a brief reason for your leave..."
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none transition-all"
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none transition-all"
               required
             />
           </div>
@@ -394,7 +371,7 @@ export default function ApplyLeave() {
           <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
             <button
               type="submit"
-              className="inline-flex justify-center items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg w-full sm:w-auto"
+              className="inline-flex justify-center items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-lg transition-all duration-200 shadow-md hover:shadow-lg w-full sm:w-auto"
             >
               <DocumentTextIcon className="h-5 w-5" />
               Apply Leave
@@ -414,7 +391,7 @@ export default function ApplyLeave() {
                 setIsHalfDay(false);
                 setHalfDayType("full");
               }}
-              className="inline-flex justify-center items-center gap-2 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-xl transition-all w-full sm:w-auto"
+              className="inline-flex justify-center items-center gap-2 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg transition-all w-full sm:w-auto"
             >
               <ArrowPathIcon className="h-5 w-5" />
               Reset Form

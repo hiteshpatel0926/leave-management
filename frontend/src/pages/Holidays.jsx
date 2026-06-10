@@ -73,7 +73,7 @@ export default function Holidays() {
     <span className="font-semibold text-gray-900 dark:text-gray-100">{holiday.holiday_name}</span>,
     new Date(holiday.holiday_date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }),
     <div className="flex items-center gap-2">
-      <button onClick={() => editHoliday(holiday)} className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 transition-all" title="Edit">
+      <button onClick={() => editHoliday(holiday)} className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/30 transition-all" title="Edit">
         <PencilSquareIcon className="h-5 w-5" />
       </button>
       <button onClick={() => deleteHoliday(holiday.id)} className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/30 transition-all" title="Delete">
@@ -90,7 +90,7 @@ export default function Holidays() {
           <p className="text-gray-500 dark:text-gray-400 mt-1">Manage official company holidays and observances</p>
         </div>
         {!showForm && (
-          <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02]">
+          <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg">
             <PlusIcon className="h-5 w-5" />
             Add Holiday
           </button>
@@ -100,7 +100,7 @@ export default function Holidays() {
       <AnimatePresence>
         {showForm && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-indigo-100 dark:border-indigo-900/30 p-6 mb-6 relative">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 mb-6 relative">
               <div className="absolute top-4 right-4">
                 <button onClick={resetForm} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
                   <XMarkIcon className="h-5 w-5" />

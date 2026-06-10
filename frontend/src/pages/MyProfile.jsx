@@ -24,7 +24,7 @@ const Field = ({ icon: Icon, label, children }) => (
   <motion.div
     initial={{ opacity: 0, y: 8 }}
     animate={{ opacity: 1, y: 0 }}
-    className="group flex items-start gap-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-800/40 px-4 py-3.5 hover:border-indigo-200 dark:hover:border-indigo-800 hover:bg-indigo-50/40 dark:hover:bg-indigo-900/10 transition-all duration-200"
+    className="group flex items-start gap-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-800/40 px-4 py-3.5 hover:border-indigo-200 dark:hover:border-indigo-800 hover:bg-indigo-50/40 dark:hover:bg-indigo-900/10 transition-all duration-200"
   >
     <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-500 dark:text-indigo-400 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-800/50 transition-colors duration-200">
       <Icon className="h-4 w-4" />
@@ -69,7 +69,6 @@ export default function MyProfile() {
     window.dispatchEvent(new Event("profile-updated"));
   };
 
-  // Helper to format full phone number
   const formatPhone = () => {
     const code = profile?.phone_country_code;
     const number = profile?.phone_number;
@@ -108,7 +107,7 @@ export default function MyProfile() {
         </div>
       </div>
 
-      <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="h-28 bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-700 relative">
           <div
             className="absolute inset-0 opacity-20"
@@ -124,9 +123,9 @@ export default function MyProfile() {
         </div>
 
         <div className="px-6 pb-6">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:gap-5 -mt-12">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:gap-5 -mt-12 relative z-10">
             <div className="relative flex-shrink-0">
-              <div className="h-24 w-24 rounded-2xl ring-4 ring-white dark:ring-gray-900 shadow-lg overflow-hidden">
+              <div className="h-24 w-24 rounded-2xl ring-4 ring-white dark:ring-gray-800 shadow-lg overflow-hidden">
                 {avatar ? (
                   <img
                     src={avatar}
@@ -148,9 +147,9 @@ export default function MyProfile() {
                 <CameraIcon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               </button>
             </div>
-            <div className="mt-4 sm:mt-0 sm:pb-1 flex-1">
+            <div className="mt-4 sm:mt-0 sm:pb-1 flex-1 bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                   {profile.first_name} {profile.last_name}
                 </h2>
                 <span
@@ -179,7 +178,7 @@ export default function MyProfile() {
         </div>
       </div>
 
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
           <span className="inline-block h-3 w-1 rounded-full bg-indigo-500" />
           Personal Information
@@ -218,9 +217,13 @@ export default function MyProfile() {
         </div>
       </div>
 
-      {/* Contact Information Section – updated to new fields */}
-      {(profile.address || profile.city_name || profile.state_name || profile.country_name || profile.zip || formatPhone()) && (
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
+      {(profile.address ||
+        profile.city_name ||
+        profile.state_name ||
+        profile.country_name ||
+        profile.zip ||
+        formatPhone()) && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
           <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
             <span className="inline-block h-3 w-1 rounded-full bg-indigo-500" />
             Contact Information

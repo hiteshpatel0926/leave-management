@@ -13,9 +13,6 @@ import {
   ExclamationCircleIcon,
   HomeIcon,
   PhoneIcon,
-  MapPinIcon,
-  GlobeAltIcon,
-  BuildingOfficeIcon,
 } from "@heroicons/react/24/outline";
 import { useToast } from "../context/ToastContext";
 
@@ -210,7 +207,7 @@ export default function AddEmployee() {
       navigate("/employees");
     } catch (error) {
       console.error(error);
-      show9(
+      showToast(
         error.response?.data?.message || "Failed to create employee",
         "error",
       );
@@ -219,7 +216,7 @@ export default function AddEmployee() {
 
   const getInputClassName = (fieldName) => {
     const hasError = touched[fieldName] && errors[fieldName];
-    return `w-full px-4 py-2.5 rounded-xl border ${hasError ? "border-red-500 ring-1 ring-red-500" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 transition-all`;
+    return `w-full px-4 py-2.5 rounded-lg border ${hasError ? "border-red-500 ring-1 ring-red-500" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 transition-all`;
   };
 
   return (
@@ -229,7 +226,7 @@ export default function AddEmployee() {
       className="space-y-6 max-w-5xl mx-auto px-4"
     >
       <div className="flex items-center gap-4">
-        <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50">
+        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50">
           <UserPlusIcon className="h-6 w-6" />
         </div>
         <div>
@@ -242,7 +239,7 @@ export default function AddEmployee() {
         </div>
       </div>
 
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 md:p-8">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 md:p-8">
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Personal Information */}
@@ -404,7 +401,7 @@ export default function AddEmployee() {
                     name="manager_id"
                     value={formData.manager_id}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">None</option>
                     {managers.map((mgr) => (
@@ -432,7 +429,7 @@ export default function AddEmployee() {
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
                 <div>
@@ -443,7 +440,7 @@ export default function AddEmployee() {
                     name="country_id"
                     value={formData.country_id}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Select Country</option>
                     {countries.map((c) => (
@@ -462,7 +459,7 @@ export default function AddEmployee() {
                     value={formData.state_id}
                     onChange={handleChange}
                     disabled={!formData.country_id}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
                   >
                     <option value="">Select State</option>
                     {states.map((s) => (
@@ -481,7 +478,7 @@ export default function AddEmployee() {
                     value={formData.city_id}
                     onChange={handleChange}
                     disabled={!formData.state_id}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
                   >
                     <option value="">Select City</option>
                     {cities.map((c) => (
@@ -500,7 +497,7 @@ export default function AddEmployee() {
                     name="zip"
                     value={formData.zip}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
                 <div>
@@ -513,7 +510,7 @@ export default function AddEmployee() {
                       name="phone_country_code"
                       value={formData.phone_country_code}
                       readOnly
-                      className="w-24 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                      className="w-24 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
                     />
                     <input
                       type="tel"
@@ -522,7 +519,7 @@ export default function AddEmployee() {
                       onChange={handleChange}
                       onBlur={handleBlur}
                       placeholder="e.g., 9876543210"
-                      className={`flex-1 px-4 py-2.5 rounded-xl border ${touched.phone_number && errors.phone_number ? "border-red-500 ring-1 ring-red-500" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 transition-all`}
+                      className={`flex-1 px-4 py-2.5 rounded-lg border ${touched.phone_number && errors.phone_number ? "border-red-500 ring-1 ring-red-500" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 transition-all`}
                     />
                   </div>
                   {touched.phone_number && errors.phone_number && (
@@ -592,14 +589,14 @@ export default function AddEmployee() {
           <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-100 dark:border-gray-700">
             <button
               type="submit"
-              className="inline-flex justify-center items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg w-full sm:w-auto"
+              className="inline-flex justify-center items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-lg transition-all duration-200 shadow-md hover:shadow-lg w-full sm:w-auto"
             >
               <UserPlusIcon className="h-5 w-5" /> Create Employee
             </button>
             <button
               type="button"
               onClick={() => navigate("/employees")}
-              className="inline-flex justify-center items-center gap-2 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-xl transition-all w-full sm:w-auto"
+              className="inline-flex justify-center items-center gap-2 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg transition-all w-full sm:w-auto"
             >
               <XMarkIcon className="h-5 w-5" /> Cancel
             </button>

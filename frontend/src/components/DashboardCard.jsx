@@ -16,7 +16,7 @@ export default function DashboardCard({ title, value, color = "blue", icon, subt
     <motion.div
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
       transition={{ type: "spring", stiffness: 300 }}
-      className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden group"
+      className="bg-white dark:bg-gray-800 rounded-2xl shadow-card border border-gray-100 dark:border-gray-700 overflow-hidden group hover:shadow-card-hover transition-all"
     >
       <div className={`h-1 bg-gradient-to-r ${gradient} group-hover:h-1.5 transition-all duration-300`} />
       <div className="p-5">
