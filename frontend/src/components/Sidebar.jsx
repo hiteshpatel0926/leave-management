@@ -19,14 +19,17 @@ import {
   Cog6ToothIcon,
   ChartBarSquareIcon,
   RectangleGroupIcon,
+  MoonIcon,
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
 import { getImageUrl } from "../utils/imageHelper";
+import { useTheme } from "../context/ThemeContext";
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [user, setUser] = useState(null);
   const [profilePicture, setProfilePicture] = useState(null);
+  const { darkMode, toggleDarkMode } = useTheme();
   const location = useLocation();
 
   const [expandedSections, setExpandedSections] = useState({
@@ -63,8 +66,17 @@ export default function Sidebar() {
     { path: "/profile", label: "My Profile", icon: UserCircleIcon },
     { path: "/apply-leave", label: "Apply Leave", icon: CalendarIcon },
     { path: "/my-leaves", label: "My Leaves", icon: DocumentTextIcon },
-    { path: "/leave-balance", label: "Leave Balance", icon: ClipboardDocumentListIcon },
-    { path: "/org-hierarchy", label: "Org Hierarchy", icon: RectangleGroupIcon },
+    {
+      path: "/leave-balance",
+      label: "Leave Balance",
+      icon: ClipboardDocumentListIcon,
+    },
+    {
+      path: "/org-hierarchy",
+      label: "Org Hierarchy",
+      icon: RectangleGroupIcon,
+    },
+    { path: "/calendar", label: "Leave Calendar", icon: CalendarIcon }, // <-- NEW
     { path: "/change-password", label: "Change Password", icon: KeyIcon },
   ];
 
@@ -72,13 +84,21 @@ export default function Sidebar() {
     { path: "/employees", label: "Employees", icon: UserGroupIcon },
     { path: "/pending-leaves", label: "Pending Leaves", icon: ClockIcon },
     { path: "/holidays", label: "Holidays", icon: SunIcon },
-    { path: "/admin/carry-forward", label: "Carry Forward", icon: Cog6ToothIcon },
+    {
+      path: "/admin/carry-forward",
+      label: "Carry Forward",
+      icon: Cog6ToothIcon,
+    },
   ];
 
   const managerMenu = [
     { path: "/manager/team", label: "My Team", icon: UserGroupIcon },
     { path: "/manager/pending-leaves", label: "Team Pending", icon: ClockIcon },
-    { path: "/manager/leave-balances", label: "Team Balances", icon: ChartBarSquareIcon },
+    {
+      path: "/manager/leave-balances",
+      label: "Team Balances",
+      icon: ChartBarSquareIcon,
+    },
   ];
 
   const toggleSidebar = () => setCollapsed(!collapsed);
@@ -98,14 +118,17 @@ export default function Sidebar() {
           className={`
             relative flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200
             ${collapsed ? "justify-center" : "justify-start"}
-            ${active
-              ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30"
-              : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+            ${
+              active
+                ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30"
+                : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
             }
             cursor-pointer group
           `}
         >
-          <Icon className={`h-5 w-5 ${active ? "text-white" : "group-hover:text-indigo-500 dark:group-hover:text-indigo-400"} transition-colors`} />
+          <Icon
+            className={`h-5 w-5 ${active ? "text-white" : "group-hover:text-indigo-500 dark:group-hover:text-indigo-400"} transition-colors`}
+          />
           {!collapsed && (
             <motion.span
               initial={{ opacity: 0, width: 0 }}
@@ -206,7 +229,9 @@ export default function Sidebar() {
             className="flex items-center gap-2"
           >
             <div className="px-3 py-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-md flex items-center justify-center">
-              <span className="text-white font-bold text-sm tracking-tight">MBOS LMS</span>
+              <span className="text-white font-bold text-sm tracking-tight">
+                MBOS LMS
+              </span>
             </div>
           </motion.div>
         )}
@@ -233,19 +258,33 @@ export default function Sidebar() {
       {/* Navigation Menu */}
       <div className="flex-1 overflow-y-auto py-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
         <div className="space-y-4">
-          <CollapsibleSection title="MAIN" sectionKey="main" menuItems={mainMenu} />
+          <CollapsibleSection
+            title="MAIN"
+            sectionKey="main"
+            menuItems={mainMenu}
+          />
           {(user?.role === "MANAGER" || user?.role === "ADMIN") && (
-            <CollapsibleSection title="MANAGER" sectionKey="manager" menuItems={managerMenu} />
+            <CollapsibleSection
+              title="MANAGER"
+              sectionKey="manager"
+              menuItems={managerMenu}
+            />
           )}
           {isAdmin && (
-            <CollapsibleSection title="ADMIN" sectionKey="admin" menuItems={adminMenu} />
+            <CollapsibleSection
+              title="ADMIN"
+              sectionKey="admin"
+              menuItems={adminMenu}
+            />
           )}
         </div>
       </div>
 
       {/* User Profile Footer */}
       <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20">
-        <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}>
+        <div
+          className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}
+        >
           {profilePicture ? (
             <img
               src={profilePicture}
@@ -265,9 +304,40 @@ export default function Sidebar() {
               exit={{ opacity: 0, x: -10 }}
               className="flex-1 min-w-0"
             >
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{displayName}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{user?.role || "Employee"}</p>
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
+                {displayName}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {user?.role || "Employee"}
+              </p>
             </motion.div>
+          )}
+          {/* Theme Toggle Button */}
+          {!collapsed && (
+            <button
+              onClick={toggleDarkMode}
+              className="ml-auto p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Toggle dark mode"
+            >
+              {darkMode ? (
+                <SunIcon className="h-5 w-5 text-yellow-500" />
+              ) : (
+                <MoonIcon className="h-5 w-5 text-gray-600" />
+              )}
+            </button>
+          )}
+          {collapsed && (
+            <button
+              onClick={toggleDarkMode}
+              className="mt-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Toggle dark mode"
+            >
+              {darkMode ? (
+                <SunIcon className="h-5 w-5 text-yellow-500" />
+              ) : (
+                <MoonIcon className="h-5 w-5 text-gray-600" />
+              )}
+            </button>
           )}
         </div>
       </div>

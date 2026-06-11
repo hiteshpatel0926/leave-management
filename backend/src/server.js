@@ -77,8 +77,15 @@ app.listen(PORT, () => {
 const path = require("path");
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
+const calendarRoutes = require('./routes/calendarRoutes');
+app.use('/api/calendar', calendarRoutes);
+
 const cron = require("node-cron");
 const { carryForwardLeaves } = require("./utils/carryForwardLeaves");
+
+
+
+
 
 // Run on 1st April at 00:05 AM Every Year    // Explanation of the cron expression "5 0 1 4 *" (minute hour day month day-of-week):
 cron.schedule("5 0 1 4 *", async () => {

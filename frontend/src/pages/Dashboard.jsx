@@ -12,7 +12,10 @@ import {
   CalendarIcon,
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
-import { ArrowPathIcon as RefreshIcon, FunnelIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowPathIcon as RefreshIcon,
+  FunnelIcon,
+} from "@heroicons/react/24/outline";
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -74,7 +77,8 @@ export default function Dashboard() {
 
   const LeaveProgress = ({ used, total }) => {
     const percentage = total > 0 ? (used / total) * 100 : 0;
-    const color = percentage > 80 ? "red" : percentage > 60 ? "yellow" : "green";
+    const color =
+      percentage > 80 ? "red" : percentage > 60 ? "yellow" : "green";
     const colorMap = {
       red: "bg-rose-500",
       yellow: "bg-amber-500",
@@ -96,9 +100,10 @@ export default function Dashboard() {
     );
   };
 
-  const utilizationPercentage = stats.totalEntitlement > 0
-    ? Math.round((stats.usedLeaveDays / stats.totalEntitlement) * 100)
-    : 0;
+  const utilizationPercentage =
+    stats.totalEntitlement > 0
+      ? Math.round((stats.usedLeaveDays / stats.totalEntitlement) * 100)
+      : 0;
 
   return (
     <motion.div
@@ -109,7 +114,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-4 bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Dashboard
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
@@ -126,8 +131,10 @@ export default function Dashboard() {
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
               className="pl-10 pr-8 py-2.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none cursor-pointer shadow-sm"
             >
-              {availableYears.map(year => (
-                <option key={year} value={year}>{year}</option>
+              {availableYears.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
               ))}
             </select>
           </div>
@@ -149,7 +156,10 @@ export default function Dashboard() {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6"
         >
           <motion.div variants={item}>
-            <div onClick={() => navigate("/employees")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
+            <div
+              onClick={() => navigate("/employees")}
+              className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]"
+            >
               <DashboardCard
                 title="Total Employees"
                 value={stats.totalEmployees}
@@ -160,7 +170,10 @@ export default function Dashboard() {
             </div>
           </motion.div>
           <motion.div variants={item}>
-            <div onClick={() => navigate("/employees")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
+            <div
+              onClick={() => navigate("/employees")}
+              className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]"
+            >
               <DashboardCard
                 title="Active Employees"
                 value={stats.activeEmployees}
@@ -171,7 +184,10 @@ export default function Dashboard() {
             </div>
           </motion.div>
           <motion.div variants={item}>
-            <div onClick={() => navigate("/pending-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
+            <div
+              onClick={() => navigate("/pending-leaves")}
+              className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]"
+            >
               <DashboardCard
                 title="Pending Requests"
                 value={stats.pendingLeaves}
@@ -210,7 +226,10 @@ export default function Dashboard() {
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <motion.div variants={item}>
-              <div onClick={() => navigate("/leave-balance")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
+              <div
+                onClick={() => navigate("/leave-balance")}
+                className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]"
+              >
                 <DashboardCard
                   title="Accrued Monthly"
                   value={stats.totalEntitlement?.toFixed(1)}
@@ -221,7 +240,10 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <motion.div variants={item}>
-              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
+              <div
+                onClick={() => navigate("/my-leaves")}
+                className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]"
+              >
                 <DashboardCard
                   title="Used Days"
                   value={stats.usedLeaveDays?.toFixed(1)}
@@ -232,7 +254,10 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <motion.div variants={item}>
-              <div onClick={() => navigate("/leave-balance")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
+              <div
+                onClick={() => navigate("/leave-balance")}
+                className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]"
+              >
                 <DashboardCard
                   title="Remaining Balance"
                   value={stats.remainingBalance?.toFixed(1)}
@@ -243,7 +268,10 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <motion.div variants={item}>
-              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
+              <div
+                onClick={() => navigate("/my-leaves")}
+                className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]"
+              >
                 <DashboardCard
                   title="LOP Days Taken"
                   value={stats.lopDaysTaken}
@@ -255,17 +283,26 @@ export default function Dashboard() {
             </motion.div>
           </div>
 
-          <motion.div variants={item} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
+          <motion.div
+            variants={item}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6"
+          >
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <ChartBarIcon className="h-5 w-5 text-indigo-500" />
               Leave Utilization ({selectedYear})
             </h3>
-            <LeaveProgress used={stats.usedLeaveDays} total={stats.totalEntitlement} />
+            <LeaveProgress
+              used={stats.usedLeaveDays}
+              total={stats.totalEntitlement}
+            />
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <motion.div variants={item}>
-              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
+              <div
+                onClick={() => navigate("/my-leaves")}
+                className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]"
+              >
                 <DashboardCard
                   title="Pending Days"
                   value={stats.pendingLeaves}
@@ -276,7 +313,10 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <motion.div variants={item}>
-              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
+              <div
+                onClick={() => navigate("/my-leaves")}
+                className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]"
+              >
                 <DashboardCard
                   title="Approved Days"
                   value={stats.approvedLeaves}
@@ -287,7 +327,10 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <motion.div variants={item}>
-              <div onClick={() => navigate("/my-leaves")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
+              <div
+                onClick={() => navigate("/my-leaves")}
+                className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]"
+              >
                 <DashboardCard
                   title="Rejected Days"
                   value={stats.rejectedLeaves}

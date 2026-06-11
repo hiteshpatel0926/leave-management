@@ -5,33 +5,33 @@ export default function DataTable({ columns, data, title }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-card shadow-card border border-gray-100 overflow-hidden"
+      className="bg-white dark:bg-gray-800 rounded-card shadow-card border border-gray-100 dark:border-gray-700 overflow-hidden"
     >
       {title && (
-        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
         </div>
       )}
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50/80">
+          <thead className="bg-gray-50/80 dark:bg-gray-800/50">
             <tr>
               {columns.map((col, idx) => (
                 <th
                   key={idx}
-                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                 >
                   {col}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {data.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-6 py-12 text-center text-gray-500"
+                  className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
                 >
                   No records found.
                 </td>
@@ -43,12 +43,12 @@ export default function DataTable({ columns, data, title }) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: rowIdx * 0.05 }}
-                  className="hover:bg-gray-50/50 transition-colors"
+                  className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors"
                 >
                   {row.map((cell, cellIdx) => (
                     <td
                       key={cellIdx}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100"
                     >
                       {cell}
                     </td>

@@ -1,0 +1,173 @@
+/* calendar.css - Zoho theme for FullCalendar */
+
+/* ==============================================
+   1. GLOBAL STYLES (light mode default)
+   ============================================== */
+.fc {
+  --fc-border-color: #e5e7eb;        /* gray-200 */
+  --fc-button-bg-color: #0ea5e9;     /* primary-500 */
+  --fc-button-border-color: #0ea5e9;
+  --fc-button-hover-bg-color: #0284c7; /* primary-600 */
+  --fc-button-hover-border-color: #0284c7;
+  --fc-button-active-bg-color: #0284c7;
+  --fc-button-active-border-color: #0284c7;
+  --fc-today-bg-color: #f0f9ff;      /* primary-50 */
+  --fc-now-indicator-color: #0ea5e9;
+  --fc-event-bg-color: #0ea5e9;
+  --fc-event-border-color: #0ea5e9;
+  --fc-event-text-color: #ffffff;
+  --fc-page-bg-color: #ffffff;
+  --fc-neutral-bg-color: #f9fafb;    /* gray-50 */
+}
+
+/* Toolbar buttons – rounded and shadow */
+.fc .fc-button {
+  border-radius: 0.5rem !important;  /* rounded-btn */
+  font-weight: 500 !important;
+  padding: 0.5rem 1rem !important;
+  transition: all 0.2s ease !important;
+  text-transform: capitalize !important;
+}
+
+.fc .fc-button-primary:not(:disabled):hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+}
+
+/* Today button */
+.fc .fc-button-primary:focus {
+  box-shadow: 0 0 0 2px #bae6fd !important; /* primary-200 */
+}
+
+/* Toolbar title */
+.fc .fc-toolbar-title {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  color: #1f2937 !important; /* gray-800 */
+}
+
+/* Table headers */
+.fc th {
+  padding: 0.75rem !important;
+  background-color: #f9fafb !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.05em !important;
+  color: #6b7280 !important;
+  border-bottom-width: 1px !important;
+}
+
+/* Day cells */
+.fc-daygrid-day {
+  transition: background-color 0.2s;
+}
+.fc-daygrid-day:hover {
+  background-color: #f8fafc !important; /* gray-50 */
+}
+
+/* Today highlight */
+.fc-day-today {
+  background-color: var(--fc-today-bg-color) !important;
+}
+
+/* Event cards */
+.fc-event {
+  border-radius: 0.375rem !important; /* slightly smaller than btn */
+  border: none !important;
+  font-size: 0.75rem !important;
+  padding: 0.25rem 0.5rem !important;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+.fc-event:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Different status colors – we set background via JS, but can fallback */
+.fc-event.approved {
+  background-color: #10b981 !important; /* emerald-500 */
+}
+.fc-event.pending {
+  background-color: #f59e0b !important; /* amber-500 */
+}
+.fc-event.rejected {
+  background-color: #ef4444 !important; /* red-500 */
+}
+
+/* Popover (when many events in a cell) */
+.fc-popover {
+  border-radius: 0.75rem !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
+}
+.fc-popover-header {
+  background-color: #f9fafb !important;
+  border-top-left-radius: 0.75rem !important;
+  border-top-right-radius: 0.75rem !important;
+  padding: 0.5rem 0.75rem !important;
+}
+.fc-popover-title {
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+}
+
+/* List view */
+.fc-list-day-cushion {
+  background-color: #f9fafb !important;
+  font-weight: 600 !important;
+}
+.fc-list-event:hover td {
+  background-color: #f8fafc !important;
+}
+
+/* Time grid – now indicator */
+.fc-now-indicator-line {
+  border-color: var(--fc-now-indicator-color) !important;
+}
+.fc-now-indicator-arrow {
+  border-color: var(--fc-now-indicator-color) !important;
+}
+
+/* ==============================================
+   2. DARK MODE OVERRIDES
+   ============================================== */
+.dark .fc {
+  --fc-border-color: #374151;           /* gray-700 */
+  --fc-page-bg-color: #1f2937;          /* gray-800 */
+  --fc-neutral-bg-color: #111827;       /* gray-900 */
+  --fc-today-bg-color: #0c4a6e;         /* primary-900 */
+  --fc-now-indicator-color: #38bdf8;    /* primary-400 */
+}
+
+.dark .fc-toolbar-title {
+  color: #f3f4f6 !important;            /* gray-100 */
+}
+.dark .fc th {
+  background-color: #111827 !important;
+  color: #9ca3af !important;
+  border-bottom-color: #374151 !important;
+}
+.dark .fc-daygrid-day:hover {
+  background-color: #374151 !important;
+}
+.dark .fc-popover {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+}
+.dark .fc-popover-header {
+  background-color: #111827 !important;
+}
+.dark .fc-popover-title {
+  color: #f3f4f6 !important;
+}
+.dark .fc-list-day-cushion {
+  background-color: #111827 !important;
+  color: #f3f4f6 !important;
+}
+.dark .fc-list-event:hover td {
+  background-color: #374151 !important;
+}
+.dark .fc-day-today {
+  background-color: #0c4a6e !important;
+}

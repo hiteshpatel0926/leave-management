@@ -11,6 +11,11 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.20",
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/list": "^6.1.20",
+    "@fullcalendar/react": "^6.1.20",
+    "@fullcalendar/timegrid": "^6.1.20",
     "@heroicons/react": "^2.2.0",
     "alpinejs": "^3.15.12",
     "bcryptjs": "^3.0.3",
