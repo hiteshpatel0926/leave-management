@@ -1,8 +1,10 @@
 const pool = require("../config/db");
 const currentYear = new Date().getFullYear();
 const {
-  notifyAdminsNewLeave,
-  notifyEmployeeLeaveUpdate,
+  notifyLeaveSubmitted,
+  notifyLeaveApproved,
+  notifyLeaveRejected,
+  notifyLeaveCancelled,
 } = require("../utils/notificationHelper");
 
 function calculateWorkingDays(startDate, endDate, holidays) {
@@ -162,7 +164,9 @@ const applyLeave = async (req, res) => {
     );
 
     const newLeaveId = result.rows[0].id;
-    await notifyAdminsNewLeave(req, newLeaveId, employeeName, employeeId);
+    // === UPDATED: use new dedicated helper ===
+    await notifyLeaveSubmitted(req, newLeaveId, employeeId, employeeName);
+    // =======================================
 
     res.status(201).json({
       message: "Leave applied successfully",
@@ -233,7 +237,7 @@ const approveLeave = async (req, res) => {
     const adminId = req.user.userId;
 
     const leave = await pool.query(
-      `SELECT lr.*, lt.name AS leave_type, e.user_id AS employee_user_id
+      `SELECT lr.*, lt.name AS leave_type, e.user_id AS employee_user_id, e.id AS employee_id
        FROM leave_requests lr
        JOIN leave_types lt ON lt.id = lr.leave_type_id
        JOIN employees e ON e.id = lr.employee_id
@@ -266,7 +270,9 @@ const approveLeave = async (req, res) => {
 
     if (leaveRequest.status !== "PENDING") {
       console.log("Leave not pending, status:", leaveRequest.status);
-      return res.status(400).json({ message: `Leave already ${leaveRequest.status}` });
+      return res
+        .status(400)
+        .json({ message: `Leave already ${leaveRequest.status}` });
     }
 
     // Skip balance check and deduction for Leave Without Pay (id = 6)
@@ -288,12 +294,18 @@ const approveLeave = async (req, res) => {
           `SELECT annual_entitlement FROM leave_types WHERE id = $1`,
           [leaveRequest.leave_type_id],
         );
-        const defaultEntitlement = leaveTypeRes.rows[0]?.annual_entitlement || 0;
+        const defaultEntitlement =
+          leaveTypeRes.rows[0]?.annual_entitlement || 0;
         console.log("Default entitlement:", defaultEntitlement);
         await pool.query(
           `INSERT INTO leave_balances (employee_id, leave_type_id, year, entitled_days, used_days, balance_days)
            VALUES ($1, $2, $3, $4, 0, $4)`,
-          [leaveRequest.employee_id, leaveRequest.leave_type_id, leaveYear, defaultEntitlement]
+          [
+            leaveRequest.employee_id,
+            leaveRequest.leave_type_id,
+            leaveYear,
+            defaultEntitlement,
+          ],
         );
         // Refetch
         const newBalance = await pool.query(
@@ -304,7 +316,9 @@ const approveLeave = async (req, res) => {
         if (newBalance.rows.length === 0) {
           console.log("Failed to create balance row");
           await pool.query("ROLLBACK");
-          return res.status(400).json({ message: "Could not create leave balance" });
+          return res
+            .status(400)
+            .json({ message: "Could not create leave balance" });
         }
       }
 
@@ -316,11 +330,18 @@ const approveLeave = async (req, res) => {
       );
       const available = Number(currentBalance.rows[0].balance_days);
       const totalDaysNum = Number(leaveRequest.total_days);
-      console.log("Available balance:", available, "Requested days:", totalDaysNum);
+      console.log(
+        "Available balance:",
+        available,
+        "Requested days:",
+        totalDaysNum,
+      );
       if (available < totalDaysNum) {
         console.log("Insufficient balance");
         await pool.query("ROLLBACK");
-        return res.status(400).json({ message: "Insufficient balance for approval" });
+        return res
+          .status(400)
+          .json({ message: "Insufficient balance for approval" });
       }
     }
 
@@ -339,13 +360,20 @@ const approveLeave = async (req, res) => {
         `UPDATE leave_balances
          SET used_days = used_days + $1, balance_days = balance_days - $1
          WHERE employee_id = $2 AND leave_type_id = $3 AND year = $4`,
-        [totalDaysNum, leaveRequest.employee_id, leaveRequest.leave_type_id, leaveYear],
+        [
+          totalDaysNum,
+          leaveRequest.employee_id,
+          leaveRequest.leave_type_id,
+          leaveYear,
+        ],
       );
       console.log("Update rowCount:", updateResult.rowCount);
       if (updateResult.rowCount === 0) {
         console.log("No rows updated for balance deduction");
         await pool.query("ROLLBACK");
-        return res.status(400).json({ message: "Failed to update leave balance" });
+        return res
+          .status(400)
+          .json({ message: "Failed to update leave balance" });
       } else {
         console.log("Balance updated successfully");
       }
@@ -354,13 +382,23 @@ const approveLeave = async (req, res) => {
     await pool.query("COMMIT");
     console.log("Transaction committed");
 
-    // Notify employee
-    const employeeNameRes = await pool.query(
+    // ==================== UPDATED NOTIFICATION BLOCK ====================
+    const actorRes = await pool.query(
       `SELECT first_name, last_name FROM employees WHERE user_id = $1`,
-      [employeeUserId],
+      [adminId],
     );
-    const employeeName = `${employeeNameRes.rows[0].first_name} ${employeeNameRes.rows[0].last_name}`;
-    await notifyEmployeeLeaveUpdate(req, employeeUserId, leaveId, "approved", leaveTypeName, employeeName);
+    const actorName = actorRes.rows[0]
+      ? `${actorRes.rows[0].first_name} ${actorRes.rows[0].last_name}`
+      : null;
+
+    await notifyLeaveApproved(
+      req,
+      leaveId,
+      leaveRequest.employee_id,
+      adminId,
+      actorName,
+    );
+    // ================================================================
 
     res.json({ message: "Leave Approved" });
   } catch (error) {
@@ -375,7 +413,7 @@ const rejectLeave = async (req, res) => {
     const leaveId = req.params.id;
 
     const leave = await pool.query(
-      `SELECT lr.*, lt.name AS leave_type, e.user_id AS employee_user_id
+      `SELECT lr.*, lt.name AS leave_type, e.user_id AS employee_user_id, e.id AS employee_id
        FROM leave_requests lr
        JOIN leave_types lt ON lt.id = lr.leave_type_id
        JOIN employees e ON e.id = lr.employee_id
@@ -396,21 +434,23 @@ const rejectLeave = async (req, res) => {
       [leaveId],
     );
 
-    // Notify employee about rejection
-    const employeeNameRes = await pool.query(
+    // ==================== UPDATED NOTIFICATION BLOCK ====================
+    const actorRes = await pool.query(
       `SELECT first_name, last_name FROM employees WHERE user_id = $1`,
-      [employeeUserId],
+      [req.user.userId],
     );
-    const employeeName = `${employeeNameRes.rows[0].first_name} ${employeeNameRes.rows[0].last_name}`;
+    const actorName = actorRes.rows[0]
+      ? `${actorRes.rows[0].first_name} ${actorRes.rows[0].last_name}`
+      : null;
 
-    await notifyEmployeeLeaveUpdate(
+    await notifyLeaveRejected(
       req,
-      employeeUserId,
       leaveId,
-      "rejected",
-      leaveTypeName,
-      employeeName,
+      leaveRequest.employee_id,
+      req.user.userId,
+      actorName,
     );
+    // ================================================================
 
     res.json({ message: "Leave Rejected" });
   } catch (error) {
@@ -459,18 +499,10 @@ const cancelLeave = async (req, res) => {
       [leaveId],
     );
 
-    const employeeUserId = leave.employee_user_id;
-    const leaveTypeName = leave.leave_type;
+    // ==================== UPDATED NOTIFICATION BLOCK ====================
     const employeeName = `${employeeFirstName} ${employeeLastName}`;
-
-    await notifyEmployeeLeaveUpdate(
-      req,
-      employeeUserId,
-      leaveId,
-      "cancelled",
-      leaveTypeName,
-      employeeName,
-    );
+    await notifyLeaveCancelled(req, leaveId, employeeId, employeeName);
+    // ================================================================
 
     res.json({ message: "Leave cancelled successfully" });
   } catch (error) {
