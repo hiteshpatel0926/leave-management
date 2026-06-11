@@ -26,6 +26,7 @@ import {
 import api from "../services/api";
 import ImageCropUpload from "../components/ImageCropUpload";
 import { useToast } from "../context/ToastContext";
+import Swal from 'sweetalert2';
 
 export default function EmployeeDetails() {
   const { showToast } = useToast();
@@ -39,10 +40,7 @@ export default function EmployeeDetails() {
   const [currentLeavePage, setCurrentLeavePage] = useState(1);
   const [leavesPerPage, setLeavesPerPage] = useState(5);
 
-  // Award Comp Off modal state
-  const [showAwardModal, setShowAwardModal] = useState(false);
-  const [awardDays, setAwardDays] = useState("");
-  const [awardReason, setAwardReason] = useState("");
+  // Award Comp Off state (no longer needs modal)
   const [awardLoading, setAwardLoading] = useState(false);
 
   useEffect(() => {
@@ -70,37 +68,59 @@ export default function EmployeeDetails() {
   const currentUserRole = currentUser?.role || "";
 
   const awardCompOff = async () => {
-  if (!awardDays || parseFloat(awardDays) <= 0) {
-    showToast("Please enter a valid number of days", "error");
-    return;
-  }
-  setAwardLoading(true);
-  try {
-    await api.post("/employees/award-comp-off", {
-      employeeId: id,
-      days: parseFloat(awardDays),
-      reason: awardReason || "Awarded by manager/admin",
+    // Use SweetAlert2 to get days and reason
+    const { value: formValues } = await Swal.fire({
+      title: 'Award Comp Off',
+      html: `
+        <div style="text-align: left;">
+          <label for="days">Number of Days</label>
+          <input id="days" class="swal2-input" type="number" step="0.5" min="0.5" placeholder="e.g., 1 or 0.5" style="margin-top: 5px;">
+          <label for="reason" style="margin-top: 15px; display: block;">Reason (optional)</label>
+          <textarea id="reason" class="swal2-textarea" placeholder="e.g., Worked on a holiday" rows="2"></textarea>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Award',
+      confirmButtonColor: '#0ea5e9',
+      cancelButtonColor: '#6b7280',
+      preConfirm: () => {
+        const days = document.getElementById('days').value;
+        const reason = document.getElementById('reason').value;
+        if (!days || parseFloat(days) <= 0) {
+          Swal.showValidationMessage('Please enter a valid number of days');
+          return false;
+        }
+        return { days: parseFloat(days), reason: reason.trim() };
+      }
     });
-    showToast(`Successfully awarded ${awardDays} Comp Off day(s)`, "success");
-    loadEmployee();
-    setShowAwardModal(false);
-    setAwardDays("");
-    setAwardReason("");
-  } catch (error) {
-    console.error(error);
-    showToast(error.response?.data?.message || "Failed to award Comp Off", "error");
-  } finally {
-    setAwardLoading(false);
-  }
-};
+
+    if (!formValues) return;
+
+    setAwardLoading(true);
+    try {
+      await api.post("/employees/award-comp-off", {
+        employeeId: id,
+        days: formValues.days,
+        reason: formValues.reason || "Awarded by manager/admin",
+      });
+      showToast(`Successfully awarded ${formValues.days} Comp Off day(s)`, "success");
+      loadEmployee();
+    } catch (error) {
+      console.error(error);
+      showToast(error.response?.data?.message || "Failed to award Comp Off", "error");
+    } finally {
+      setAwardLoading(false);
+    }
+  };
 
   if (!employee) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="relative">
-          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-indigo-600"></div>
+          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-primary-600"></div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="h-6 w-6 rounded-full bg-indigo-100 animate-ping"></div>
+            <div className="h-6 w-6 rounded-full bg-primary-100 animate-ping"></div>
           </div>
         </div>
       </div>
@@ -512,7 +532,7 @@ export default function EmployeeDetails() {
         </div>
       </div>
 
-      {/* Leave Balances Table (all leave types) with Award Comp Off button */}
+      {/* Leave Balances Table with Award Comp Off button */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -520,11 +540,12 @@ export default function EmployeeDetails() {
           </h2>
           {(currentUserRole === "ADMIN" || currentUserRole === "MANAGER") && (
             <button
-              onClick={() => setShowAwardModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-colors"
+              onClick={awardCompOff}
+              disabled={awardLoading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-colors disabled:opacity-50"
             >
               <PlusCircleIcon className="h-4 w-4" />
-              Award Comp Off
+              {awardLoading ? "Awarding..." : "Award Comp Off"}
             </button>
           )}
         </div>
@@ -561,7 +582,7 @@ export default function EmployeeDetails() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                     {Number(balance.used_days).toFixed(1)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary-600 dark:text-primary-400">
                     {Number(balance.balance_days).toFixed(1)}
                   </td>
                 </tr>
@@ -576,7 +597,7 @@ export default function EmployeeDetails() {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5 text-indigo-500" />
+              <CalendarIcon className="h-5 w-5 text-primary-500" />
               Other Leave Entitlements
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -589,7 +610,7 @@ export default function EmployeeDetails() {
               {additionalLeaves.map((leave) => (
                 <div
                   key={leave.code}
-                  className="border-l-4 border-indigo-400 pl-4 py-2"
+                  className="border-l-4 border-primary-400 pl-4 py-2"
                 >
                   <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
                     {leave.name} ({leave.code})
@@ -740,60 +761,6 @@ export default function EmployeeDetails() {
           </div>
         )}
       </div>
-
-      {/* Award Comp Off Modal */}
-      {showAwardModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              Award Comp Off
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Number of Days
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0.5"
-                  value={awardDays}
-                  onChange={(e) => setAwardDays(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500"
-                  placeholder="e.g., 1 or 0.5"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Reason (optional)
-                </label>
-                <textarea
-                  rows="2"
-                  value={awardReason}
-                  onChange={(e) => setAwardReason(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500"
-                  placeholder="e.g., Worked on a holiday"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowAwardModal(false)}
-                className="px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={awardCompOff}
-                disabled={awardLoading}
-                className="px-4 py-2 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50"
-              >
-                {awardLoading ? "Awarding..." : "Award"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showCrop && (
         <ImageCropUpload

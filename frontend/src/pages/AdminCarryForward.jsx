@@ -3,13 +3,28 @@ import api from "../services/api";
 import { Cog6ToothIcon, ArrowPathIcon, CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { useToast } from "../context/ToastContext";
+import Swal from 'sweetalert2';
 
 export default function AdminCarryForward() {
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
 
   const handleCarryForward = async () => {
-    if (!window.confirm("⚠️ This will carry forward unused leave balances to the next year. This action cannot be undone. Are you sure?")) return;
+    // SweetAlert2 confirmation
+    const result = await Swal.fire({
+      title: 'Year‑End Carry‑Forward',
+      html: `⚠️ <strong>This action cannot be undone.</strong><br/>
+             It will transfer unused leave balances to the next year.<br/>
+             Please ensure you have a backup before proceeding.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d97706',   // amber
+      cancelButtonColor: '#6b7280',    // gray
+      confirmButtonText: 'Yes, run carry‑forward'
+    });
+
+    if (!result.isConfirmed) return;
+
     setLoading(true);
     try {
       const response = await api.post("/admin/carry-forward");
@@ -69,16 +84,6 @@ export default function AdminCarryForward() {
                 </>
               )}
             </button>
-            {message && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 text-sm">
-                <CheckCircleIcon className="h-5 w-5" /> {message}
-              </motion.div>
-            )}
-            {error && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 flex items-center gap-2 text-rose-700 dark:text-rose-400 text-sm">
-                <ExclamationTriangleIcon className="h-5 w-5" /> {error}
-              </motion.div>
-            )}
           </div>
         </div>
       </div>

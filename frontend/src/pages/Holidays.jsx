@@ -12,6 +12,7 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { useToast } from "../context/ToastContext";
+import Swal from 'sweetalert2';
 
 export default function Holidays() {
   const { showToast } = useToast();
@@ -71,7 +72,20 @@ export default function Holidays() {
   };
 
   const deleteHoliday = async (id) => {
-    if (!window.confirm("Delete this holiday?")) return;
+    // Find the holiday name for a nicer confirmation message
+    const holiday = holidays.find(h => h.id === id);
+    const result = await Swal.fire({
+      title: 'Delete Holiday?',
+      text: `Are you sure you want to delete "${holiday?.holiday_name || 'this holiday'}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, delete'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       await api.delete(`/holidays/${id}`);
       showToast("Holiday deleted successfully", "success");

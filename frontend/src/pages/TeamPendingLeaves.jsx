@@ -11,6 +11,7 @@ import {
   ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import { useToast } from "../context/ToastContext";
+import Swal from 'sweetalert2';
 
 // Stats Card Component
 const StatCard = ({ icon: Icon, label, value, colorClass }) => (
@@ -96,8 +97,22 @@ export default function TeamPendingLeaves() {
   };
 
   const approveLeave = async (id) => {
-    if (!window.confirm("Are you sure you want to approve this leave request?"))
-      return;
+    // Find the leave object to show employee name
+    const leave = leaves.find(l => l.id === id);
+    if (!leave) return;
+
+    const result = await Swal.fire({
+      title: 'Approve Leave',
+      text: `Approve ${leave.first_name} ${leave.last_name}'s leave request?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, approve'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       setActionLoading(id);
       await api.put(`/manager/team/leave/${id}`, { status: "APPROVED" });
@@ -114,8 +129,21 @@ export default function TeamPendingLeaves() {
   };
 
   const rejectLeave = async (id) => {
-    if (!window.confirm("Are you sure you want to reject this leave request?"))
-      return;
+    const leave = leaves.find(l => l.id === id);
+    if (!leave) return;
+
+    const result = await Swal.fire({
+      title: 'Reject Leave',
+      text: `Reject ${leave.first_name} ${leave.last_name}'s leave request?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, reject'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       setActionLoading(id);
       await api.put(`/manager/team/leave/${id}`, { status: "REJECTED" });

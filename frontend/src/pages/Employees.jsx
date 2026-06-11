@@ -20,6 +20,7 @@ import {
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
 import { useToast } from "../context/ToastContext";
+import Swal from "sweetalert2";
 
 export default function Employees() {
   const navigate = useNavigate();
@@ -66,11 +67,26 @@ export default function Employees() {
   };
 
   const resetPassword = async (userId) => {
-    const newPassword = prompt("Enter new password (min 6 characters)");
-    if (!newPassword || newPassword.length < 6) {
-      showToast("Password must be at least 6 characters", "error");
-      return;
-    }
+    const { value: newPassword } = await Swal.fire({
+      title: "Reset Password",
+      input: "password",
+      inputPlaceholder: "Enter new password (min 6 characters)",
+      inputAttributes: { minlength: 6 },
+      showCancelButton: true,
+      confirmButtonText: "Reset",
+      confirmButtonColor: "#0ea5e9",
+      cancelButtonColor: "#6b7280",
+      preConfirm: (password) => {
+        if (!password || password.length < 6) {
+          Swal.showValidationMessage("Password must be at least 6 characters");
+          return false;
+        }
+        return password;
+      },
+    });
+
+    if (!newPassword) return;
+
     try {
       await api.put(`/users/${userId}/reset-password`, { newPassword });
       showToast("Password reset successfully", "success");
@@ -84,10 +100,19 @@ export default function Employees() {
   };
 
   const deleteEmployee = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to deactivate this employee?",
-    );
-    if (!confirmDelete) return;
+    const employee = employees.find((emp) => emp.id === id);
+    const result = await Swal.fire({
+      title: "Deactivate Employee?",
+      text: `Are you sure you want to deactivate ${employee?.first_name || "this employee"}?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, deactivate",
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       await api.delete(`/employees/${id}`);
       showToast("Employee deactivated successfully", "success");
@@ -330,7 +355,19 @@ export default function Employees() {
           if (results.errors.length > 5)
             alertMsg += `  ... and ${results.errors.length - 5} more\n`;
         }
-        alert(alertMsg);
+        // Replace native alert with SweetAlert2 for detailed import report
+        await Swal.fire({
+          title: "Import Results",
+          html: `<pre style="text-align:left; font-size:12px;">${alertMsg}</pre>`,
+          icon:
+            results.errors.length > 0
+              ? "error"
+              : results.skipped.length > 0
+                ? "warning"
+                : "success",
+          confirmButtonText: "OK",
+          confirmButtonColor: "#0ea5e9",
+        });
         showToast(
           `Import completed: ${results.success.length} added, ${results.skipped.length} skipped, ${results.errors.length} failed`,
           results.errors.length > 0
@@ -366,9 +403,9 @@ export default function Employees() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="relative">
-          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-indigo-600"></div>
+          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-primary-600"></div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="h-6 w-6 rounded-full bg-indigo-100 animate-ping"></div>
+            <div className="h-6 w-6 rounded-full bg-primary-100 animate-ping"></div>
           </div>
         </div>
       </div>
@@ -396,7 +433,7 @@ export default function Employees() {
               onClick={() => setViewMode("table")}
               className={`px-4 py-2 text-sm rounded-md transition-all duration-200 flex items-center gap-2 ${
                 viewMode === "table"
-                  ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400 shadow-sm"
+                  ? "bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-400 shadow-sm"
                   : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
               }`}
             >
@@ -407,7 +444,7 @@ export default function Employees() {
               onClick={() => setViewMode("cards")}
               className={`px-4 py-2 text-sm rounded-md transition-all duration-200 flex items-center gap-2 ${
                 viewMode === "cards"
-                  ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400 shadow-sm"
+                  ? "bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-400 shadow-sm"
                   : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
               }`}
             >
@@ -455,7 +492,7 @@ export default function Employees() {
             placeholder="Search by name, email, or employee code..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm"
+            className="w-full pl-11 pr-4 py-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all shadow-sm"
           />
         </div>
         <div className="relative">
@@ -463,7 +500,7 @@ export default function Employees() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="pl-11 pr-8 py-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none cursor-pointer shadow-sm"
+            className="pl-11 pr-8 py-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none cursor-pointer shadow-sm"
           >
             <option value="ALL">All Status</option>
             <option value="ACTIVE">Active</option>
@@ -520,7 +557,7 @@ export default function Employees() {
                                 onError={() => handleImageError(emp.id)}
                               />
                             ) : (
-                              <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                              <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
                                 {getInitials(emp.first_name, emp.last_name)}
                               </div>
                             )}
@@ -686,7 +723,7 @@ export default function Employees() {
                           onError={() => handleImageError(emp.id)}
                         />
                       ) : (
-                        <div className="flex-shrink-0 h-14 w-14 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base font-bold shadow-sm">
+                        <div className="flex-shrink-0 h-14 w-14 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-base font-bold shadow-sm">
                           {getInitials(emp.first_name, emp.last_name)}
                         </div>
                       )}
