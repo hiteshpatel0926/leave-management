@@ -212,7 +212,7 @@ export default function Dashboard() {
             <motion.div variants={item}>
               <div onClick={() => navigate("/leave-balance")} className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]">
                 <DashboardCard
-                  title="Total Allocated"
+                  title="Accrued Monthly"
                   value={stats.totalEntitlement?.toFixed(1)}
                   color="blue"
                   icon={<CalendarIcon className="h-6 w-6" />}

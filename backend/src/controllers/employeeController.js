@@ -10,7 +10,9 @@ const getCountries = async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
@@ -24,7 +26,9 @@ const getStates = async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
@@ -38,11 +42,32 @@ const getCities = async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
 // ======================= EMPLOYEE CRUD =======================
+
+// ------------------- Helper functions for PL accrual -------------------
+function getFinancialYear(date) {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  return month >= 4 ? year : year - 1;
+}
+
+function getCreditForMonth(joinDate, year, month) {
+  const firstOfMonth = new Date(year, month - 1, 1);
+  const lastOfMonth = new Date(year, month, 0);
+  const join = new Date(joinDate);
+  if (join > lastOfMonth) return 0;
+  if (join <= firstOfMonth) return 2;
+  const joinDay = join.getDate();
+  return joinDay < 15 ? 2 : 1;
+}
+// ---------------------------------------------------------------------
+
 const createEmployee = async (req, res) => {
   try {
     await pool.query("BEGIN");
@@ -74,7 +99,9 @@ const createEmployee = async (req, res) => {
 
     if (existingUser.rows.length > 0) {
       await pool.query("ROLLBACK");
-      return res.status(400).json({ message: "Email already exists" });
+      return res.status(400).json({
+        message: "Email already exists",
+      });
     }
 
     const lastEmployee = await pool.query(
@@ -146,21 +173,76 @@ const createEmployee = async (req, res) => {
       return true;
     });
 
+    // ----- MODIFIED SECTION: handle PL separately -----
     for (const leaveType of filteredLeaveTypes) {
-      await pool.query(
-        `INSERT INTO leave_balances
-         (employee_id, leave_type_id, year, entitled_days, used_days, balance_days)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [
-          employeeId,
-          leaveType.id,
-          currentYear,
-          leaveType.annual_entitlement,
-          0,
-          leaveType.annual_entitlement,
-        ],
-      );
+      if (leaveType.code === "PL") {
+        // Compute entitled days using monthly accrual logic
+        const joinDate = new Date(joining_date);
+        const today = new Date();
+        const financialYear = getFinancialYear(today);
+        const fyStart = new Date(financialYear, 3, 1); // April 1
+
+        // Effective join date for the current financial year (cannot be before fyStart)
+        const effectiveJoinDate = joinDate < fyStart ? fyStart : joinDate;
+
+        // Calculate total monthly credits from April of financialYear up to today
+        let monthlyCredits = 0;
+        let year = financialYear;
+        let month = 4; // April
+        let currentMonth = today.getMonth() + 1;
+        let currentYear = today.getFullYear();
+
+        while (
+          year < currentYear ||
+          (year === currentYear && month <= currentMonth)
+        ) {
+          let calYear = year;
+          if (month < 4) calYear = year + 1; // Jan-Mar belong to next calendar year
+          const credit = getCreditForMonth(effectiveJoinDate, calYear, month);
+          monthlyCredits += credit;
+          month++;
+          if (month > 12) {
+            month = 1;
+            year++;
+          }
+        }
+
+        // New employee has no previous balance, so carryForward = 0
+        const entitledDays = monthlyCredits;
+
+        // Insert PL balance with financial year
+        await pool.query(
+          `INSERT INTO leave_balances
+           (employee_id, leave_type_id, year, entitled_days, used_days, balance_days, carried_over_days)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            employeeId,
+            leaveType.id,
+            financialYear,
+            entitledDays,
+            0,
+            entitledDays,
+            0,
+          ],
+        );
+      } else {
+        // All other leave types keep the original logic (calendar year + annual_entitlement)
+        await pool.query(
+          `INSERT INTO leave_balances
+           (employee_id, leave_type_id, year, entitled_days, used_days, balance_days)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            employeeId,
+            leaveType.id,
+            currentYear,
+            leaveType.annual_entitlement,
+            0,
+            leaveType.annual_entitlement,
+          ],
+        );
+      }
     }
+    // -------------------------------------------------
 
     await pool.query("COMMIT");
     res.status(201).json({
@@ -170,7 +252,9 @@ const createEmployee = async (req, res) => {
   } catch (error) {
     await pool.query("ROLLBACK");
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({
+      message: "Server Error",
+    });
   }
 };
 
@@ -213,7 +297,9 @@ const searchEmployees = async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({
+      message: "Server Error",
+    });
   }
 };
 
@@ -235,7 +321,9 @@ const getEmployees = async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({
+      message: "Server Error",
+    });
   }
 };
 
@@ -243,7 +331,7 @@ const getEmployeeById = async (req, res) => {
   const { id } = req.params;
   const userRole = req.user.role;
   const userId = req.user.userId;
-  console.log('req.user:', req.user); 
+  console.log("req.user:", req.user);
 
   try {
     let query = `
@@ -267,7 +355,9 @@ const getEmployeeById = async (req, res) => {
         [userId],
       );
       if (managerEmp.rows.length === 0) {
-        return res.status(403).json({ message: "Not authorized" });
+        return res.status(403).json({
+          message: "Not authorized",
+        });
       }
       const managerEmployeeId = managerEmp.rows[0].id;
       query += ` AND (e.manager_id = $2 OR e.id = $2)`;
@@ -276,11 +366,15 @@ const getEmployeeById = async (req, res) => {
 
     const result = await pool.query(query, params);
     if (result.rows.length === 0)
-      return res.status(404).json({ message: "Employee not found" });
+      return res.status(404).json({
+        message: "Employee not found",
+      });
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
@@ -315,7 +409,9 @@ const getEmployeeDetails = async (req, res) => {
         [userId],
       );
       if (managerEmp.rows.length === 0) {
-        return res.status(403).json({ message: "Not authorized" });
+        return res.status(403).json({
+          message: "Not authorized",
+        });
       }
       const managerEmployeeId = managerEmp.rows[0].id;
       employeeQuery += ` AND (e.manager_id = $2 OR e.id = $2)`;
@@ -324,7 +420,9 @@ const getEmployeeDetails = async (req, res) => {
 
     const employeeResult = await pool.query(employeeQuery, params);
     if (employeeResult.rows.length === 0) {
-      return res.status(404).json({ message: "Employee not found" });
+      return res.status(404).json({
+        message: "Employee not found",
+      });
     }
     const employee = employeeResult.rows[0];
 
@@ -357,7 +455,9 @@ const getEmployeeDetails = async (req, res) => {
     res.json(response);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
@@ -425,7 +525,9 @@ const updateEmployee = async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Employee not found" });
+      return res.status(404).json({
+        message: "Employee not found",
+      });
     }
 
     res.json({
@@ -434,7 +536,9 @@ const updateEmployee = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({
+      message: "Server Error",
+    });
   }
 };
 
@@ -445,12 +549,18 @@ const deleteEmployee = async (req, res) => {
       [req.params.id],
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Employee not found" });
+      return res.status(404).json({
+        message: "Employee not found",
+      });
     }
-    res.json({ message: "Employee marked inactive" });
+    res.json({
+      message: "Employee marked inactive",
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({
+      message: "Server Error",
+    });
   }
 };
 
@@ -466,7 +576,9 @@ const getPotentialManagers = async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
@@ -478,10 +590,14 @@ const updateEmployeeManager = async (req, res) => {
       managerId || null,
       employeeId,
     ]);
-    res.json({ message: "Manager updated successfully" });
+    res.json({
+      message: "Manager updated successfully",
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
@@ -496,12 +612,16 @@ const importEmployees = async (req, res) => {
       !Array.isArray(employeesData) ||
       employeesData.length === 0
     ) {
-      return res
-        .status(400)
-        .json({ message: "No valid employee data provided" });
+      return res.status(400).json({
+        message: "No valid employee data provided",
+      });
     }
 
-    const results = { success: [], errors: [], skipped: [] };
+    const results = {
+      success: [],
+      errors: [],
+      skipped: [],
+    };
     const currentYear = new Date().getFullYear();
 
     for (const emp of employeesData) {
@@ -652,9 +772,15 @@ const importEmployees = async (req, res) => {
           );
         }
 
-        results.success.push({ email: emp.email, employeeCode });
+        results.success.push({
+          email: emp.email,
+          employeeCode,
+        });
       } catch (err) {
-        results.errors.push({ email: emp.email, error: err.message });
+        results.errors.push({
+          email: emp.email,
+          error: err.message,
+        });
       }
     }
 
@@ -666,7 +792,9 @@ const importEmployees = async (req, res) => {
   } catch (error) {
     await client.query("ROLLBACK");
     console.error(error);
-    res.status(500).json({ message: "Server error during import" });
+    res.status(500).json({
+      message: "Server error during import",
+    });
   } finally {
     client.release();
   }
@@ -754,7 +882,9 @@ const exportEmployees = async (req, res) => {
     res.end();
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error during export" });
+    res.status(500).json({
+      message: "Server error during export",
+    });
   }
 };
 
@@ -764,16 +894,22 @@ const awardCompOff = async (req, res) => {
   const currentYear = new Date().getFullYear();
 
   if (!employeeId || !days || days <= 0) {
-    return res.status(400).json({ message: "Invalid request" });
+    return res.status(400).json({
+      message: "Invalid request",
+    });
   }
 
   try {
     await pool.query("BEGIN");
 
     // Get the CO leave type ID
-    const coTypeRes = await pool.query("SELECT id FROM leave_types WHERE code = 'CO'");
+    const coTypeRes = await pool.query(
+      "SELECT id FROM leave_types WHERE code = 'CO'",
+    );
     if (coTypeRes.rows.length === 0) {
-      return res.status(400).json({ message: "Comp Off leave type not found" });
+      return res.status(400).json({
+        message: "Comp Off leave type not found",
+      });
     }
     const coTypeId = coTypeRes.rows[0].id;
 
@@ -785,23 +921,28 @@ const awardCompOff = async (req, res) => {
        DO UPDATE SET entitled_days = leave_balances.entitled_days + EXCLUDED.entitled_days,
                      balance_days = leave_balances.balance_days + EXCLUDED.entitled_days
        RETURNING *`,
-      [employeeId, coTypeId, currentYear, days]
+      [employeeId, coTypeId, currentYear, days],
     );
 
     // Log the award
     await pool.query(
       `INSERT INTO comp_off_awards (employee_id, awarded_by, days, reason)
        VALUES ($1, $2, $3, $4)`,
-      [employeeId, awardedBy, days, reason || "Awarded by manager/admin"]
+      [employeeId, awardedBy, days, reason || "Awarded by manager/admin"],
     );
 
     await pool.query("COMMIT");
 
-    res.json({ message: `Awarded ${days} Comp Off day(s) successfully`, balance: balanceRes.rows[0] });
+    res.json({
+      message: `Awarded ${days} Comp Off day(s) successfully`,
+      balance: balanceRes.rows[0],
+    });
   } catch (error) {
     await pool.query("ROLLBACK");
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 

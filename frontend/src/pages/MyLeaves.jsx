@@ -3,8 +3,11 @@ import api from "../services/api";
 import DataTable from "../components/DataTable";
 import { motion } from "framer-motion";
 import { DocumentCheckIcon, FunnelIcon, XCircleIcon, CalendarIcon } from "@heroicons/react/24/outline";
+import { useToast } from "../context/ToastContext";
+import Swal from 'sweetalert2';
 
 export default function MyLeaves() {
+  const { showToast } = useToast();
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
@@ -14,13 +17,25 @@ export default function MyLeaves() {
   }, []);
 
   const cancelLeave = async (leaveId) => {
-    if (!window.confirm("Are you sure you want to cancel this leave?")) return;
+    const result = await Swal.fire({
+      title: 'Cancel Leave Request',
+      text: 'Are you sure you want to cancel this leave request?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, cancel'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       await api.put(`/leaves/${leaveId}/cancel`);
+      showToast("Leave request cancelled successfully", "success");
       loadLeaves();
     } catch (error) {
       console.error(error);
-      alert(error.response?.data?.message || "Failed to cancel leave");
+      showToast(error.response?.data?.message || "Failed to cancel leave", "error");
     }
   };
 
@@ -69,9 +84,9 @@ export default function MyLeaves() {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="relative">
-          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-indigo-600"></div>
+          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-primary-600"></div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="h-6 w-6 rounded-full bg-indigo-100 animate-ping"></div>
+            <div className="h-6 w-6 rounded-full bg-primary-100 animate-ping"></div>
           </div>
         </div>
       </div>
@@ -82,17 +97,17 @@ export default function MyLeaves() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 px-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50">
+          <div className="p-3 bg-primary-50 dark:bg-primary-900/30 rounded-2xl text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-800/50">
             <DocumentCheckIcon className="h-6 w-6" />
           </div>
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">My Leave Requests</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">Track the status of your past and present leave applications</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Track the status of your past and present leave applications</p>
           </div>
         </div>
         <div className="relative">
           <FunnelIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="pl-11 pr-8 py-2.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none shadow-sm cursor-pointer">
+          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="pl-11 pr-8 py-2.5 text-sm rounded-card border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none shadow-sm cursor-pointer">
             <option value="all">All Statuses</option>
             <option value="PENDING">Pending Approval</option>
             <option value="APPROVED">Approved</option>
@@ -103,13 +118,13 @@ export default function MyLeaves() {
       </div>
 
       {filteredLeaves.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
+        <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-card shadow-card border border-gray-100 dark:border-gray-700">
           <CalendarIcon className="mx-auto h-14 w-14 text-gray-300 dark:text-gray-600 mb-3" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">No requests found</h3>
-          <p className="mt-1 text-gray-500 dark:text-gray-400">You don't have any leave requests matching this filter.</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">You don't have any leave requests matching this filter.</p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-card shadow-card border border-gray-100 dark:border-gray-700 overflow-hidden">
           <DataTable columns={columns} data={data} />
         </div>
       )}
