@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
-const IDLE_TIMEOUT = 15 * 60 * 1000;
+const IDLE_TIMEOUT = 30 * 60 * 1000;
 const WARNING_TIMEOUT = 30 * 1000; // 30 seconds before logout
 
 export default function IdleTimer({ children }) {

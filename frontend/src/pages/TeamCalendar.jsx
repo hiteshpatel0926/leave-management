@@ -160,6 +160,15 @@ export default function TeamCalendar() {
           weekends={true}
           nowIndicator={true}
           locale="en"
+          // ----- Working hours restriction (day/week view only) -----
+          businessHours={{
+            daysOfWeek: [1, 2, 3, 4, 5], // Monday–Friday
+            startTime: "09:00",
+            endTime: "17:00",
+          }}
+          slotMinTime="09:00:00"   // earliest time shown
+          slotMaxTime="17:00:00"   // latest time shown
+          allDaySlot={false}       // hide all‑day slot (all leaves are full‑day)
         />
       </div>
     </motion.div>

@@ -164,9 +164,11 @@ const applyLeave = async (req, res) => {
     );
 
     const newLeaveId = result.rows[0].id;
-    // === UPDATED: use new dedicated helper ===
-    await notifyLeaveSubmitted(req, newLeaveId, employeeId, employeeName);
-    // =======================================
+
+    // Fire notification asynchronously (don't wait for response)
+    notifyLeaveSubmitted(req, newLeaveId, employeeId, employeeName).catch(
+      (err) => console.error("[NOTIFICATION ERROR] Submitted:", err.message),
+    );
 
     res.status(201).json({
       message: "Leave applied successfully",
@@ -261,8 +263,6 @@ const approveLeave = async (req, res) => {
     });
 
     const leaveTypeIdNum = Number(leaveRequest.leave_type_id);
-    const employeeUserId = leaveRequest.employee_user_id;
-    const leaveTypeName = leaveRequest.leave_type;
     const leaveYear = new Date(leaveRequest.start_date).getFullYear();
 
     console.log("leaveYear:", leaveYear);
@@ -382,23 +382,25 @@ const approveLeave = async (req, res) => {
     await pool.query("COMMIT");
     console.log("Transaction committed");
 
-    // ==================== UPDATED NOTIFICATION BLOCK ====================
+    // Get actor name
     const actorRes = await pool.query(
       `SELECT first_name, last_name FROM employees WHERE user_id = $1`,
       [adminId],
     );
     const actorName = actorRes.rows[0]
       ? `${actorRes.rows[0].first_name} ${actorRes.rows[0].last_name}`
-      : null;
+      : "Admin";
 
-    await notifyLeaveApproved(
+    // Fire notification asynchronously – does not block response
+    notifyLeaveApproved(
       req,
       leaveId,
       leaveRequest.employee_id,
       adminId,
       actorName,
+    ).catch((err) =>
+      console.error("[NOTIFICATION ERROR] Approved:", err.message),
     );
-    // ================================================================
 
     res.json({ message: "Leave Approved" });
   } catch (error) {
@@ -426,31 +428,30 @@ const rejectLeave = async (req, res) => {
     }
 
     const leaveRequest = leave.rows[0];
-    const employeeUserId = leaveRequest.employee_user_id;
-    const leaveTypeName = leaveRequest.leave_type;
 
     await pool.query(
       `UPDATE leave_requests SET status = 'REJECTED' WHERE id = $1`,
       [leaveId],
     );
 
-    // ==================== UPDATED NOTIFICATION BLOCK ====================
     const actorRes = await pool.query(
       `SELECT first_name, last_name FROM employees WHERE user_id = $1`,
       [req.user.userId],
     );
     const actorName = actorRes.rows[0]
       ? `${actorRes.rows[0].first_name} ${actorRes.rows[0].last_name}`
-      : null;
+      : "Admin";
 
-    await notifyLeaveRejected(
+    // Fire notification asynchronously
+    notifyLeaveRejected(
       req,
       leaveId,
       leaveRequest.employee_id,
       req.user.userId,
       actorName,
+    ).catch((err) =>
+      console.error("[NOTIFICATION ERROR] Rejected:", err.message),
     );
-    // ================================================================
 
     res.json({ message: "Leave Rejected" });
   } catch (error) {
@@ -499,10 +500,11 @@ const cancelLeave = async (req, res) => {
       [leaveId],
     );
 
-    // ==================== UPDATED NOTIFICATION BLOCK ====================
     const employeeName = `${employeeFirstName} ${employeeLastName}`;
-    await notifyLeaveCancelled(req, leaveId, employeeId, employeeName);
-    // ================================================================
+    // Fire notification asynchronously
+    notifyLeaveCancelled(req, leaveId, employeeId, employeeName).catch((err) =>
+      console.error("[NOTIFICATION ERROR] Cancelled:", err.message),
+    );
 
     res.json({ message: "Leave cancelled successfully" });
   } catch (error) {

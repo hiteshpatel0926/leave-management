@@ -1,50 +1,26 @@
 // backend/src/utils/notificationHelper.js
 const pool = require("../config/db");
 
-// ---------- Internal helpers ----------
-const getEmployeeIdFromUserId = async (userId) => {
-  const res = await pool.query(`SELECT id FROM employees WHERE user_id = $1`, [
-    userId,
-  ]);
-  return res.rows[0]?.id;
+// Helper: get direct manager user ID
+const getDirectManagerUserId = async (employeeId) => {
+  const res = await pool.query(
+    `SELECT u.id AS user_id
+     FROM employees e
+     JOIN employees m ON e.manager_id = m.id
+     JOIN users u ON m.user_id = u.id
+     WHERE e.id = $1`,
+    [employeeId],
+  );
+  return res.rows[0]?.user_id || null;
 };
 
-/**
- * Recursively get all manager user IDs above an employee.
- * Returns an array of user IDs (direct manager, skip‑level managers, up to top).
- */
-const getAllManagerUserIds = async (employeeId) => {
-  const managerIds = new Set();
-  let currentEmpId = employeeId;
-
-  while (currentEmpId) {
-    // Get the manager_id of the current employee
-    const res = await pool.query(
-      `SELECT manager_id FROM employees WHERE id = $1`,
-      [currentEmpId],
-    );
-    const managerEmpId = res.rows[0]?.manager_id;
-    if (!managerEmpId) break;
-
-    // Get the user_id of that manager employee
-    const userRes = await pool.query(
-      `SELECT user_id FROM employees WHERE id = $1`,
-      [managerEmpId],
-    );
-    const managerUserId = userRes.rows[0]?.user_id;
-    if (managerUserId) managerIds.add(managerUserId);
-
-    // Move up the chain
-    currentEmpId = managerEmpId;
-  }
-  return Array.from(managerIds);
-};
-
+// Helper: get all admin user IDs
 const getAllAdminUserIds = async () => {
   const res = await pool.query(`SELECT id FROM users WHERE role = 'ADMIN'`);
   return res.rows.map((row) => row.id);
 };
 
+// Core: create one notification + socket emit
 const createNotification = async (
   req,
   userId,
@@ -53,6 +29,7 @@ const createNotification = async (
   message,
   relatedId = null,
 ) => {
+  if (!userId) return null;
   try {
     const result = await pool.query(
       `INSERT INTO notifications (user_id, type, title, message, related_id)
@@ -62,43 +39,35 @@ const createNotification = async (
     const notification = result.rows[0];
     const io = req.app.get("io");
     if (io) io.to(`user_${userId}`).emit("new_notification", notification);
+    console.log(`[DEBUG] Notification created for user ${userId} (${type})`);
     return notification;
   } catch (err) {
-    console.error(`[NOTIFICATION] Failed for user ${userId}:`, err);
+    console.error(`[NOTIFICATION ERROR] user ${userId}:`, err.message);
     return null;
   }
 };
 
-// ---------- Public notification functions (multi‑level hierarchy) ----------
-
-// 1. Employee submits leave → notify all managers (direct + skip) + all admins
+// ---------- Submit ----------
 const notifyLeaveSubmitted = async (req, leaveId, employeeId, employeeName) => {
-  const managerIds = await getAllManagerUserIds(employeeId);
+  console.log("[DEBUG] notifyLeaveSubmitted start");
+  const managerId = await getDirectManagerUserId(employeeId);
   const adminIds = await getAllAdminUserIds();
+  const recipients = new Set([managerId, ...adminIds].filter((id) => id));
+  console.log("[DEBUG] Recipients for submit:", Array.from(recipients));
 
-  for (const mgrId of managerIds) {
+  for (const userId of recipients) {
     await createNotification(
       req,
-      mgrId,
-      "leave_submitted",
-      "Team Member Leave Request",
-      `${employeeName} has submitted a leave request awaiting your action.`,
-      leaveId,
-    );
-  }
-  for (const adminId of adminIds) {
-    await createNotification(
-      req,
-      adminId,
+      userId,
       "leave_submitted",
       "New Leave Request",
-      `${employeeName} has submitted a leave request.`,
+      `${employeeName} submitted a leave request.`,
       leaveId,
     );
   }
 };
 
-// 2. Leave approved (by manager or admin) → notify employee, all managers (except actor), all admins (except actor)
+// ---------- Approve (fixed) ----------
 const notifyLeaveApproved = async (
   req,
   leaveId,
@@ -106,58 +75,50 @@ const notifyLeaveApproved = async (
   actorUserId,
   actorName,
 ) => {
+  console.log("[DEBUG] notifyLeaveApproved start");
+
+  // Get employee's user_id
   const empRes = await pool.query(
     `SELECT user_id FROM employees WHERE id = $1`,
     [employeeId],
   );
   const employeeUserId = empRes.rows[0]?.user_id;
-  if (!employeeUserId) return;
+  console.log("[DEBUG] Employee user_id:", employeeUserId);
 
-  const managerIds = await getAllManagerUserIds(employeeId);
+  const managerId = await getDirectManagerUserId(employeeId);
   const adminIds = await getAllAdminUserIds();
 
-  // Employee (if not the actor)
-  if (employeeUserId !== actorUserId) {
+  let recipients = [employeeUserId, managerId, ...adminIds].filter((id) => id);
+  console.log("[DEBUG] All potential recipients:", recipients);
+
+  // Remove actor (approver) but only if there are other recipients
+  const filtered = recipients.filter((id) => id !== actorUserId);
+  const finalRecipients = filtered.length > 0 ? filtered : recipients;
+
+  console.log("[DEBUG] Final recipients after actor filter:", finalRecipients);
+
+  if (finalRecipients.length === 0) {
+    console.error("[DEBUG] No recipients for approval – aborting");
+    return;
+  }
+
+  for (const userId of finalRecipients) {
+    const message =
+      userId === employeeUserId
+        ? "Your leave request was approved."
+        : `Leave approved by ${actorName || "an admin"}`;
     await createNotification(
       req,
-      employeeUserId,
+      userId,
       "leave_approved",
       "Leave Approved",
-      `Your leave request has been approved.`,
+      message,
       leaveId,
     );
   }
-
-  // All managers (except actor)
-  for (const mgrId of managerIds) {
-    if (mgrId !== actorUserId) {
-      await createNotification(
-        req,
-        mgrId,
-        "leave_approved",
-        "Leave Approved - Team Member",
-        `The leave request of employee has been approved.`,
-        leaveId,
-      );
-    }
-  }
-
-  // All admins (except actor)
-  for (const adminId of adminIds) {
-    if (adminId !== actorUserId) {
-      await createNotification(
-        req,
-        adminId,
-        "leave_approved",
-        "Leave Approved",
-        `Leave for employee has been approved by ${actorName || "an administrator"}.`,
-        leaveId,
-      );
-    }
-  }
 };
 
-// 3. Leave rejected – same pattern as approval
+// ---------- Reject (same pattern) ----------
 const notifyLeaveRejected = async (
   req,
   leaveId,
@@ -165,74 +126,50 @@ const notifyLeaveRejected = async (
   actorUserId,
   actorName,
 ) => {
+  console.log("[DEBUG] notifyLeaveRejected start");
   const empRes = await pool.query(
     `SELECT user_id FROM employees WHERE id = $1`,
     [employeeId],
   );
   const employeeUserId = empRes.rows[0]?.user_id;
-  if (!employeeUserId) return;
 
-  const managerIds = await getAllManagerUserIds(employeeId);
+  const managerId = await getDirectManagerUserId(employeeId);
   const adminIds = await getAllAdminUserIds();
 
-  if (employeeUserId !== actorUserId) {
+  let recipients = [employeeUserId, managerId, ...adminIds].filter((id) => id);
+  const filtered = recipients.filter((id) => id !== actorUserId);
+  const finalRecipients = filtered.length > 0 ? filtered : recipients;
+
+  for (const userId of finalRecipients) {
+    const message =
+      userId === employeeUserId
+        ? "Your leave request was rejected."
+        : `Leave rejected by ${actorName || "an admin"}`;
     await createNotification(
       req,
-      employeeUserId,
+      userId,
       "leave_rejected",
       "Leave Rejected",
-      `Your leave request has been rejected.`,
+      message,
       leaveId,
     );
-  }
-  for (const mgrId of managerIds) {
-    if (mgrId !== actorUserId) {
-      await createNotification(
-        req,
-        mgrId,
-        "leave_rejected",
-        "Leave Rejected - Team Member",
-        `The leave request of employee has been rejected.`,
-        leaveId,
-      );
-    }
-  }
-  for (const adminId of adminIds) {
-    if (adminId !== actorUserId) {
-      await createNotification(
-        req,
-        adminId,
-        "leave_rejected",
-        "Leave Rejected",
-        `Leave for employee has been rejected by ${actorName || "an administrator"}.`,
-        leaveId,
-      );
-    }
   }
 };
 
-// 4. Employee cancels own pending leave → notify all managers + all admins
+// ---------- Cancel ----------
 const notifyLeaveCancelled = async (req, leaveId, employeeId, employeeName) => {
-  const managerIds = await getAllManagerUserIds(employeeId);
+  console.log("[DEBUG] notifyLeaveCancelled start");
+  const managerId = await getDirectManagerUserId(employeeId);
   const adminIds = await getAllAdminUserIds();
+  const recipients = new Set([managerId, ...adminIds].filter((id) => id));
 
-  for (const mgrId of managerIds) {
+  for (const userId of recipients) {
     await createNotification(
       req,
-      mgrId,
-      "leave_cancelled",
-      "Leave Cancelled - Team Member",
-      `${employeeName} has cancelled their leave request.`,
-      leaveId,
-    );
-  }
-  for (const adminId of adminIds) {
-    await createNotification(
-      req,
-      adminId,
+      userId,
       "leave_cancelled",
       "Leave Cancelled",
-      `${employeeName} has cancelled their leave request.`,
+      `${employeeName} cancelled a leave request.`,
       leaveId,
     );
   }

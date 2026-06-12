@@ -1,5 +1,10 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
+const {
+  getAllManagerUserIds,
+  getAllAdminUserIds,
+  createNotification,
+} = require("../utils/notificationHelper");
 
 // ======================= LOCATION API ENDPOINTS =======================
 const getCountries = async (req, res) => {
@@ -890,7 +895,7 @@ const exportEmployees = async (req, res) => {
 
 const awardCompOff = async (req, res) => {
   const { employeeId, days, reason } = req.body;
-  const awardedBy = req.user.userId;
+  const awardedBy = req.user.userId;      // user ID of the person awarding
   const currentYear = new Date().getFullYear();
 
   if (!employeeId || !days || days <= 0) {
@@ -902,9 +907,9 @@ const awardCompOff = async (req, res) => {
   try {
     await pool.query("BEGIN");
 
-    // Get the CO leave type ID
+    // 1. Get Comp Off leave type ID
     const coTypeRes = await pool.query(
-      "SELECT id FROM leave_types WHERE code = 'CO'",
+      "SELECT id FROM leave_types WHERE code = 'CO'"
     );
     if (coTypeRes.rows.length === 0) {
       return res.status(400).json({
@@ -913,7 +918,7 @@ const awardCompOff = async (req, res) => {
     }
     const coTypeId = coTypeRes.rows[0].id;
 
-    // Update or insert leave_balances for current year
+    // 2. Update or insert leave_balances
     const balanceRes = await pool.query(
       `INSERT INTO leave_balances (employee_id, leave_type_id, year, entitled_days, used_days, balance_days)
        VALUES ($1, $2, $3, $4, 0, $4)
@@ -921,17 +926,70 @@ const awardCompOff = async (req, res) => {
        DO UPDATE SET entitled_days = leave_balances.entitled_days + EXCLUDED.entitled_days,
                      balance_days = leave_balances.balance_days + EXCLUDED.entitled_days
        RETURNING *`,
-      [employeeId, coTypeId, currentYear, days],
+      [employeeId, coTypeId, currentYear, days]
     );
 
-    // Log the award
+    // 3. Log the award (optional, if you have a comp_off_awards table)
     await pool.query(
       `INSERT INTO comp_off_awards (employee_id, awarded_by, days, reason)
        VALUES ($1, $2, $3, $4)`,
-      [employeeId, awardedBy, days, reason || "Awarded by manager/admin"],
+      [employeeId, awardedBy, days, reason || "Awarded by manager/admin"]
     );
 
     await pool.query("COMMIT");
+
+    // ========== NOTIFICATIONS ==========
+    // Get employee details
+    const empRes = await pool.query(
+      `SELECT user_id, first_name, last_name FROM employees WHERE id = $1`,
+      [employeeId]
+    );
+    const employeeUserId = empRes.rows[0]?.user_id;
+    const employeeName = `${empRes.rows[0].first_name} ${empRes.rows[0].last_name}`;
+
+    if (employeeUserId) {
+      // Notify the employee
+      await createNotification(
+        req,
+        employeeUserId,
+        "comp_off_awarded",
+        "Comp Off Awarded",
+        `You have been awarded ${days} Comp Off day(s). Reason: ${reason || "No reason provided"}`,
+        null
+      );
+
+      // Get all managers above the employee
+      const managerIds = await getAllManagerUserIds(employeeId);
+      const adminIds = await getAllAdminUserIds();
+
+      // Notify all managers (skip if manager is the same as the actor? but we keep it simple)
+      for (const mgrId of managerIds) {
+        // Optionally skip the actor if they are a manager and don't want self‑notification
+        if (mgrId === awardedBy) continue;
+        await createNotification(
+          req,
+          mgrId,
+          "comp_off_awarded",
+          "Comp Off Awarded - Team Member",
+          `${employeeName} has been awarded ${days} Comp Off day(s).`,
+          null
+        );
+      }
+
+      // Notify all admins (skip actor if they are an admin)
+      for (const adminId of adminIds) {
+        if (adminId === awardedBy) continue;
+        await createNotification(
+          req,
+          adminId,
+          "comp_off_awarded",
+          "Comp Off Awarded",
+          `${employeeName} has been awarded ${days} Comp Off day(s).`,
+          null
+        );
+      }
+    }
+    // =================================
 
     res.json({
       message: `Awarded ${days} Comp Off day(s) successfully`,
