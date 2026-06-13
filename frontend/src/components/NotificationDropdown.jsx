@@ -128,7 +128,7 @@ export default function NotificationDropdown() {
       markAsRead(notification.id);
     }
     if (notification.related_id) {
-      if (notification.type === 'leave_submitted') {
+      if (notification.type === 'LEAVE_SUBMITTED') {
         navigate(`/pending-leaves`);
       } else {
         navigate(`/my-leaves`);

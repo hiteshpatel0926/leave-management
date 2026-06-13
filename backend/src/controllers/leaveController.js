@@ -1,10 +1,10 @@
 const pool = require("../config/db");
 const currentYear = new Date().getFullYear();
 const {
-  notifySubmit,
-  notifyApprove,
-  notifyReject,
-  notifyCancel,
+  notifyLeaveSubmitted,
+  notifyLeaveApproved,
+  notifyLeaveRejected,
+  notifyLeaveCancelled,
 } = require("../utils/notificationHelper");
 
 function calculateWorkingDays(startDate, endDate, holidays) {
@@ -158,7 +158,8 @@ const applyLeave = async (req, res) => {
     const newLeaveId = result.rows[0].id;
 
     // Fire notification asynchronously
-    notifySubmit(req, newLeaveId, employeeId, employeeName).catch((err) =>
+
+    notifyLeaveSubmitted(employeeId, employeeName, newLeaveId).catch((err) =>
       console.error("[NOTIFICATION ERROR] Submitted:", err.message),
     );
 
@@ -372,15 +373,38 @@ const approveLeave = async (req, res) => {
     }
 
     await pool.query("COMMIT");
-    console.log("COMMIT done");
 
-    // SIMPLE TEST INSERT
-    const test = await pool.query(
-      `INSERT INTO notifications (user_id, type, title, message) 
-   VALUES ($1, 'test', 'TEST', 'Direct insert works') RETURNING *`,
+    console.log("AFTER COMMIT REACHED");
+
+    return res.json({
+      message: "AFTER COMMIT TEST",
+    });
+
+    const actorRes = await pool.query(
+      `
+  SELECT first_name,last_name
+  FROM employees
+  WHERE user_id = $1
+  `,
       [adminId],
     );
-    console.log("TEST INSERT RESULT:", test.rows[0]);
+
+    const actorName = actorRes.rows.length
+      ? `${actorRes.rows[0].first_name} ${actorRes.rows[0].last_name}`
+      : "Admin";
+
+    console.log("=== APPROVAL NOTIFICATION START ===");
+
+    notifyLeaveApproved(
+      leaveRequest.employee_id,
+      adminId,
+      actorName,
+      leaveId,
+    ).catch((err) =>
+      console.error("[NOTIFICATION ERROR] Approved:", err.message),
+    );
+
+    console.log("=== APPROVAL NOTIFICATION END ===");
 
     res.json({ message: "Leave Approved" });
   } catch (error) {
@@ -423,15 +447,17 @@ const rejectLeave = async (req, res) => {
       : "Admin";
 
     // Fire notification asynchronously
-    notifyReject(
-      req,
-      leaveId,
+    console.log("=== REJECTION NOTIFICATION START ===");
+
+    notifyLeaveRejected(
       leaveRequest.employee_id,
       req.user.userId,
       actorName,
+      leaveId,
     ).catch((err) =>
       console.error("[NOTIFICATION ERROR] Rejected:", err.message),
     );
+    console.log("=== REJECTION NOTIFICATION END ===");
 
     res.json({ message: "Leave Rejected" });
   } catch (error) {
@@ -482,7 +508,7 @@ const cancelLeave = async (req, res) => {
 
     const employeeName = `${employeeFirstName} ${employeeLastName}`;
     // Fire notification asynchronously
-    notifyCancel(req, leaveId, employeeId, employeeName).catch((err) =>
+    notifyLeaveCancelled(employeeId, employeeName, leaveId).catch((err) =>
       console.error("[NOTIFICATION ERROR] Cancelled:", err.message),
     );
 
