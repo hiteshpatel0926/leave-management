@@ -1,9 +1,11 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 const {
-  getAllManagerUserIds,
-  getAllAdminUserIds,
-  createNotification,
+  sendNotification,
+  notifySubmit,
+  notifyApprove,
+  notifyReject,
+  notifyCancel,
 } = require("../utils/notificationHelper");
 
 // ======================= LOCATION API ENDPOINTS =======================
@@ -899,37 +901,30 @@ const awardCompOff = async (req, res) => {
   const currentYear = new Date().getFullYear();
 
   if (!employeeId || !days || days <= 0) {
-    return res.status(400).json({
-      message: "Invalid request",
-    });
+    return res.status(400).json({ message: "Invalid request" });
   }
 
   try {
     await pool.query("BEGIN");
 
     // 1. Get Comp Off leave type ID
-    const coTypeRes = await pool.query(
-      "SELECT id FROM leave_types WHERE code = 'CO'"
-    );
+    const coTypeRes = await pool.query("SELECT id FROM leave_types WHERE code = 'CO'");
     if (coTypeRes.rows.length === 0) {
-      return res.status(400).json({
-        message: "Comp Off leave type not found",
-      });
+      return res.status(400).json({ message: "Comp Off leave type not found" });
     }
     const coTypeId = coTypeRes.rows[0].id;
 
     // 2. Update or insert leave_balances
-    const balanceRes = await pool.query(
+    await pool.query(
       `INSERT INTO leave_balances (employee_id, leave_type_id, year, entitled_days, used_days, balance_days)
        VALUES ($1, $2, $3, $4, 0, $4)
        ON CONFLICT (employee_id, leave_type_id, year)
        DO UPDATE SET entitled_days = leave_balances.entitled_days + EXCLUDED.entitled_days,
-                     balance_days = leave_balances.balance_days + EXCLUDED.entitled_days
-       RETURNING *`,
+                     balance_days = leave_balances.balance_days + EXCLUDED.entitled_days`,
       [employeeId, coTypeId, currentYear, days]
     );
 
-    // 3. Log the award (optional, if you have a comp_off_awards table)
+    // 3. Log the award (assumes comp_off_awards table exists)
     await pool.query(
       `INSERT INTO comp_off_awards (employee_id, awarded_by, days, reason)
        VALUES ($1, $2, $3, $4)`,
@@ -949,7 +944,7 @@ const awardCompOff = async (req, res) => {
 
     if (employeeUserId) {
       // Notify the employee
-      await createNotification(
+      await sendNotification(
         req,
         employeeUserId,
         "comp_off_awarded",
@@ -958,32 +953,29 @@ const awardCompOff = async (req, res) => {
         null
       );
 
-      // Get all managers above the employee
-      const managerIds = await getAllManagerUserIds(employeeId);
-      const adminIds = await getAllAdminUserIds();
+      // Get direct manager user_id
+      const managerResult = await pool.query(`
+        SELECT u.id as user_id
+        FROM employees e
+        JOIN employees m ON e.manager_id = m.id
+        JOIN users u ON m.user_id = u.id
+        WHERE e.id = $1
+      `, [employeeId]);
+      const managerId = managerResult.rows[0]?.user_id;
 
-      // Notify all managers (skip if manager is the same as the actor? but we keep it simple)
-      for (const mgrId of managerIds) {
-        // Optionally skip the actor if they are a manager and don't want self‑notification
-        if (mgrId === awardedBy) continue;
-        await createNotification(
+      // Get all admins
+      const adminResult = await pool.query(`SELECT id FROM users WHERE role = 'ADMIN'`);
+      const adminIds = adminResult.rows.map(r => r.id);
+
+      // Combine recipients (manager + admins) excluding the awarder
+      const recipients = new Set([managerId, ...adminIds].filter(id => id && id !== awardedBy));
+
+      for (const userId of recipients) {
+        await sendNotification(
           req,
-          mgrId,
+          userId,
           "comp_off_awarded",
           "Comp Off Awarded - Team Member",
-          `${employeeName} has been awarded ${days} Comp Off day(s).`,
-          null
-        );
-      }
-
-      // Notify all admins (skip actor if they are an admin)
-      for (const adminId of adminIds) {
-        if (adminId === awardedBy) continue;
-        await createNotification(
-          req,
-          adminId,
-          "comp_off_awarded",
-          "Comp Off Awarded",
           `${employeeName} has been awarded ${days} Comp Off day(s).`,
           null
         );
@@ -991,16 +983,11 @@ const awardCompOff = async (req, res) => {
     }
     // =================================
 
-    res.json({
-      message: `Awarded ${days} Comp Off day(s) successfully`,
-      balance: balanceRes.rows[0],
-    });
+    res.json({ message: `Awarded ${days} Comp Off day(s) successfully` });
   } catch (error) {
     await pool.query("ROLLBACK");
     console.error(error);
-    res.status(500).json({
-      message: "Server error",
-    });
+    res.status(500).json({ message: "Server error" });
   }
 };
 

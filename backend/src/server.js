@@ -21,12 +21,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    credentials: true,
-  },
-});
+const io = new Server(server, { cors: {origin: process.env.FRONTEND_URL || "http://localhost:5173",credentials: true,},});
 
 app.use(cors());
 app.use(express.json());
@@ -46,11 +41,7 @@ app.use("/api/manager", require("./routes/managerRoutes"));
 // Make io accessible in routes/controllers
 app.set("io", io);
 
-app.get("/", (req, res) => {
-  res.json({
-    message: "Leave Management API Running",
-  });
-});
+app.get("/", (req, res) => {res.json({message: "Leave Management API Running",});});
 
 // Socket.IO connection handling
 io.on("connection", (socket) => {

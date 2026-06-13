@@ -1,10 +1,10 @@
 const pool = require("../config/db");
 const currentYear = new Date().getFullYear();
 const {
-  notifyLeaveSubmitted,
-  notifyLeaveApproved,
-  notifyLeaveRejected,
-  notifyLeaveCancelled,
+  notifySubmit,
+  notifyApprove,
+  notifyReject,
+  notifyCancel,
 } = require("../utils/notificationHelper");
 
 function calculateWorkingDays(startDate, endDate, holidays) {
@@ -85,14 +85,6 @@ const applyLeave = async (req, res) => {
         .json({ message: "End date cannot be before start date" });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (startDate < today) {
-      return res
-        .status(400)
-        .json({ message: "Cannot apply leave for past dates" });
-    }
-
     // Validate leave type
     const leaveType = await pool.query(
       `SELECT * FROM leave_types WHERE id = $1`,
@@ -165,9 +157,9 @@ const applyLeave = async (req, res) => {
 
     const newLeaveId = result.rows[0].id;
 
-    // Fire notification asynchronously (don't wait for response)
-    notifyLeaveSubmitted(req, newLeaveId, employeeId, employeeName).catch(
-      (err) => console.error("[NOTIFICATION ERROR] Submitted:", err.message),
+    // Fire notification asynchronously
+    notifySubmit(req, newLeaveId, employeeId, employeeName).catch((err) =>
+      console.error("[NOTIFICATION ERROR] Submitted:", err.message),
     );
 
     res.status(201).json({
@@ -228,7 +220,7 @@ const getPendingLeaves = async (req, res) => {
 };
 
 const approveLeave = async (req, res) => {
-  console.log("=== approveLeave called ===");
+  console.log("🔥🔥🔥 APPROVE LEAVE CONTROLLER EXECUTING 🔥🔥🔥");
   console.log("Leave ID:", req.params.id);
   console.log("Admin user ID:", req.user.userId);
 
@@ -380,27 +372,15 @@ const approveLeave = async (req, res) => {
     }
 
     await pool.query("COMMIT");
-    console.log("Transaction committed");
+    console.log("COMMIT done");
 
-    // Get actor name
-    const actorRes = await pool.query(
-      `SELECT first_name, last_name FROM employees WHERE user_id = $1`,
+    // SIMPLE TEST INSERT
+    const test = await pool.query(
+      `INSERT INTO notifications (user_id, type, title, message) 
+   VALUES ($1, 'test', 'TEST', 'Direct insert works') RETURNING *`,
       [adminId],
     );
-    const actorName = actorRes.rows[0]
-      ? `${actorRes.rows[0].first_name} ${actorRes.rows[0].last_name}`
-      : "Admin";
-
-    // Fire notification asynchronously – does not block response
-    notifyLeaveApproved(
-      req,
-      leaveId,
-      leaveRequest.employee_id,
-      adminId,
-      actorName,
-    ).catch((err) =>
-      console.error("[NOTIFICATION ERROR] Approved:", err.message),
-    );
+    console.log("TEST INSERT RESULT:", test.rows[0]);
 
     res.json({ message: "Leave Approved" });
   } catch (error) {
@@ -443,7 +423,7 @@ const rejectLeave = async (req, res) => {
       : "Admin";
 
     // Fire notification asynchronously
-    notifyLeaveRejected(
+    notifyReject(
       req,
       leaveId,
       leaveRequest.employee_id,
@@ -502,7 +482,7 @@ const cancelLeave = async (req, res) => {
 
     const employeeName = `${employeeFirstName} ${employeeLastName}`;
     // Fire notification asynchronously
-    notifyLeaveCancelled(req, leaveId, employeeId, employeeName).catch((err) =>
+    notifyCancel(req, leaveId, employeeId, employeeName).catch((err) =>
       console.error("[NOTIFICATION ERROR] Cancelled:", err.message),
     );
 
