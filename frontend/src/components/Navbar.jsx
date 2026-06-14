@@ -12,7 +12,7 @@ import {
 import { getImageUrl } from "../utils/imageHelper";
 import api from "../services/api";
 import logo from "../assets/ALOPEX.jpg";
-import NotificationDropdown from './NotificationDropdown';
+import NotificationDropdown from "./NotificationDropdown";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -48,12 +48,14 @@ export default function Navbar() {
     if (storedUser) {
       const parsed = JSON.parse(storedUser);
       setUser(parsed);
-      if (parsed.profile_picture) setProfilePicture(getImageUrl(parsed.profile_picture));
+      if (parsed.profile_picture)
+        setProfilePicture(getImageUrl(parsed.profile_picture));
     }
     fetchUserProfile();
 
     window.addEventListener("profile-updated", fetchUserProfile);
-    return () => window.removeEventListener("profile-updated", fetchUserProfile);
+    return () =>
+      window.removeEventListener("profile-updated", fetchUserProfile);
   }, []);
 
   useEffect(() => {
@@ -89,16 +91,26 @@ export default function Navbar() {
     >
       <div className="px-4 md:px-8 py-2.5 flex items-center justify-between">
         {/* Logo */}
-        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate("/dashboard")}>
-          <div className="relative">
-            <img src={logo} alt="Alopexcare Logo" className="h-12 w-auto object-contain rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-105" />
-            <div className="absolute inset-0 rounded-xl ring-2 ring-transparent group-hover:ring-indigo-500/40 transition-all duration-300"></div>
+        <div
+          className="flex items-center gap-3 cursor-pointer group"
+          onClick={() => navigate("/dashboard")}
+        >
+          <div className="relative dark:bg-gray-800 dark:rounded-xl dark:p-1">
+            <img
+              src={logo}
+              alt="Alopexcare Logo"
+              className="h-12 w-auto object-contain rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-105"
+            />
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">Alopexcare</h1>
+            <h1 className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+              Alopexcare
+            </h1>
             <div className="flex items-center gap-1.5">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Leave Management</p>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                Leave Management
+              </p>
             </div>
           </div>
         </div>
@@ -128,7 +140,9 @@ export default function Navbar() {
                 <p className="text-sm font-semibold text-gray-800 dark:text-white">
                   {getGreeting()}, {firstName}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {user?.email}
+                </p>
               </div>
               <ChevronDownIcon
                 className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${
@@ -156,19 +170,28 @@ export default function Navbar() {
                   </div>
                   <div className="py-1">
                     <button
-                      onClick={() => { setShowDropdown(false); navigate("/dashboard"); }}
+                      onClick={() => {
+                        setShowDropdown(false);
+                        navigate("/dashboard");
+                      }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       <HomeIcon className="h-4 w-4" /> Dashboard
                     </button>
                     <button
-                      onClick={() => { setShowDropdown(false); navigate("/profile"); }}
+                      onClick={() => {
+                        setShowDropdown(false);
+                        navigate("/profile");
+                      }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       <UserIcon className="h-4 w-4" /> My Profile
                     </button>
                     <button
-                      onClick={() => { setShowDropdown(false); navigate("/change-password"); }}
+                      onClick={() => {
+                        setShowDropdown(false);
+                        navigate("/change-password");
+                      }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       <KeyIcon className="h-4 w-4" /> Change Password

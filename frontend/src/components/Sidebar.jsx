@@ -20,6 +20,7 @@ import {
   ChartBarSquareIcon,
   RectangleGroupIcon,
   MoonIcon,
+  ComputerDesktopIcon,
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
 import { getImageUrl } from "../utils/imageHelper";
@@ -29,8 +30,9 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [user, setUser] = useState(null);
   const [profilePicture, setProfilePicture] = useState(null);
-  const { darkMode, toggleDarkMode } = useTheme();
+  const { darkMode, toggleDarkMode, themeMode, setThemeMode } = useTheme();
   const location = useLocation();
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
 
   const [expandedSections, setExpandedSections] = useState({
     main: true,
@@ -76,7 +78,7 @@ export default function Sidebar() {
       label: "Org Hierarchy",
       icon: RectangleGroupIcon,
     },
-    { path: "/calendar", label: "Leave Calendar", icon: CalendarIcon }, // <-- NEW
+    { path: "/calendar", label: "Leave Calendar", icon: CalendarIcon },
     { path: "/change-password", label: "Change Password", icon: KeyIcon },
   ];
 
@@ -104,6 +106,11 @@ export default function Sidebar() {
   const toggleSidebar = () => setCollapsed(!collapsed);
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const handleThemeChange = (mode) => {
+    setThemeMode(mode);
+    setShowThemeMenu(false);
   };
 
   const MenuItem = ({ item }) => {
@@ -213,11 +220,17 @@ export default function Sidebar() {
   const displayName = user?.first_name || user?.name || "User";
   const firstLetter = displayName.charAt(0).toUpperCase();
 
+  const getThemeIcon = () => {
+    if (themeMode === 'dark') return <MoonIcon className="h-5 w-5" />;
+    if (themeMode === 'light') return <SunIcon className="h-5 w-5" />;
+    return <ComputerDesktopIcon className="h-5 w-5" />;
+  };
+
   return (
     <motion.aside
       initial={false}
       animate={{ width: collapsed ? 80 : 280 }}
-      className="relative h-screen bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-r border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300 z-20 shadow-xl"
+      className="relative h-screen bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-r border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300 z-20 shadow-xl"
     >
       {/* Logo + Collapse Toggle */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
@@ -248,9 +261,9 @@ export default function Sidebar() {
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
-            <ChevronRightIcon className="h-5 w-5 text-gray-500" />
+            <ChevronRightIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           ) : (
-            <ChevronLeftIcon className="h-5 w-5 text-gray-500" />
+            <ChevronLeftIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           )}
         </button>
       </div>
@@ -281,7 +294,7 @@ export default function Sidebar() {
       </div>
 
       {/* User Profile Footer */}
-      <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20">
+      <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/30">
         <div
           className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}
         >
@@ -289,7 +302,7 @@ export default function Sidebar() {
             <img
               src={profilePicture}
               alt="Profile"
-              className="flex-shrink-0 w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-md"
+              className="flex-shrink-0 w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-700 shadow-md"
               onError={() => setProfilePicture(null)}
             />
           ) : (
@@ -312,33 +325,48 @@ export default function Sidebar() {
               </p>
             </motion.div>
           )}
-          {/* Theme Toggle Button */}
-          {!collapsed && (
+          
+          {/* Theme Toggle with Dropdown Menu */}
+          <div className="relative">
             <button
-              onClick={toggleDarkMode}
-              className="ml-auto p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              aria-label="Toggle dark mode"
+              onClick={() => setShowThemeMenu(!showThemeMenu)}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Theme settings"
             >
-              {darkMode ? (
-                <SunIcon className="h-5 w-5 text-yellow-500" />
-              ) : (
-                <MoonIcon className="h-5 w-5 text-gray-600" />
-              )}
+              <div className={getThemeIcon() + " text-gray-600 dark:text-gray-400"}>
+                {getThemeIcon()}
+              </div>
             </button>
-          )}
-          {collapsed && (
-            <button
-              onClick={toggleDarkMode}
-              className="mt-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              aria-label="Toggle dark mode"
-            >
-              {darkMode ? (
-                <SunIcon className="h-5 w-5 text-yellow-500" />
-              ) : (
-                <MoonIcon className="h-5 w-5 text-gray-600" />
-              )}
-            </button>
-          )}
+            
+            {showThemeMenu && (
+              <div className="absolute bottom-full mb-2 right-0 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[140px]">
+                <button
+                  onClick={() => handleThemeChange('light')}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                >
+                  <SunIcon className="h-4 w-4" />
+                  <span className="text-gray-700 dark:text-gray-300">Light</span>
+                  {themeMode === 'light' && <span className="ml-auto text-indigo-500">✓</span>}
+                </button>
+                <button
+                  onClick={() => handleThemeChange('dark')}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                >
+                  <MoonIcon className="h-4 w-4" />
+                  <span className="text-gray-700 dark:text-gray-300">Dark</span>
+                  {themeMode === 'dark' && <span className="ml-auto text-indigo-500">✓</span>}
+                </button>
+                <button
+                  onClick={() => handleThemeChange('system')}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                >
+                  <ComputerDesktopIcon className="h-4 w-4" />
+                  <span className="text-gray-700 dark:text-gray-300">System</span>
+                  {themeMode === 'system' && <span className="ml-auto text-indigo-500">✓</span>}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </motion.aside>
