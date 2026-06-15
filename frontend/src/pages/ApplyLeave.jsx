@@ -19,6 +19,7 @@ export default function ApplyLeave() {
     start_date: "",
     end_date: "",
     reason: "",
+    session: undefined,  // for half‑day only
   });
   const [holidays, setHolidays] = useState([]);
   const [isHalfDay, setIsHalfDay] = useState(false);
@@ -33,7 +34,7 @@ export default function ApplyLeave() {
     try {
       const response = await api.get("/holidays");
       const holidayDates = response.data.map((holiday) =>
-        new Date(holiday.holiday_date).toLocaleDateString("en-CA"),
+        new Date(holiday.holiday_date).toLocaleDateString("en-CA")
       );
       setHolidays(holidayDates);
     } catch (error) {
@@ -75,7 +76,7 @@ export default function ApplyLeave() {
         const days = calculateWorkingDays(
           form.start_date,
           form.end_date,
-          holidays,
+          holidays
         );
         setTotalDays(days > 0 ? days : 0);
       }
@@ -102,9 +103,17 @@ export default function ApplyLeave() {
     if (value === "full") {
       setIsHalfDay(false);
       setHalfDayType("full");
+      setForm((prev) => ({ ...prev, session: undefined }));
     } else {
       setIsHalfDay(true);
       setHalfDayType(value);
+      // Map frontend value to backend session format
+      const sessionValue = value === "firstHalf" ? "first_half" : "second_half";
+      setForm((prev) => ({
+        ...prev,
+        session: sessionValue,
+        end_date: prev.start_date,
+      }));
       if (form.start_date && form.end_date) {
         const start = new Date(form.start_date);
         const end = new Date(form.end_date);
@@ -135,7 +144,7 @@ export default function ApplyLeave() {
       if (isWeekend || isHoliday) {
         showToast(
           "Half‑day leave cannot be applied on a weekend or holiday.",
-          "error",
+          "error"
         );
         return;
       }
@@ -144,6 +153,9 @@ export default function ApplyLeave() {
     const finalPayload = { ...form };
     if (isHalfDay) {
       finalPayload.total_days = 0.5;
+      // session is already set (first_half or second_half)
+    } else {
+      delete finalPayload.session;
     }
 
     try {
@@ -154,6 +166,7 @@ export default function ApplyLeave() {
         start_date: "",
         end_date: "",
         reason: "",
+        session: undefined,
       });
       setTotalDays(0);
       setIsHalfDay(false);
@@ -161,7 +174,7 @@ export default function ApplyLeave() {
     } catch (error) {
       showToast(
         error.response?.data?.message || "Failed to apply leave",
-        "error",
+        "error"
       );
     }
   };
@@ -180,8 +193,8 @@ export default function ApplyLeave() {
         </div>
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-  Apply Leave
-</h1>
+            Apply Leave
+          </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
             Submit a new time-off request for approval
           </p>
@@ -360,6 +373,7 @@ export default function ApplyLeave() {
                   start_date: "",
                   end_date: "",
                   reason: "",
+                  session: undefined,
                 });
                 setTotalDays(0);
                 setIsHalfDay(false);

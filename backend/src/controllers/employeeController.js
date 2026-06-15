@@ -438,7 +438,7 @@ const getEmployeeDetails = async (req, res) => {
 
     // 3. Fetch leave requests – corrected join
     const leavesResult = await pool.query(
-      `SELECT lr.id, lt.name AS leave_type, lr.start_date, lr.end_date, lr.total_days, lr.status, lr.reason
+      `SELECT lr.id, lt.name AS leave_type, lr.start_date, lr.end_date, lr.total_days, lr.status, lr.reason, lr.session
        FROM leave_requests lr
        JOIN leave_types lt ON lr.leave_type_id = lt.id
        WHERE lr.employee_id = $1

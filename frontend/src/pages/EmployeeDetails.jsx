@@ -67,6 +67,15 @@ export default function EmployeeDetails() {
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
   const currentUserRole = currentUser?.role || "";
 
+  // Helper: format session for display
+  const formatSession = (leave) => {
+    const days = parseFloat(leave.total_days);
+    if (days !== 0.5) return "Full Day";
+    if (leave.session === "first_half") return "First Half (AM)";
+    if (leave.session === "second_half") return "Second Half (PM)";
+    return "-";
+  };
+
   const awardCompOff = async () => {
     // Use SweetAlert2 to get days and reason
     const { value: formValues } = await Swal.fire({
@@ -630,7 +639,7 @@ export default function EmployeeDetails() {
         </div>
       )}
 
-      {/* Leave History Table */}
+      {/* Leave History Table (with Session column) */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -652,6 +661,9 @@ export default function EmployeeDetails() {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Days
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Session
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Status
@@ -676,6 +688,9 @@ export default function EmployeeDetails() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                     {Number(leave.total_days).toFixed(1)}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {formatSession(leave)}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span
                       className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBadge(leave.status)}`}
@@ -688,7 +703,7 @@ export default function EmployeeDetails() {
               {currentLeaves.length === 0 && (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan="6"
                     className="px-6 py-10 text-center text-sm text-gray-500"
                   >
                     No leave requests found.

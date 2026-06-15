@@ -43,15 +43,17 @@ const applyLeave = async (req, res) => {
       end_date,
       reason,
       total_days: customTotalDays,
+      session,      // <-- new field (only for half‑day)
     } = req.body;
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
     const leaveYear = startDate.getFullYear();
     const leaveTypeIdNum = Number(leave_type_id);
 
-    // Overlap check
+    // ========== UPDATED OVERLAP CHECK (supports half‑day sessions) ==========
+    // Get all overlapping leaves (same employee, date range)
     const overlapCheck = await pool.query(
-      `SELECT id, start_date, end_date, status
+      `SELECT id, start_date, end_date, status, session
        FROM leave_requests
        WHERE employee_id = $1
          AND status IN ('PENDING','APPROVED')
@@ -60,14 +62,38 @@ const applyLeave = async (req, res) => {
       [employeeId, start_date, end_date],
     );
 
-    if (overlapCheck.rows.length > 0) {
-      const existing = overlapCheck.rows[0];
-      const start = existing.start_date.toLocaleDateString("en-GB");
-      const end = existing.end_date.toLocaleDateString("en-GB");
-      return res.status(400).json({
-        message: `Overlaps with existing ${existing.status} leave (${start} - ${end})`,
-      });
+    // If this is a half‑day leave
+    if (customTotalDays === 0.5) {
+      // Validate session presence
+      if (!session || !['first_half', 'second_half'].includes(session)) {
+        return res.status(400).json({ message: "For half‑day leave, session (first_half/second_half) is required" });
+      }
+      // Check only leaves on the exact same day
+      const sameDayLeaves = overlapCheck.rows.filter(l => 
+        new Date(l.start_date).toDateString() === startDate.toDateString()
+      );
+      for (const existing of sameDayLeaves) {
+        if (existing.session === null) {
+          // Full day leave exists → conflict
+          return res.status(400).json({ message: `Cannot apply half‑day: a full day leave already exists on ${start_date}` });
+        }
+        if (existing.session === session) {
+          // Same half already occupied
+          return res.status(400).json({ message: `You already have a ${session} leave on ${start_date}` });
+        }
+      }
+    } else {
+      // Full‑day or multi‑day leave: any overlap is a conflict (including half‑day leaves)
+      if (overlapCheck.rows.length > 0) {
+        const existing = overlapCheck.rows[0];
+        const start = existing.start_date.toLocaleDateString("en-GB");
+        const end = existing.end_date.toLocaleDateString("en-GB");
+        return res.status(400).json({
+          message: `Overlaps with existing ${existing.status} leave (${start} - ${end})`,
+        });
+      }
     }
+    // ========== END OF OVERLAP UPDATE ==========
 
     // Get holidays for the leave's year
     const holidayResult = await pool.query(
@@ -146,19 +172,18 @@ const applyLeave = async (req, res) => {
       }
     }
 
-    // Insert leave request
+    // Insert leave request (include session)
     const result = await pool.query(
       `INSERT INTO leave_requests
-       (employee_id, leave_type_id, start_date, end_date, total_days, reason)
-       VALUES ($1, $2, $3, $4, $5, $6)
+       (employee_id, leave_type_id, start_date, end_date, total_days, reason, session)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [employeeId, leave_type_id, start_date, end_date, totalDays, reason],
+      [employeeId, leave_type_id, start_date, end_date, totalDays, reason, session || null],
     );
 
     const newLeaveId = result.rows[0].id;
 
     // Fire notification asynchronously
-
     notifyLeaveSubmitted(employeeId, employeeName, newLeaveId).catch((err) =>
       console.error("[NOTIFICATION ERROR] Submitted:", err.message),
     );
