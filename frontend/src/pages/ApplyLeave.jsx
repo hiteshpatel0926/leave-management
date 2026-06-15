@@ -31,16 +31,17 @@ export default function ApplyLeave() {
   }, []);
 
   const loadHolidays = async () => {
-    try {
-      const response = await api.get("/holidays");
-      const holidayDates = response.data.map((holiday) =>
-        new Date(holiday.holiday_date).toLocaleDateString("en-CA")
-      );
-      setHolidays(holidayDates);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  try {
+    const response = await api.get("/holidays");
+    // Take only the YYYY-MM-DD part from the ISO string to avoid timezone issues
+    const holidayDates = response.data.map((holiday) => 
+      holiday.holiday_date.split('T')[0]
+    );
+    setHolidays(holidayDates);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   function calculateWorkingDays(startDate, endDate, holidays) {
     let count = 0;

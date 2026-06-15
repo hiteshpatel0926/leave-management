@@ -30,7 +30,6 @@ const applyLeave = async (req, res) => {
       `SELECT id, first_name, last_name FROM employees WHERE user_id = $1`,
       [req.user.userId],
     );
-
     if (employee.rows.length === 0) {
       return res.status(404).json({ message: "Employee not found" });
     }
@@ -43,15 +42,16 @@ const applyLeave = async (req, res) => {
       end_date,
       reason,
       total_days: customTotalDays,
-      session,      // <-- new field (only for half‑day)
+      session,
     } = req.body;
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
     const leaveYear = startDate.getFullYear();
     const leaveTypeIdNum = Number(leave_type_id);
 
-    // ========== UPDATED OVERLAP CHECK (supports half‑day sessions) ==========
-    // Get all overlapping leaves (same employee, date range)
+    // -------------------------------
+    // 1. Overlap check (supports half‑day sessions)
+    // -------------------------------
     const overlapCheck = await pool.query(
       `SELECT id, start_date, end_date, status, session
        FROM leave_requests
@@ -62,28 +62,30 @@ const applyLeave = async (req, res) => {
       [employeeId, start_date, end_date],
     );
 
-    // If this is a half‑day leave
     if (customTotalDays === 0.5) {
-      // Validate session presence
-      if (!session || !['first_half', 'second_half'].includes(session)) {
-        return res.status(400).json({ message: "For half‑day leave, session (first_half/second_half) is required" });
+      if (!session || !["first_half", "second_half"].includes(session)) {
+        return res.status(400).json({
+          message:
+            "For half‑day leave, session (first_half/second_half) is required",
+        });
       }
-      // Check only leaves on the exact same day
-      const sameDayLeaves = overlapCheck.rows.filter(l => 
-        new Date(l.start_date).toDateString() === startDate.toDateString()
+      const sameDayLeaves = overlapCheck.rows.filter(
+        (l) =>
+          new Date(l.start_date).toDateString() === startDate.toDateString(),
       );
       for (const existing of sameDayLeaves) {
         if (existing.session === null) {
-          // Full day leave exists → conflict
-          return res.status(400).json({ message: `Cannot apply half‑day: a full day leave already exists on ${start_date}` });
+          return res.status(400).json({
+            message: `Cannot apply half‑day: a full day leave already exists on ${start_date}`,
+          });
         }
         if (existing.session === session) {
-          // Same half already occupied
-          return res.status(400).json({ message: `You already have a ${session} leave on ${start_date}` });
+          return res.status(400).json({
+            message: `You already have a ${session} leave on ${start_date}`,
+          });
         }
       }
     } else {
-      // Full‑day or multi‑day leave: any overlap is a conflict (including half‑day leaves)
       if (overlapCheck.rows.length > 0) {
         const existing = overlapCheck.rows[0];
         const start = existing.start_date.toLocaleDateString("en-GB");
@@ -93,25 +95,67 @@ const applyLeave = async (req, res) => {
         });
       }
     }
-    // ========== END OF OVERLAP UPDATE ==========
 
-    // Get holidays for the leave's year
+    // -------------------------------
+    // 2. Holiday & weekend check (timezone‑safe)
+    // -------------------------------
+    // Fetch holidays as plain YYYY-MM-DD strings directly from DB (no timezone conversion)
     const holidayResult = await pool.query(
-      `SELECT holiday_date FROM holidays
-       WHERE EXTRACT(YEAR FROM holiday_date) = $1`,
+      `SELECT TO_CHAR(holiday_date, 'YYYY-MM-DD') as holiday_date FROM holidays
+   WHERE EXTRACT(YEAR FROM holiday_date) = $1`,
       [leaveYear],
     );
-    const holidays = holidayResult.rows.map(
-      (h) => h.holiday_date.toISOString().split("T")[0],
-    );
+    const holidays = holidayResult.rows.map((row) => row.holiday_date);
 
+    // Helper: check if a given date (YYYY-MM-DD) is a weekend or holiday
+    const isNonWorkingDay = (dateStr) => {
+      // Parse date as UTC to avoid local timezone affecting the weekday
+      const [year, month, day] = dateStr.split("-");
+      const utcDate = new Date(Date.UTC(year, month - 1, day));
+      const dayOfWeek = utcDate.getUTCDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) return true;
+      return holidays.includes(dateStr);
+    };
+
+    // For single‑day or multi‑day, we still need to ensure at least one working day
+    let totalDays;
+    if (customTotalDays === 0.5) {
+      // half‑day: check weekend/holiday
+      if (isNonWorkingDay(start_date)) {
+        return res.status(400).json({
+          message: "Half‑day leave cannot be applied on a weekend or holiday",
+        });
+      }
+      totalDays = 0.5;
+    } else {
+      // Full or multi‑day: compute working days, but also block if every day is non‑working
+      let workingDays = 0;
+      let current = new Date(startDate);
+      const end = new Date(endDate);
+      while (current <= end) {
+        const currentStr = current.toISOString().split("T")[0];
+        if (!isNonWorkingDay(currentStr)) {
+          workingDays++;
+        }
+        current.setDate(current.getDate() + 1);
+      }
+      if (workingDays === 0) {
+        return res.status(400).json({
+          message:
+            "Selected dates contain no working days (all weekends or holidays)",
+        });
+      }
+      totalDays = workingDays;
+    }
+
+    // Validate dates
     if (startDate > endDate) {
       return res
         .status(400)
         .json({ message: "End date cannot be before start date" });
     }
 
-    // Validate leave type
+    // Leave type validation
     const leaveType = await pool.query(
       `SELECT * FROM leave_types WHERE id = $1`,
       [leave_type_id],
@@ -120,70 +164,52 @@ const applyLeave = async (req, res) => {
       return res.status(404).json({ message: "Invalid leave type" });
     }
 
-    let totalDays;
-    if (customTotalDays !== undefined && customTotalDays > 0) {
-      if (customTotalDays !== 0.5) {
-        return res.status(400).json({
-          message: "Custom total days can only be 0.5 for half‑day leave",
-        });
-      }
-      if (startDate.toDateString() !== endDate.toDateString()) {
-        return res
-          .status(400)
-          .json({ message: "Half‑day leave must be on a single day" });
-      }
-      const dayOfWeek = startDate.getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-      const isHoliday = holidays.includes(start_date);
-      if (isWeekend || isHoliday) {
-        return res.status(400).json({
-          message: "Half‑day leave cannot be applied on a weekend or holiday",
-        });
-      }
-      totalDays = customTotalDays;
-    } else {
-      totalDays = calculateWorkingDays(startDate, endDate, holidays);
-      if (totalDays <= 0) {
-        return res
-          .status(400)
-          .json({ message: "Selected dates contain no working days" });
-      }
+    // Half‑day consistency
+    if (
+      customTotalDays === 0.5 &&
+      startDate.toDateString() !== endDate.toDateString()
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Half‑day leave must be on a single day" });
     }
 
-    // Skip balance check for Leave Without Pay (id = 6)
+    // Balance check (skip for LOP)
     if (leaveTypeIdNum !== 6) {
       const balanceResult = await pool.query(
         `SELECT * FROM leave_balances
-         WHERE employee_id = $1
-           AND leave_type_id = $2
-           AND year = $3`,
+         WHERE employee_id = $1 AND leave_type_id = $2 AND year = $3`,
         [employeeId, leave_type_id, leaveYear],
       );
-
       if (balanceResult.rows.length === 0) {
         return res
           .status(400)
           .json({ message: "Leave balance not found for this year" });
       }
-
       const available = Number(balanceResult.rows[0].balance_days);
       if (totalDays > available) {
         return res.status(400).json({ message: "Insufficient leave balance" });
       }
     }
 
-    // Insert leave request (include session)
+    // Insert leave request
     const result = await pool.query(
       `INSERT INTO leave_requests
        (employee_id, leave_type_id, start_date, end_date, total_days, reason, session)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [employeeId, leave_type_id, start_date, end_date, totalDays, reason, session || null],
+      [
+        employeeId,
+        leave_type_id,
+        start_date,
+        end_date,
+        totalDays,
+        reason,
+        session || null,
+      ],
     );
 
     const newLeaveId = result.rows[0].id;
-
-    // Fire notification asynchronously
     notifyLeaveSubmitted(employeeId, employeeName, newLeaveId).catch((err) =>
       console.error("[NOTIFICATION ERROR] Submitted:", err.message),
     );
