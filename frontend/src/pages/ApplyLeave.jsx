@@ -172,10 +172,17 @@ export default function ApplyLeave() {
       setIsHalfDay(false);
       setHalfDayType("full");
     } catch (error) {
-      showToast(
-        error.response?.data?.message || "Failed to apply leave",
-        "error"
-      );
+
+      let errorMessage = error.response?.data?.message || "Failed to apply leave";
+  // Beautify half‑day conflict messages
+  const halfDayMatch = errorMessage.match(/You already have a (first_half|second_half) leave on (\d{4}-\d{2}-\d{2})/);
+  if (halfDayMatch) {
+    const session = halfDayMatch[1] === 'first_half' ? 'First Half (AM)' : 'Second Half (PM)';
+    const date = new Date(halfDayMatch[2]);
+    const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    errorMessage = `You already have a ${session} leave on ${formattedDate}.`;
+  }
+      showToast(errorMessage, "error");
     }
   };
 
