@@ -1,12 +1,6 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
-const {
-  sendNotification,
-  notifySubmit,
-  notifyApprove,
-  notifyReject,
-  notifyCancel,
-} = require("../utils/notificationHelper");
+const { notifyCompOffAwarded } = require("../utils/notificationHelper");
 
 // ======================= LOCATION API ENDPOINTS =======================
 const getCountries = async (req, res) => {
@@ -933,55 +927,17 @@ const awardCompOff = async (req, res) => {
 
     await pool.query("COMMIT");
 
-    // ========== NOTIFICATIONS ==========
-    // Get employee details
-    const empRes = await pool.query(
-      `SELECT user_id, first_name, last_name FROM employees WHERE id = $1`,
-      [employeeId]
+    // Get awarder's name
+    const awarderRes = await pool.query(
+      `SELECT first_name, last_name FROM employees WHERE user_id = $1`,
+      [awardedBy]
     );
-    const employeeUserId = empRes.rows[0]?.user_id;
-    const employeeName = `${empRes.rows[0].first_name} ${empRes.rows[0].last_name}`;
+    const awarderName = awarderRes.rows[0]
+      ? `${awarderRes.rows[0].first_name} ${awarderRes.rows[0].last_name}`
+      : "Admin";
 
-    if (employeeUserId) {
-      // Notify the employee
-      await sendNotification(
-        req,
-        employeeUserId,
-        "comp_off_awarded",
-        "Comp Off Awarded",
-        `You have been awarded ${days} Comp Off day(s). Reason: ${reason || "No reason provided"}`,
-        null
-      );
-
-      // Get direct manager user_id
-      const managerResult = await pool.query(`
-        SELECT u.id as user_id
-        FROM employees e
-        JOIN employees m ON e.manager_id = m.id
-        JOIN users u ON m.user_id = u.id
-        WHERE e.id = $1
-      `, [employeeId]);
-      const managerId = managerResult.rows[0]?.user_id;
-
-      // Get all admins
-      const adminResult = await pool.query(`SELECT id FROM users WHERE role = 'ADMIN'`);
-      const adminIds = adminResult.rows.map(r => r.id);
-
-      // Combine recipients (manager + admins) excluding the awarder
-      const recipients = new Set([managerId, ...adminIds].filter(id => id && id !== awardedBy));
-
-      for (const userId of recipients) {
-        await sendNotification(
-          req,
-          userId,
-          "comp_off_awarded",
-          "Comp Off Awarded - Team Member",
-          `${employeeName} has been awarded ${days} Comp Off day(s).`,
-          null
-        );
-      }
-    }
-    // =================================
+    // Send notifications
+    await notifyCompOffAwarded(employeeId, awardedBy, awarderName, days, reason);
 
     res.json({ message: `Awarded ${days} Comp Off day(s) successfully` });
   } catch (error) {

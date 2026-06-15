@@ -140,9 +140,57 @@ async function notifyLeaveRejected(
   }
 }
 
+// Comp Off awarded notification
+async function notifyCompOffAwarded(
+  employeeId,
+  awardedByUserId,
+  awardedByName,
+  days,
+  reason,
+) {
+  // Get employee details
+  const empRes = await pool.query(
+    `SELECT user_id, first_name, last_name FROM employees WHERE id = $1`,
+    [employeeId],
+  );
+  const employeeUserId = empRes.rows[0]?.user_id;
+  const employeeName = `${empRes.rows[0]?.first_name} ${empRes.rows[0]?.last_name}`;
+  if (!employeeUserId) {
+    console.error("Employee user_id not found for comp-off award");
+    return;
+  }
+
+  // Notify the employee
+  await createNotification(
+    employeeUserId,
+    "COMP_OFF_AWARDED",
+    "Comp Off Awarded",
+    `You have been awarded ${days} Comp Off day(s). Reason: ${reason || "No reason provided"}`,
+    null,
+  );
+
+  // Get all managers and admins
+  const managers = await getManagerUsers(employeeId);
+  const admins = await getAdminUsers();
+  const recipients = new Set([...managers, ...admins]);
+  recipients.delete(awardedByUserId); // Don't notify the person who awarded
+
+  // Notify managers and admins
+  for (const userId of recipients) {
+    await createNotification(
+      userId,
+      "COMP_OFF_AWARDED",
+      "Comp Off Awarded",
+      `${employeeName} has been awarded ${days} Comp Off day(s).`,
+      null,
+    );
+  }
+}
+
 module.exports = {
   notifyLeaveSubmitted,
   notifyLeaveApproved,
   notifyLeaveRejected,
   notifyLeaveCancelled,
+  notifyCompOffAwarded,
 };
