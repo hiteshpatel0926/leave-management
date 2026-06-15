@@ -12,6 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
 import { useSocket } from "../context/SocketContext";
+import { useAuth } from "../context/AuthContext"; // Import AuthContext
 
 export default function NotificationDropdown() {
   const [notifications, setNotifications] = useState([]);
@@ -25,14 +26,13 @@ export default function NotificationDropdown() {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const socket = useSocket();
+  const { user: currentUser } = useAuth(); // get current user from context
 
   // Play notification sound using Web Audio API (gentle "pop")
   const playNotificationSound = () => {
     if (!soundEnabled) return;
     try {
-      const audioContext = new (
-        window.AudioContext || window.webkitAudioContext
-      )();
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       oscillator.connect(gainNode);
@@ -41,17 +41,12 @@ export default function NotificationDropdown() {
       gainNode.gain.value = 0.2; // quiet
       oscillator.type = "sine";
       oscillator.start();
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.00001,
-        audioContext.currentTime + 0.5,
-      );
+      gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
       oscillator.stop(audioContext.currentTime + 0.5);
-      // Resume AudioContext if suspended (browser autoplay policy)
       if (audioContext.state === "suspended") {
         audioContext.resume();
       }
     } catch (err) {
-      // Fallback to simple beep using Audio element
       const audio = new Audio("data:audio/wav;base64,U3RlYWx0aCBzb3VuZA==");
       audio.play().catch((e) => console.log("Audio play failed", e));
     }
@@ -79,7 +74,6 @@ export default function NotificationDropdown() {
     fetchNotifications();
     fetchUnreadCount();
 
-    // Poll every 30 seconds for new notifications (optional fallback)
     const interval = setInterval(() => {
       if (isOpen) {
         fetchNotifications();
@@ -89,7 +83,6 @@ export default function NotificationDropdown() {
     return () => clearInterval(interval);
   }, []);
 
-  // Listen for real‑time notifications via Socket.IO
   useEffect(() => {
     if (!socket) return;
     const handleNewNotification = (notification) => {
@@ -117,7 +110,7 @@ export default function NotificationDropdown() {
     try {
       await api.put(`/notifications/${id}/read`);
       setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (err) {
@@ -135,33 +128,45 @@ export default function NotificationDropdown() {
     }
   };
 
+  // Role-based navigation handler
   const handleNotificationClick = (notification) => {
-    // Mark as read first
     if (!notification.is_read) {
       markAsRead(notification.id);
     }
 
-    // Comp-Off award has no related_id, handle separately
+    const currentUserRole = currentUser?.role;
+    const currentUserEmployeeId = currentUser?.employeeId;
+
+    // 1. COMP_OFF_AWARDED
     if (notification.type === "COMP_OFF_AWARDED") {
-      navigate("/leave-balance"); // change to '/my-balance' if that's your route
-    }
-    // Other notifications use related_id to navigate
-    else if (notification.related_id) {
-      switch (notification.type) {
-        case "LEAVE_SUBMITTED":
-          navigate("/pending-leaves");
-          break;
-        case "LEAVE_APPROVED":
-        case "LEAVE_REJECTED":
-        case "LEAVE_CANCELLED":
-          navigate("/my-leaves");
-          break;
-        default:
-          navigate("/dashboard");
+      const awardedEmployeeId = notification.related_id; // stored employeeId
+      if (currentUserEmployeeId && awardedEmployeeId === currentUserEmployeeId) {
+        navigate("/leave-balance"); // employee sees own balance
+      } else if (currentUserRole === "MANAGER" || currentUserRole === "ADMIN") {
+        navigate("/manager/leave-balances"); // manager/admin sees team balances page
+      } else {
+        navigate("/leave-balance"); // fallback
       }
+      setIsOpen(false);
+      return;
     }
 
-    // Close the dropdown
+    // 2. LEAVE_SUBMITTED (only managers/admins receive this)
+    if (notification.type === "LEAVE_SUBMITTED") {
+      navigate("/pending-leaves");
+      setIsOpen(false);
+      return;
+    }
+
+    // 3. LEAVE_APPROVED, LEAVE_REJECTED, LEAVE_CANCELLED
+    if (["LEAVE_APPROVED", "LEAVE_REJECTED", "LEAVE_CANCELLED"].includes(notification.type)) {
+      navigate("/Dashboard");
+      setIsOpen(false);
+      return;
+    }
+
+    // 4. Default fallback
+    navigate("/dashboard");
     setIsOpen(false);
   };
 
@@ -172,10 +177,8 @@ export default function NotificationDropdown() {
   };
 
   const getIcon = (type) => {
-    if (type.includes("approved"))
-      return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
-    if (type.includes("rejected"))
-      return <XCircleIcon className="h-5 w-5 text-red-500" />;
+    if (type.includes("approved")) return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
+    if (type.includes("rejected")) return <XCircleIcon className="h-5 w-5 text-red-500" />;
     return <ClockIcon className="h-5 w-5 text-blue-500" />;
   };
 
@@ -187,8 +190,7 @@ export default function NotificationDropdown() {
     if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins} min ago`;
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24)
-      return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
     return date.toLocaleDateString();
   };
 
@@ -219,9 +221,7 @@ export default function NotificationDropdown() {
             className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-20"
           >
             <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50/80 dark:bg-gray-900/50">
-              <h3 className="font-semibold text-gray-900 dark:text-white">
-                Notifications
-              </h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
               <div className="flex items-center gap-2">
                 <button
                   onClick={toggleSound}
@@ -255,15 +255,11 @@ export default function NotificationDropdown() {
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
                     className={`p-3 border-b border-gray-100 dark:border-gray-700 cursor-pointer transition hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
-                      !notification.is_read
-                        ? "bg-indigo-50/50 dark:bg-indigo-900/20"
-                        : ""
+                      !notification.is_read ? "bg-indigo-50/50 dark:bg-indigo-900/20" : ""
                     }`}
                   >
                     <div className="flex gap-3">
-                      <div className="flex-shrink-0 mt-0.5">
-                        {getIcon(notification.type)}
-                      </div>
+                      <div className="flex-shrink-0 mt-0.5">{getIcon(notification.type)}</div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 dark:text-white">
                           {notification.title}

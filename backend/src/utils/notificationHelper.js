@@ -154,7 +154,7 @@ async function notifyLeaveRejected(
   }
 }
 
-// Comp Off awarded notification
+// Comp Off awarded notification – with employeeId as related_id for navigation
 async function notifyCompOffAwarded(
   employeeId,
   awardedByUserId,
@@ -179,7 +179,7 @@ async function notifyCompOffAwarded(
     "COMP_OFF_AWARDED",
     "Comp Off Awarded",
     `🎉 You have been awarded ${days} Comp Off day(s). Reason: ${reason || "No reason provided"}`,
-    employeeId, // store employeeId as related_id for potential navigation
+    employeeId, // store employeeId for navigation
   );
 
   // Get all managers and admins
