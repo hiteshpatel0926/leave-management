@@ -1,10 +1,17 @@
 // frontend/src/components/NotificationDropdown.jsx
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BellIcon, CheckCircleIcon, XCircleIcon, ClockIcon, SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/react/24/outline';
-import api from '../services/api';
-import { useSocket } from '../context/SocketContext';
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  BellIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon,
+  SpeakerWaveIcon,
+  SpeakerXMarkIcon,
+} from "@heroicons/react/24/outline";
+import api from "../services/api";
+import { useSocket } from "../context/SocketContext";
 
 export default function NotificationDropdown() {
   const [notifications, setNotifications] = useState([]);
@@ -12,8 +19,8 @@ export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
-    const saved = localStorage.getItem('notification_sound_enabled');
-    return saved !== null ? saved === 'true' : true;
+    const saved = localStorage.getItem("notification_sound_enabled");
+    return saved !== null ? saved === "true" : true;
   });
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -23,43 +30,48 @@ export default function NotificationDropdown() {
   const playNotificationSound = () => {
     if (!soundEnabled) return;
     try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioContext = new (
+        window.AudioContext || window.webkitAudioContext
+      )();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       oscillator.frequency.value = 880; // A5 note
       gainNode.gain.value = 0.2; // quiet
-      oscillator.type = 'sine';
+      oscillator.type = "sine";
       oscillator.start();
-      gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.00001,
+        audioContext.currentTime + 0.5,
+      );
       oscillator.stop(audioContext.currentTime + 0.5);
       // Resume AudioContext if suspended (browser autoplay policy)
-      if (audioContext.state === 'suspended') {
+      if (audioContext.state === "suspended") {
         audioContext.resume();
       }
     } catch (err) {
       // Fallback to simple beep using Audio element
-      const audio = new Audio('data:audio/wav;base64,U3RlYWx0aCBzb3VuZA==');
-      audio.play().catch(e => console.log('Audio play failed', e));
+      const audio = new Audio("data:audio/wav;base64,U3RlYWx0aCBzb3VuZA==");
+      audio.play().catch((e) => console.log("Audio play failed", e));
     }
   };
 
   const fetchNotifications = async () => {
     try {
-      const response = await api.get('/notifications');
+      const response = await api.get("/notifications");
       setNotifications(response.data);
     } catch (err) {
-      console.error('Failed to fetch notifications:', err);
+      console.error("Failed to fetch notifications:", err);
     }
   };
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await api.get('/notifications/unread-count');
+      const response = await api.get("/notifications/unread-count");
       setUnreadCount(response.data.count);
     } catch (err) {
-      console.error('Failed to fetch unread count:', err);
+      console.error("Failed to fetch unread count:", err);
     }
   };
 
@@ -81,13 +93,13 @@ export default function NotificationDropdown() {
   useEffect(() => {
     if (!socket) return;
     const handleNewNotification = (notification) => {
-      setNotifications(prev => [notification, ...prev]);
-      setUnreadCount(prev => prev + 1);
+      setNotifications((prev) => [notification, ...prev]);
+      setUnreadCount((prev) => prev + 1);
       playNotificationSound();
     };
-    socket.on('new_notification', handleNewNotification);
+    socket.on("new_notification", handleNewNotification);
     return () => {
-      socket.off('new_notification', handleNewNotification);
+      socket.off("new_notification", handleNewNotification);
     };
   }, [socket, soundEnabled]);
 
@@ -97,55 +109,73 @@ export default function NotificationDropdown() {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const markAsRead = async (id) => {
     try {
       await api.put(`/notifications/${id}/read`);
-      setNotifications(prev =>
-        prev.map(n => (n.id === id ? { ...n, is_read: true } : n))
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (err) {
-      console.error('Failed to mark as read:', err);
+      console.error("Failed to mark as read:", err);
     }
   };
 
   const markAllAsRead = async () => {
     try {
-      await api.put('/notifications/read-all');
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      await api.put("/notifications/read-all");
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch (err) {
-      console.error('Failed to mark all as read:', err);
+      console.error("Failed to mark all as read:", err);
     }
   };
 
   const handleNotificationClick = (notification) => {
+    // Mark as read first
     if (!notification.is_read) {
       markAsRead(notification.id);
     }
-    if (notification.related_id) {
-      if (notification.type === 'LEAVE_SUBMITTED') {
-        navigate(`/pending-leaves`);
-      } else {
-        navigate(`/my-leaves`);
+
+    // Comp-Off award has no related_id, handle separately
+    if (notification.type === "COMP_OFF_AWARDED") {
+      navigate("/leave-balance"); // change to '/my-balance' if that's your route
+    }
+    // Other notifications use related_id to navigate
+    else if (notification.related_id) {
+      switch (notification.type) {
+        case "LEAVE_SUBMITTED":
+          navigate("/pending-leaves");
+          break;
+        case "LEAVE_APPROVED":
+        case "LEAVE_REJECTED":
+        case "LEAVE_CANCELLED":
+          navigate("/my-leaves");
+          break;
+        default:
+          navigate("/dashboard");
       }
     }
+
+    // Close the dropdown
     setIsOpen(false);
   };
 
   const toggleSound = () => {
     const newState = !soundEnabled;
     setSoundEnabled(newState);
-    localStorage.setItem('notification_sound_enabled', newState);
+    localStorage.setItem("notification_sound_enabled", newState);
   };
 
   const getIcon = (type) => {
-    if (type.includes('approved')) return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
-    if (type.includes('rejected')) return <XCircleIcon className="h-5 w-5 text-red-500" />;
+    if (type.includes("approved"))
+      return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
+    if (type.includes("rejected"))
+      return <XCircleIcon className="h-5 w-5 text-red-500" />;
     return <ClockIcon className="h-5 w-5 text-blue-500" />;
   };
 
@@ -154,10 +184,11 @@ export default function NotificationDropdown() {
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return 'Just now';
+    if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins} min ago`;
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffHours < 24)
+      return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
     return date.toLocaleDateString();
   };
 
@@ -188,12 +219,14 @@ export default function NotificationDropdown() {
             className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-20"
           >
             <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50/80 dark:bg-gray-900/50">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white">
+                Notifications
+              </h3>
               <div className="flex items-center gap-2">
                 <button
                   onClick={toggleSound}
                   className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-                  title={soundEnabled ? 'Mute sounds' : 'Unmute sounds'}
+                  title={soundEnabled ? "Mute sounds" : "Unmute sounds"}
                 >
                   {soundEnabled ? (
                     <SpeakerWaveIcon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
@@ -222,7 +255,9 @@ export default function NotificationDropdown() {
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
                     className={`p-3 border-b border-gray-100 dark:border-gray-700 cursor-pointer transition hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
-                      !notification.is_read ? 'bg-indigo-50/50 dark:bg-indigo-900/20' : ''
+                      !notification.is_read
+                        ? "bg-indigo-50/50 dark:bg-indigo-900/20"
+                        : ""
                     }`}
                   >
                     <div className="flex gap-3">

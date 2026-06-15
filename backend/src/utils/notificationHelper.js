@@ -46,7 +46,7 @@ async function getAdminUsers() {
   return result.rows.map((x) => x.id);
 }
 
-// Leave submitted (works)
+// Leave submitted
 async function notifyLeaveSubmitted(employeeId, employeeName, leaveId) {
   const managers = await getManagerUsers(employeeId);
   const admins = await getAdminUsers();
@@ -62,7 +62,7 @@ async function notifyLeaveSubmitted(employeeId, employeeName, leaveId) {
   }
 }
 
-// Leave cancelled (works)
+// Leave cancelled
 async function notifyLeaveCancelled(employeeId, employeeName, leaveId) {
   const managers = await getManagerUsers(employeeId);
   const admins = await getAdminUsers();
@@ -78,7 +78,7 @@ async function notifyLeaveCancelled(employeeId, employeeName, leaveId) {
   }
 }
 
-// Leave approved – fixed signature (no req)
+// Leave approved – with employee name for managers/admins
 async function notifyLeaveApproved(
   employeeId,
   actorUserId,
@@ -86,10 +86,11 @@ async function notifyLeaveApproved(
   leaveId,
 ) {
   const employee = await pool.query(
-    `SELECT user_id FROM employees WHERE id = $1`,
+    `SELECT user_id, first_name, last_name FROM employees WHERE id = $1`,
     [employeeId],
   );
   const employeeUserId = employee.rows[0]?.user_id;
+  const employeeName = `${employee.rows[0]?.first_name} ${employee.rows[0]?.last_name}`;
   if (!employeeUserId) {
     console.error("Employee user_id not found for employeeId:", employeeId);
     return;
@@ -99,17 +100,23 @@ async function notifyLeaveApproved(
   const recipients = new Set([employeeUserId, ...managers, ...admins]);
   recipients.delete(actorUserId);
   for (const userId of recipients) {
+    let message;
+    if (userId === employeeUserId) {
+      message = `✅ Your leave request has been approved by ${actorName}.`;
+    } else {
+      message = `✅ ${employeeName}'s leave request has been approved by ${actorName}.`;
+    }
     await createNotification(
       userId,
       "LEAVE_APPROVED",
       "Leave Approved",
-      `Leave approved by ${actorName}`,
+      message,
       leaveId,
     );
   }
 }
 
-// Leave rejected – fixed signature (no req)
+// Leave rejected – with employee name for managers/admins
 async function notifyLeaveRejected(
   employeeId,
   actorUserId,
@@ -117,10 +124,11 @@ async function notifyLeaveRejected(
   leaveId,
 ) {
   const employee = await pool.query(
-    `SELECT user_id FROM employees WHERE id = $1`,
+    `SELECT user_id, first_name, last_name FROM employees WHERE id = $1`,
     [employeeId],
   );
   const employeeUserId = employee.rows[0]?.user_id;
+  const employeeName = `${employee.rows[0]?.first_name} ${employee.rows[0]?.last_name}`;
   if (!employeeUserId) {
     console.error("Employee user_id not found for employeeId:", employeeId);
     return;
@@ -130,11 +138,17 @@ async function notifyLeaveRejected(
   const recipients = new Set([employeeUserId, ...managers, ...admins]);
   recipients.delete(actorUserId);
   for (const userId of recipients) {
+    let message;
+    if (userId === employeeUserId) {
+      message = `❌ Your leave request has been rejected by ${actorName}.`;
+    } else {
+      message = `❌ ${employeeName}'s leave request has been rejected by ${actorName}.`;
+    }
     await createNotification(
       userId,
       "LEAVE_REJECTED",
       "Leave Rejected",
-      `Leave rejected by ${actorName}`,
+      message,
       leaveId,
     );
   }
@@ -148,7 +162,6 @@ async function notifyCompOffAwarded(
   days,
   reason,
 ) {
-  // Get employee details
   const empRes = await pool.query(
     `SELECT user_id, first_name, last_name FROM employees WHERE id = $1`,
     [employeeId],
@@ -165,24 +178,24 @@ async function notifyCompOffAwarded(
     employeeUserId,
     "COMP_OFF_AWARDED",
     "Comp Off Awarded",
-    `You have been awarded ${days} Comp Off day(s). Reason: ${reason || "No reason provided"}`,
-    null,
+    `🎉 You have been awarded ${days} Comp Off day(s). Reason: ${reason || "No reason provided"}`,
+    employeeId, // store employeeId as related_id for potential navigation
   );
 
   // Get all managers and admins
   const managers = await getManagerUsers(employeeId);
   const admins = await getAdminUsers();
   const recipients = new Set([...managers, ...admins]);
-  recipients.delete(awardedByUserId); // Don't notify the person who awarded
+  recipients.delete(awardedByUserId);
 
-  // Notify managers and admins
+  // Notify managers and admins (include employee name)
   for (const userId of recipients) {
     await createNotification(
       userId,
       "COMP_OFF_AWARDED",
       "Comp Off Awarded",
-      `${employeeName} has been awarded ${days} Comp Off day(s).`,
-      null,
+      `🎉 ${employeeName} has been awarded ${days} Comp Off day(s). Awarded by ${awardedByName}.`,
+      employeeId, // store employeeId for role‑based navigation
     );
   }
 }

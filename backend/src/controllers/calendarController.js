@@ -6,6 +6,24 @@ const getEmployeeIdFromUserId = async (userId) => {
   return result.rows[0]?.id;
 };
 
+// Helper: get all descendant employee IDs under a manager (recursive)
+const getAllDescendantEmployeeIds = async (managerEmployeeId) => {
+  const result = await pool.query(
+    `
+    WITH RECURSIVE team_tree AS (
+      SELECT id FROM employees WHERE manager_id = $1
+      UNION ALL
+      SELECT e.id
+      FROM employees e
+      INNER JOIN team_tree tt ON e.manager_id = tt.id
+    )
+    SELECT id FROM team_tree
+    `,
+    [managerEmployeeId]
+  );
+  return result.rows.map(row => row.id);
+};
+
 const getCalendarEvents = async (req, res) => {
   try {
     const userRole = req.user.role;
@@ -15,7 +33,7 @@ const getCalendarEvents = async (req, res) => {
     let params = [];
 
     if (userRole === 'ADMIN') {
-      // Admin sees all leaves
+      // Admin sees all leaves (excluding cancelled)
       query = `
         SELECT 
           lr.id, 
@@ -40,6 +58,11 @@ const getCalendarEvents = async (req, res) => {
       if (!managerEmployeeId) {
         return res.status(404).json({ message: 'Employee record not found' });
       }
+      // Get all descendant employee IDs (entire team hierarchy)
+      const teamIds = await getAllDescendantEmployeeIds(managerEmployeeId);
+      if (teamIds.length === 0) {
+        return res.json([]);
+      }
       query = `
         SELECT 
           lr.id, 
@@ -56,10 +79,11 @@ const getCalendarEvents = async (req, res) => {
         FROM leave_requests lr
         JOIN employees e ON lr.employee_id = e.id
         JOIN leave_types lt ON lr.leave_type_id = lt.id
-        WHERE e.manager_id = $1 AND lr.status != 'CANCELLED'
+        WHERE lr.status != 'CANCELLED'
+          AND e.id = ANY($1::int[])
         ORDER BY lr.start_date ASC
       `;
-      params = [managerEmployeeId];
+      params = [teamIds];
     } else {
       // Regular employee sees only their own leaves
       const empId = await getEmployeeIdFromUserId(userId);

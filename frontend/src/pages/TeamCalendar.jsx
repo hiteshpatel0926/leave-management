@@ -38,7 +38,7 @@ export default function TeamCalendar() {
     try {
       const response = await api.get("/calendar/events");
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // normalize to start of day
+      today.setHours(0, 0, 0, 0);
 
       // Transform and compute upcoming count
       const formattedEvents = response.data.map((leave) => {
@@ -160,15 +160,16 @@ export default function TeamCalendar() {
           weekends={true}
           nowIndicator={true}
           locale="en"
-          // ----- Working hours restriction (day/week view only) -----
+          // ----- Working hours only (9am-5pm) in day/week views -----
+          allDaySlot={true} // show all-day section for leave events
+          slotMinTime="09:00:00" // timeline starts at 9 AM
+          slotMaxTime="17:00:00" // timeline ends at 5 PM
+          displayEventTime={false} // hide time for all-day events
           businessHours={{
-            daysOfWeek: [1, 2, 3, 4, 5], // Monday–Friday
+            daysOfWeek: [1, 2, 3, 4, 5],
             startTime: "09:00",
             endTime: "17:00",
           }}
-          slotMinTime="09:00:00"   // earliest time shown
-          slotMaxTime="17:00:00"   // latest time shown
-          allDaySlot={false}       // hide all‑day slot (all leaves are full‑day)
         />
       </div>
     </motion.div>

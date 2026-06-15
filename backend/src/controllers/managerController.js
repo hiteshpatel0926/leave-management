@@ -13,7 +13,25 @@ const getEmployeeIdFromUserId = async (userId) => {
   return result.rows[0]?.id;
 };
 
-// Get all direct reports (team) - unchanged
+// Helper: recursive CTE to get all descendant employee IDs under a manager
+const getAllDescendantEmployeeIds = async (managerEmployeeId) => {
+  const result = await pool.query(
+    `
+    WITH RECURSIVE team_tree AS (
+      SELECT id FROM employees WHERE manager_id = $1
+      UNION ALL
+      SELECT e.id
+      FROM employees e
+      INNER JOIN team_tree tt ON e.manager_id = tt.id
+    )
+    SELECT id FROM team_tree
+    `,
+    [managerEmployeeId],
+  );
+  return result.rows.map(row => row.id);
+};
+
+// Get all direct reports (team) - unchanged (still only direct for simplicity)
 const getTeam = async (req, res) => {
   try {
     const managerEmployeeId = await getEmployeeIdFromUserId(req.user.userId);
@@ -34,7 +52,7 @@ const getTeam = async (req, res) => {
   }
 };
 
-// Get team leave balances - unchanged
+// Get team leave balances - unchanged (only direct for simplicity)
 const getTeamLeaveBalances = async (req, res) => {
   try {
     const managerEmployeeId = await getEmployeeIdFromUserId(req.user.userId);
@@ -59,7 +77,7 @@ const getTeamLeaveBalances = async (req, res) => {
   }
 };
 
-// Get pending leave requests - ADMIN sees all, MANAGER sees only team
+// Get pending leave requests - ADMIN sees all, MANAGER sees entire hierarchy
 const getTeamPendingLeaves = async (req, res) => {
   try {
     const userRole = req.user.role;
@@ -78,19 +96,24 @@ const getTeamPendingLeaves = async (req, res) => {
       return res.json(result.rows);
     }
 
-    // Manager (or other roles) - original logic
+    // Manager: get all employees under their hierarchy
     const managerEmployeeId = await getEmployeeIdFromUserId(userId);
     if (!managerEmployeeId)
       return res.status(404).json({ message: "Employee record not found" });
+
+    const teamIds = await getAllDescendantEmployeeIds(managerEmployeeId);
+    if (teamIds.length === 0) {
+      return res.json([]);
+    }
 
     const result = await pool.query(
       `SELECT lr.*, e.first_name, e.last_name, e.employee_code, e.profile_picture, lt.name AS leave_type
        FROM leave_requests lr
        JOIN employees e ON lr.employee_id = e.id
        JOIN leave_types lt ON lr.leave_type_id = lt.id
-       WHERE e.manager_id = $1 AND lr.status = 'PENDING'
+       WHERE lr.status = 'PENDING' AND e.id = ANY($1::int[])
        ORDER BY lr.applied_at ASC`,
-      [managerEmployeeId],
+      [teamIds],
     );
     res.json(result.rows);
   } catch (error) {
@@ -121,8 +144,9 @@ const updateTeamLeaveStatus = async (req, res) => {
       // Admin: just fetch the leave (no manager check)
       const leaveCheck = await client.query(
         `SELECT lr.id, lr.employee_id, lr.total_days, lr.leave_type_id, 
-                lt.code AS leave_type_code, lr.start_date,e.first_name,e.last_name
+                lt.code AS leave_type_code, lr.start_date, e.first_name, e.last_name
          FROM leave_requests lr
+         JOIN employees e ON lr.employee_id = e.id
          JOIN leave_types lt ON lr.leave_type_id = lt.id
          WHERE lr.id = $1`,
         [leaveId],
@@ -134,27 +158,32 @@ const updateTeamLeaveStatus = async (req, res) => {
       leave = leaveCheck.rows[0];
       isAuthorized = true;
     } else {
-      // Manager: verify leave belongs to one of manager's direct reports
+      // Manager: verify leave belongs to any employee in the manager's hierarchy
       const managerEmployeeId = await getEmployeeIdFromUserId(userId);
       if (!managerEmployeeId) {
         await client.query("ROLLBACK");
         return res.status(404).json({ message: "Employee record not found" });
       }
 
+      // Get all descendant employee IDs under this manager
+      const teamIds = await getAllDescendantEmployeeIds(managerEmployeeId);
+      if (teamIds.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(403).json({ message: "Not authorized – no team members" });
+      }
+
       const leaveCheck = await client.query(
         `SELECT lr.id, lr.employee_id, lr.total_days, lr.leave_type_id, 
-                lt.code AS leave_type_code, lr.start_date,e.first_name,e.last_name
+                lt.code AS leave_type_code, lr.start_date, e.first_name, e.last_name
          FROM leave_requests lr
          JOIN employees e ON lr.employee_id = e.id
          JOIN leave_types lt ON lr.leave_type_id = lt.id
-         WHERE lr.id = $1 AND e.manager_id = $2`,
-        [leaveId, managerEmployeeId],
+         WHERE lr.id = $1 AND e.id = ANY($2::int[])`,
+        [leaveId, teamIds],
       );
       if (leaveCheck.rows.length === 0) {
         await client.query("ROLLBACK");
-        return res
-          .status(403)
-          .json({ message: "Not authorized to update this leave" });
+        return res.status(403).json({ message: "Not authorized to update this leave" });
       }
       leave = leaveCheck.rows[0];
       isAuthorized = true;
@@ -187,9 +216,7 @@ const updateTeamLeaveStatus = async (req, res) => {
 
       if (updateResult.rowCount === 0) {
         await client.query("ROLLBACK");
-        return res
-          .status(400)
-          .json({ message: "Leave balance not found for deduction" });
+        return res.status(400).json({ message: "Leave balance not found for deduction" });
       }
     }
 
@@ -201,7 +228,7 @@ const updateTeamLeaveStatus = async (req, res) => {
 
     await client.query("COMMIT");
 
-    // Get actor name (you already have actorName)
+    // Get actor name
     const actorRes = await pool.query(
       `SELECT first_name, last_name FROM employees WHERE user_id = $1`,
       [userId],
