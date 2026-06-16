@@ -12,7 +12,6 @@ export default function AttendancePanel({ onUpdate, initialTotal }) {
   const activeSessionRef = useRef(activeSession);
   const intervalRef = useRef(null);
 
-  // Keep ref in sync with state
   useEffect(() => {
     activeSessionRef.current = activeSession;
   }, [activeSession]);
@@ -38,12 +37,10 @@ export default function AttendancePanel({ onUpdate, initialTotal }) {
     }
   };
 
-  // Fetch on mount only
   useEffect(() => {
     fetchStatus();
-  }, []); // <-- empty dependency array
+  }, []);
 
-  // Timer interval: update elapsed every second only if activeSession exists
   useEffect(() => {
     intervalRef.current = setInterval(() => {
       if (activeSessionRef.current) {
@@ -51,7 +48,7 @@ export default function AttendancePanel({ onUpdate, initialTotal }) {
       }
     }, 1000);
     return () => clearInterval(intervalRef.current);
-  }, []); // <-- empty dependency array
+  }, []);
 
   const handleCheckIn = async () => {
     if (activeSession) {
@@ -62,7 +59,7 @@ export default function AttendancePanel({ onUpdate, initialTotal }) {
     try {
       const res = await api.post("/attendance/check-in");
       showToast(res.data.message, "success");
-      await fetchStatus(); // refresh after check-in
+      await fetchStatus();
     } catch (err) {
       showToast(err.response?.data?.message || "Check-in failed", "error");
     } finally {
@@ -87,7 +84,6 @@ export default function AttendancePanel({ onUpdate, initialTotal }) {
     }
   };
 
-  // ... (formatElapsed, progressPercent, getProgressColor unchanged)
   const formatElapsed = (hours) => {
     const hrs = Math.floor(hours);
     const mins = Math.floor((hours % 1) * 60);
@@ -95,69 +91,87 @@ export default function AttendancePanel({ onUpdate, initialTotal }) {
   };
 
   const progressPercent = Math.min((totalToday / dailyGoal) * 100, 100);
-  const getProgressColor = () => {
-    if (totalToday >= dailyGoal) return "stroke-green-500";
-    if (totalToday >= dailyGoal * 0.75) return "stroke-blue-500";
-    if (totalToday >= dailyGoal * 0.5) return "stroke-yellow-500";
-    return "stroke-gray-400";
-  };
+  const isFull = totalToday >= dailyGoal;
 
-  // Return JSX (same as before)
   return (
-    <div className="space-y-4">
-      <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-2xl p-6 border border-indigo-100 dark:border-indigo-800/30 shadow-md">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="flex-1">
-            <p className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold uppercase tracking-wider">
-              Today's Progress
-            </p>
-            <p className="text-3xl font-bold text-gray-800 dark:text-white mt-1">
-              {totalToday.toFixed(1)} <span className="text-lg text-gray-500">/ {dailyGoal} hrs</span>
-            </p>
-            {activeSession && (
-              <div className="mt-3 flex items-center gap-2">
-                <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Current session: <span className="font-mono font-bold">{formatElapsed(elapsed)}</span>
-                </p>
-              </div>
-            )}
-          </div>
-          <div className="relative w-20 h-20">
-            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-              <circle className="text-gray-200 dark:text-gray-700 stroke-current" strokeWidth="8" fill="transparent" r="42" cx="50" cy="50" />
-              <circle
-                className={`${getProgressColor()} transition-all duration-500 ease-out stroke-current`}
-                strokeWidth="8"
-                strokeLinecap="round"
-                fill="transparent"
-                r="42"
-                cx="50"
-                cy="50"
-                strokeDasharray={`${2 * Math.PI * 42}`}
-                strokeDashoffset={`${2 * Math.PI * 42 * (1 - progressPercent / 100)}`}
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-sm font-bold text-gray-800 dark:text-white">{Math.round(progressPercent)}%</span>
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 p-5 md:p-6 transition-all">
+      <div className="flex flex-col lg:flex-row lg:items-center gap-5">
+        {/* Left: Progress info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl">
+              <span className="text-indigo-600 dark:text-indigo-400 text-lg font-semibold">
+                {totalToday.toFixed(1)}
+              </span>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Today's Progress
+              </p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="font-semibold">{totalToday.toFixed(1)}</span> of {dailyGoal} hrs
+              </p>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={handleCheckIn}
-              disabled={loading || !!activeSession}
-              className="px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-            >
-              {loading ? "Processing..." : <>🟢 Check In</>}
-            </button>
-            <button
-              onClick={handleCheckOut}
-              disabled={loading || !activeSession}
-              className="px-6 py-2.5 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-            >
-              {loading ? "Processing..." : <>🔴 Check Out</>}
-            </button>
+
+          {/* Horizontal progress bar */}
+          <div className="mt-3 w-full">
+            <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ease-out ${
+                  isFull ? 'bg-emerald-500' : 'bg-indigo-500'
+                }`}
+                style={{ width: `${Math.min(progressPercent, 100)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              <span>0 hrs</span>
+              <span>{Math.round(progressPercent)}%</span>
+              <span>{dailyGoal} hrs</span>
+            </div>
           </div>
+
+          {activeSession && (
+            <div className="mt-3 flex items-center gap-2.5 text-sm text-gray-600 dark:text-gray-300">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span>Current session: <strong className="font-mono text-gray-900 dark:text-white">{formatElapsed(elapsed)}</strong></span>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Action buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 flex-shrink-0">
+          <button
+            onClick={handleCheckIn}
+            disabled={loading || !!activeSession}
+            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-medium rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 min-w-[120px]"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+                Processing...
+              </span>
+            ) : (
+              <>🟢 Check In</>
+            )}
+          </button>
+          <button
+            onClick={handleCheckOut}
+            disabled={loading || !activeSession}
+            className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-medium rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 min-w-[120px]"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+                Processing...
+              </span>
+            ) : (
+              <>🔴 Check Out</>
+            )}
+          </button>
         </div>
       </div>
     </div>

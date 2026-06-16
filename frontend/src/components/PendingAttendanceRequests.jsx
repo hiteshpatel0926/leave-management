@@ -1,7 +1,8 @@
-// frontend/src/components/PendingAttendanceRequests.jsx
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import { useToast } from "../context/ToastContext";
+import Swal from 'sweetalert2';
+import DataTable from "./DataTable";
 
 export default function PendingAttendanceRequests({ onSuccess }) {
   const [requests, setRequests] = useState([]);
@@ -24,13 +25,24 @@ export default function PendingAttendanceRequests({ onSuccess }) {
     fetchRequests();
   }, []);
 
-  const handleApprove = async (id) => {
+  const handleApprove = async (id, employeeName) => {
+    const result = await Swal.fire({
+      title: 'Approve Attendance Request?',
+      text: `Are you sure you want to approve this request for ${employeeName}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, approve',
+    });
+    if (!result.isConfirmed) return;
+
     setProcessing(id);
     try {
       await api.put(`/attendance/requests/${id}/approve`);
       showToast("Request approved", "success");
       await fetchRequests();
-      if (onSuccess) onSuccess(); // refresh calendar/panel
+      if (onSuccess) onSuccess();
     } catch (err) {
       showToast(err.response?.data?.message || "Approval failed", "error");
     } finally {
@@ -38,7 +50,18 @@ export default function PendingAttendanceRequests({ onSuccess }) {
     }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = async (id, employeeName) => {
+    const result = await Swal.fire({
+      title: 'Reject Attendance Request?',
+      text: `Are you sure you want to reject this request for ${employeeName}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, reject',
+    });
+    if (!result.isConfirmed) return;
+
     setProcessing(id);
     try {
       await api.put(`/attendance/requests/${id}/reject`);
@@ -54,87 +77,53 @@ export default function PendingAttendanceRequests({ onSuccess }) {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6">
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-        </div>
+      <div className="flex justify-center py-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
       </div>
     );
   }
 
   if (requests.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Pending Attendance Requests</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">No pending requests.</p>
+      <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
+        No pending requests.
       </div>
     );
   }
 
+  const columns = ["Employee", "Date", "Check In", "Check Out", "Hours", "Reason", "Actions"];
+  const data = requests.map((req) => [
+    <div>
+      <span className="font-medium text-gray-900 dark:text-white">{req.first_name} {req.last_name}</span>
+      <span className="block text-xs text-gray-500">{req.employee_code}</span>
+    </div>,
+    new Date(req.check_in).toLocaleDateString(),
+    new Date(req.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    new Date(req.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    <span className="font-semibold text-indigo-600 dark:text-indigo-400">{req.total_hours}</span>,
+    req.reason || "—",
+    <div className="flex gap-2">
+      <button
+        onClick={() => handleApprove(req.id, `${req.first_name} ${req.last_name}`)}
+        disabled={processing === req.id}
+        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl text-xs font-medium transition shadow-sm"
+      >
+        Approve
+      </button>
+      <button
+        onClick={() => handleReject(req.id, `${req.first_name} ${req.last_name}`)}
+        disabled={processing === req.id}
+        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white rounded-xl text-xs font-medium transition shadow-sm"
+      >
+        Reject
+      </button>
+    </div>
+  ]);
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Pending Attendance Requests</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400">{requests.length} request(s) awaiting approval</p>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800/50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Employee</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Check In</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Check Out</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Hours</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Reason</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {requests.map((req) => (
-              <tr key={req.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                  {req.first_name} {req.last_name}
-                  <span className="block text-xs text-gray-500">{req.employee_code}</span>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                  {new Date(req.check_in).toLocaleDateString()}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                  {new Date(req.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                  {new Date(req.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                  {req.total_hours}
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
-                  {req.reason || "—"}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleApprove(req.id)}
-                      disabled={processing === req.id}
-                      className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg text-xs font-medium transition"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleReject(req.id)}
-                      disabled={processing === req.id}
-                      className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-xs font-medium transition"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{requests.length} request(s) awaiting approval</p>
+      <DataTable columns={columns} data={data} />
     </div>
   );
 }
