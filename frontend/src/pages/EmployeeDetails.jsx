@@ -26,7 +26,7 @@ import {
 import api from "../services/api";
 import ImageCropUpload from "../components/ImageCropUpload";
 import { useToast } from "../context/ToastContext";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 
 export default function EmployeeDetails() {
   const { showToast } = useToast();
@@ -79,7 +79,7 @@ export default function EmployeeDetails() {
   const awardCompOff = async () => {
     // Use SweetAlert2 to get days and reason
     const { value: formValues } = await Swal.fire({
-      title: 'Award Comp Off',
+      title: "Award Comp Off",
       html: `
         <div style="text-align: left;">
           <label for="days">Number of Days</label>
@@ -90,18 +90,18 @@ export default function EmployeeDetails() {
       `,
       focusConfirm: false,
       showCancelButton: true,
-      confirmButtonText: 'Award',
-      confirmButtonColor: '#0ea5e9',
-      cancelButtonColor: '#6b7280',
+      confirmButtonText: "Award",
+      confirmButtonColor: "#0ea5e9",
+      cancelButtonColor: "#6b7280",
       preConfirm: () => {
-        const days = document.getElementById('days').value;
-        const reason = document.getElementById('reason').value;
+        const days = document.getElementById("days").value;
+        const reason = document.getElementById("reason").value;
         if (!days || parseFloat(days) <= 0) {
-          Swal.showValidationMessage('Please enter a valid number of days');
+          Swal.showValidationMessage("Please enter a valid number of days");
           return false;
         }
         return { days: parseFloat(days), reason: reason.trim() };
-      }
+      },
     });
 
     if (!formValues) return;
@@ -113,11 +113,17 @@ export default function EmployeeDetails() {
         days: formValues.days,
         reason: formValues.reason || "Awarded by manager/admin",
       });
-      showToast(`Successfully awarded ${formValues.days} Comp Off day(s)`, "success");
+      showToast(
+        `Successfully awarded ${formValues.days} Comp Off day(s)`,
+        "success",
+      );
       loadEmployee();
     } catch (error) {
       console.error(error);
-      showToast(error.response?.data?.message || "Failed to award Comp Off", "error");
+      showToast(
+        error.response?.data?.message || "Failed to award Comp Off",
+        "error",
+      );
     } finally {
       setAwardLoading(false);
     }
@@ -435,6 +441,24 @@ export default function EmployeeDetails() {
                 </p>
               </div>
             </div>
+
+            {/* 👇 NEW: Last Working Day (only if status is INACTIVE) */}
+            {employee.profile?.status === "INACTIVE" && (
+              <div className="flex items-start gap-3">
+                <CalendarIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Last Working Day
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100 font-medium">
+                    {formatDate(
+                      employee.profile?.last_working_day ||
+                        employee.last_working_day,
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -232,51 +232,78 @@ const getMyAttendance = async (req, res) => {
   }
 };
 
-// 5. Request manual attendance (employee)
+// 5. Request manual attendance (employee) – supports date range
 const requestAttendance = async (req, res) => {
   try {
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
     const employeeId = await getEmployeeId(userId);
-    if (!employeeId)
-      return res.status(404).json({ message: "Employee record not found" });
+    if (!employeeId) return res.status(404).json({ message: "Employee record not found" });
 
-    const { date, check_in, check_out, reason } = req.body;
-    if (!date || !check_in || !check_out) {
-      return res
-        .status(400)
-        .json({ message: "Date, check-in, and check-out times are required." });
+    const { start_date, end_date, check_in, check_out, reason } = req.body;
+
+    // Validate inputs
+    if (!start_date || !end_date || !check_in || !check_out) {
+      return res.status(400).json({ message: "Start date, end date, check-in, and check-out times are required." });
     }
 
-    // Combine date with check_in/out times
-    const checkInDateTime = new Date(`${date}T${check_in}:00`);
-    const checkOutDateTime = new Date(`${date}T${check_out}:00`);
-
-    if (checkInDateTime >= checkOutDateTime) {
-      return res
-        .status(400)
-        .json({ message: "Check-out time must be after check-in time." });
+    const start = new Date(start_date);
+    const end = new Date(end_date);
+    if (start > end) {
+      return res.status(400).json({ message: "Start date must be before or equal to end date." });
     }
 
-    // Calculate total hours
-    const totalHours = calculateHours(checkInDateTime, checkOutDateTime);
+    // Prepare base times
+    const [hoursIn, minsIn] = check_in.split(':').map(Number);
+    const [hoursOut, minsOut] = check_out.split(':').map(Number);
 
-    // Insert as a manual entry with status PENDING
- const result = await pool.query(
-  `INSERT INTO attendance_records
-   (employee_id, check_in, check_out, total_hours, is_manual, approval_status, requested_by, reason)
-   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-   RETURNING *`,
-  [employeeId, checkInDateTime, checkOutDateTime, totalHours, true, 'PENDING', employeeId, reason || null]
-);
+    const createdRecords = [];
+    const current = new Date(start);
 
-    res
-      .status(201)
-      .json({
-        message: "Manual attendance request submitted.",
-        record: result.rows[0],
-      });
+    // Loop through each day in the range
+    while (current <= end) {
+      const dateStr = current.toISOString().split('T')[0];
+      let checkInDateTime = new Date(`${dateStr}T${check_in}:00`);
+      let checkOutDateTime = new Date(`${dateStr}T${check_out}:00`);
+
+      // If check-out time is <= check-in time, assume it's the next day (night shift)
+      if (checkOutDateTime <= checkInDateTime) {
+        checkOutDateTime.setDate(checkOutDateTime.getDate() + 1);
+      }
+
+      const totalHours = calculateHours(checkInDateTime, checkOutDateTime);
+      if (totalHours <= 0 || totalHours > 24) {
+        // Skip invalid entries (or you could return an error)
+        console.warn(`Invalid hours for ${dateStr}: ${totalHours}`);
+        current.setDate(current.getDate() + 1);
+        continue;
+      }
+
+      // Check for existing record on that day to avoid duplicates (optional)
+      // We'll skip this check for now, but you can add it if needed.
+
+      // Insert record
+      const result = await pool.query(
+        `INSERT INTO attendance_records
+         (employee_id, check_in, check_out, total_hours, is_manual, approval_status, requested_by, reason)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING *`,
+        [employeeId, checkInDateTime, checkOutDateTime, totalHours, true, 'PENDING', employeeId, reason || null]
+      );
+
+      createdRecords.push(result.rows[0]);
+      current.setDate(current.getDate() + 1);
+    }
+
+    if (createdRecords.length === 0) {
+      return res.status(400).json({ message: "No valid attendance records could be created for the given range." });
+    }
+
+    res.status(201).json({
+      message: `${createdRecords.length} manual attendance request(s) submitted.`,
+      records: createdRecords,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });

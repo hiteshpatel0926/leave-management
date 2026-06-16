@@ -38,6 +38,7 @@ export default function EditEmployee() {
     zip: "",
     phone_country_code: "",
     phone_number: "",
+    last_working_day: "", // 👈 NEW
   });
 
   const [managers, setManagers] = useState([]);
@@ -110,6 +111,9 @@ export default function EditEmployee() {
         zip: response.data.zip || "",
         phone_country_code: response.data.phone_country_code || "",
         phone_number: response.data.phone_number || "",
+        last_working_day: response.data.last_working_day
+          ? formatLocalDate(response.data.last_working_day)
+          : "", // 👈 NEW
       });
 
       if (response.data.profile_picture) {
@@ -226,8 +230,15 @@ export default function EditEmployee() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
+
+    // Prepare payload – include last_working_day only if status is INACTIVE
+    const payload = { ...formData };
+    if (formData.status !== "INACTIVE") {
+      payload.last_working_day = null;
+    }
+
     try {
-      await api.put(`/employees/${id}`, formData);
+      await api.put(`/employees/${id}`, payload);
       await api.put(`/employees/${id}/manager`, {
         managerId: formData.manager_id || null,
       });
@@ -580,6 +591,7 @@ export default function EditEmployee() {
               )}
             </div>
 
+            {/* Status + Last Working Day */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Status
@@ -594,7 +606,28 @@ export default function EditEmployee() {
                 <option value="INACTIVE">INACTIVE</option>
               </select>
             </div>
+
+            {/* 👇 NEW CONDITIONAL LAST WORKING DAY FIELD */}
+            {formData.status === "INACTIVE" && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Last Working Day <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  name="last_working_day"
+                  value={formData.last_working_day}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 transition-all"
+                />
+                <p className="mt-1 text-xs text-gray-400">
+                  Please select the employee's last working day.
+                </p>
+              </div>
+            )}
           </div>
+
           <div className="flex space-x-4 pt-4">
             <button
               type="submit"

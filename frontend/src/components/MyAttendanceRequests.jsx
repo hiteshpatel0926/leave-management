@@ -41,16 +41,37 @@ export default function MyAttendanceRequests() {
     );
   }
 
-  const columns = ["Date", "Check In", "Check Out", "Hours", "Status", "Reason"];
+  // Shorter column headers and date format to save space
+  const columns = ["Date", "In", "Out", "Hrs", "Status", "Reason"];
   const data = requests.map((req) => [
-    new Date(req.check_in).toLocaleDateString(),
-    new Date(req.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    new Date(req.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    <span className="font-semibold text-indigo-600 dark:text-indigo-400">{req.total_hours}</span>,
-    <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(req.approval_status)}`}>
+    // Use MM/DD/YYYY format – 10 characters, less likely to cut off
+    new Date(req.check_in).toLocaleDateString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+    }),
+    new Date(req.check_in).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    new Date(req.check_out).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+      {req.total_hours}
+    </span>,
+    <span
+      className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(
+        req.approval_status
+      )}`}
+    >
       {req.approval_status}
     </span>,
-    req.reason || "—"
+    // Truncate long reasons to prevent pushing other columns
+    <span className="truncate max-w-[120px] block" title={req.reason || ""}>
+      {req.reason || "—"}
+    </span>,
   ]);
 
   return (

@@ -481,7 +481,11 @@ const updateEmployee = async (req, res) => {
       zip,
       phone_country_code,
       phone_number,
+      last_working_day,
     } = req.body;
+
+    // If status is ACTIVE, clear last_working_day (optional)
+    const lastWorkingDayValue = status === 'ACTIVE' ? null : last_working_day;
 
     const result = await pool.query(
       `
@@ -501,8 +505,9 @@ const updateEmployee = async (req, res) => {
           city_id = $12,
           zip = $13,
           phone_country_code = $14,
-          phone_number = $15
-        WHERE id = $16
+          phone_number = $15,
+          last_working_day = $16
+        WHERE id = $17
         RETURNING *
       `,
       [
@@ -521,6 +526,7 @@ const updateEmployee = async (req, res) => {
         zip || null,
         phone_country_code || null,
         phone_number || null,
+        lastWorkingDayValue,
         id,
       ],
     );
