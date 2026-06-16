@@ -225,3 +225,15 @@ html.dark .text-gray-800 {
     transform: translateY(0);
   }
 }
+
+
+/* Force FullCalendar background to match theme */
+.fc .fc-daygrid-day,
+.fc .fc-timegrid-slot,
+.fc .fc-daygrid-day-frame {
+  background-color: inherit !important;
+}
+.fc .fc-daygrid-day-number,
+.fc .fc-col-header-cell-cushion {
+  color: inherit !important;
+}

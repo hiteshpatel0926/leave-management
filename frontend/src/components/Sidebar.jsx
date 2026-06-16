@@ -79,6 +79,7 @@ export default function Sidebar() {
       icon: RectangleGroupIcon,
     },
     { path: "/calendar", label: "Leave Calendar", icon: CalendarIcon },
+    { path: "/attendance", label: "Attendance", icon: ClockIcon },   // <-- NEW
     { path: "/change-password", label: "Change Password", icon: KeyIcon },
   ];
 

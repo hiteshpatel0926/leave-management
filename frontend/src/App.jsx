@@ -28,7 +28,7 @@ const TeamPendingLeaves = lazy(() => import("./pages/TeamPendingLeaves"));
 const TeamLeaveBalances = lazy(() => import("./pages/TeamLeaveBalances"));
 const OrgHierarchy = lazy(() => import("./pages/OrgHierarchy"));
 const TeamCalendar = lazy(() => import("./pages/TeamCalendar"));
-
+const Attendance = lazy(() => import("./pages/Attendance")); 
 
 function App() {
   return (
@@ -172,11 +172,12 @@ function App() {
             }
           />
 
-<Route path="/manager/team" element={<ProtectedRoute><MainLayout><TeamManagement /></MainLayout></ProtectedRoute>} />
-<Route path="/manager/pending-leaves" element={<ProtectedRoute><MainLayout><TeamPendingLeaves /></MainLayout></ProtectedRoute>} />
-<Route path="/manager/leave-balances" element={<ProtectedRoute><MainLayout><TeamLeaveBalances /></MainLayout></ProtectedRoute>} />
-<Route path="/org-hierarchy" element={<ProtectedRoute><MainLayout><OrgHierarchy /></MainLayout></ProtectedRoute>} />
-<Route path="/calendar" element={<ProtectedRoute><MainLayout><TeamCalendar /></MainLayout></ProtectedRoute>} />
+          <Route path="/manager/team" element={<ProtectedRoute><MainLayout><TeamManagement /></MainLayout></ProtectedRoute>} />
+          <Route path="/manager/pending-leaves" element={<ProtectedRoute><MainLayout><TeamPendingLeaves /></MainLayout></ProtectedRoute>} />
+          <Route path="/manager/leave-balances" element={<ProtectedRoute><MainLayout><TeamLeaveBalances /></MainLayout></ProtectedRoute>} />
+          <Route path="/org-hierarchy" element={<ProtectedRoute><MainLayout><OrgHierarchy /></MainLayout></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute><MainLayout><TeamCalendar /></MainLayout></ProtectedRoute>} />
+          <Route path="/attendance" element={<ProtectedRoute><MainLayout><Attendance /></MainLayout></ProtectedRoute>} />
         </Routes>
       </Suspense>
     </BrowserRouter>
