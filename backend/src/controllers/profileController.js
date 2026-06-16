@@ -5,19 +5,7 @@ const getMyProfile = async (req, res) => {
     const result = await pool.query(
       `
       SELECT
-        e.id,
-        e.profile_picture,
-        e.employee_code,
-        e.first_name,
-        e.last_name,
-        e.email,
-        e.gender,
-        e.dob,
-        e.department,
-        e.designation,
-        e.joining_date,
-        e.status,
-        e.manager_id,
+        e.*,
         CONCAT(m.first_name, ' ', m.last_name) AS manager_name,
         u.role
       FROM employees e
