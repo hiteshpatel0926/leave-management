@@ -2,13 +2,9 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: "http://localhost:5000/api",
+  withCredentials: true,   // ✅ important: send cookies
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// No request interceptor for Authorization header – token is in cookie
+
 export default api;

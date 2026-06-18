@@ -7,8 +7,14 @@ const { Server } = require("socket.io");
 const path = require("path");
 const cron = require("node-cron");
 
+
+
+
 const app = express();
 const server = http.createServer(app);
+
+const cookieParser = require("cookie-parser");
+app.use(cookieParser());
 
 // ------------------------------
 // Socket.IO configuration
@@ -41,7 +47,10 @@ io.on("connection", (socket) => {
 // ------------------------------
 // Middleware
 // ------------------------------
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  credentials: true,
+}));
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
@@ -98,3 +107,4 @@ server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 const attendanceRoutes = require("./routes/attendanceRoutes");
 app.use("/api/attendance", attendanceRoutes);
+

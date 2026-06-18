@@ -4,9 +4,11 @@ import { motion } from "framer-motion";
 import api from "../services/api";
 import { useEffect } from "react";
 import { KeyIcon, EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+import { useAuth } from "../context/AuthContext"; // ✅ import useAuth
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth(); // ✅ use login from context
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -22,8 +24,9 @@ export default function Login() {
     setError("");
     try {
       const response = await api.post("/auth/login", { email, password });
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      // response.data.user contains user object
+      const userData = response.data.user;
+      login(userData); // ✅ updates context and localStorage
       navigate("/dashboard");
     } catch (error) {
       const status = error.response?.status;
@@ -81,6 +84,7 @@ export default function Login() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email" // ✅ added
                   className="w-full pl-11 pr-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   required
                 />
@@ -95,6 +99,7 @@ export default function Login() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password" // ✅ added
                   className="w-full pl-11 pr-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   required
                 />

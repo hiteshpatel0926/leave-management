@@ -19,6 +19,7 @@
     "@heroicons/react": "^2.2.0",
     "alpinejs": "^3.15.12",
     "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "crypto": "^1.0.1",
     "csv-parser": "^3.2.1",

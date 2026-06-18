@@ -1,11 +1,12 @@
 import { Navigate } from "react-router-dom";
 import IdleTimer from './IdleTimer';
+import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute({ children }) {
-  const token = localStorage.getItem("token");
+  const { user } = useAuth();
 
-  if (!token) {
-    return <Navigate to="/login" />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
   // Wrap children with IdleTimer to track inactivity

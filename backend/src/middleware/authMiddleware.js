@@ -3,18 +3,17 @@ const jwt = require("jsonwebtoken");
 const pool = require("../config/db"); // add this
 
 const authenticate = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  // Read token from cookie
+  const token = req.cookies?.token;
 
-  if (!authHeader) {
+  if (!token) {
     return res.status(401).json({ message: "No token provided" });
   }
 
-  const token = authHeader.split(" ")[1];
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Optional: Check if user's employee status is still ACTIVE
+
+    // Check if user's employee status is still ACTIVE
     const result = await pool.query(
       `SELECT e.status 
        FROM employees e 

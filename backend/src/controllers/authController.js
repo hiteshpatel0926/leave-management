@@ -90,12 +90,20 @@ const login = async (req, res) => {
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" },
+      { expiresIn: "7d" }, // 7 days
     );
 
+    // Set httpOnly cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // for local dev
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    // Send user data (no token)
     res.json({
       message: "Login successful",
-      token,
       user: {
         id: user.id,
         name: user.name,
@@ -105,12 +113,9 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        message:
-          "Something went wrong on our end. Please try again in a moment.",
-      });
+    res.status(500).json({
+      message: "Something went wrong on our end. Please try again in a moment.",
+    });
   }
 };
 

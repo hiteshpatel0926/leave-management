@@ -2,7 +2,6 @@ import { createContext, useState, useEffect, useContext } from "react";
 
 export const AuthContext = createContext();
 
-// ✅ Add this custom hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -25,15 +24,13 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = (token, userData) => {
-    localStorage.setItem("token", token);
+  const login = (userData) => {  
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+        localStorage.removeItem("user");
     setUser(null);
   };
 
