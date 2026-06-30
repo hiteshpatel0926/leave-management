@@ -30,6 +30,8 @@ async function monthlyPLAccrual() {
     const currentYear = today.getFullYear();
     const financialYear = getFinancialYear(today);
 
+    console.log(`[DEBUG] today = ${today}, currentMonth = ${currentMonth}, currentYear = ${currentYear}, financialYear = ${financialYear}`);
+
     // Safety: only run on the 1st of the month (or allow manual override)
     if (today.getDate() !== 1) {
       console.log('Not the first day of the month. Skipping PL accrual.');
@@ -48,11 +50,15 @@ async function monthlyPLAccrual() {
 
     // Get all active employees
     const employees = await client.query(`
-      SELECT id, joining_date FROM employees WHERE status = 'ACTIVE'
+      SELECT id, joining_date FROM employees WHERE status ILIKE 'active'
     `);
+    console.log(`[DEBUG] Found ${employees.rows.length} active employees.`);
+
+    let updatedCount = 0;
 
     for (const emp of employees.rows) {
       const credit = getCreditForMonth(emp.joining_date, currentYear, currentMonth);
+      console.log(`[DEBUG] Employee ${emp.id}, joining ${emp.joining_date}, credit = ${credit}`);
       if (credit === 0) continue;
 
       // Get current PL balance for this financial year
@@ -63,20 +69,23 @@ async function monthlyPLAccrual() {
       `, [emp.id, financialYear]);
 
       if (balanceRes.rows.length === 0) {
-        // No record yet – create one with opening balance = credit
+        // No record yet – create one
         await client.query(`
           INSERT INTO leave_balances (employee_id, leave_type_id, year, entitled_days, used_days, balance_days, carried_over_days)
           VALUES ($1, 1, $2, $3, 0, $3, 0)
         `, [emp.id, financialYear, credit]);
+        console.log(`[DEBUG] Created new balance for employee ${emp.id} with ${credit} days.`);
       } else {
         const row = balanceRes.rows[0];
-        const newEntitled = row.entitled_days + credit;
-        const newBalance = row.balance_days + credit;
+        const newEntitled = parseFloat(row.entitled_days) + credit;
+        const newBalance = parseFloat(row.balance_days) + credit;
         await client.query(`
           UPDATE leave_balances
           SET entitled_days = $1, balance_days = $2
           WHERE id = $3
         `, [newEntitled, newBalance, row.id]);
+        console.log(`[DEBUG] Updated employee ${emp.id}: entitled ${row.entitled_days} → ${newEntitled}, balance ${row.balance_days} → ${newBalance}`);
+        updatedCount++;
       }
     }
 
@@ -96,7 +105,7 @@ async function monthlyPLAccrual() {
     `, [financialYear, currentMonth]);
 
     await client.query('COMMIT');
-    console.log(`Monthly PL accrual applied for ${currentYear}-${currentMonth}`);
+    console.log(`Monthly PL accrual applied for ${currentYear}-${currentMonth}. Updated ${updatedCount} employees.`);
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Monthly accrual failed:', err);
